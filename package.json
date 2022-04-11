@@ -27,5 +27,12 @@
     "lint": "./node_modules/.bin/eslint src --ext .js,.jsx,.ts,.tsx",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\""
   },
-  "files": ["lib/**/*"]
+  "files": [
+    "lib/**/*"
+  ],
+  "dependencies": {
+    "@pulumi/pulumi": "^3.28.0",
+    "aws-cdk-lib": "^2.20.0",
+    "constructs": "^10.0.111"
+  }
 }
