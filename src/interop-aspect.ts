@@ -72,11 +72,11 @@ class PulumiCDKBridge extends Construct {
                 for (const [logical, value] of Object.entries(cfn.Resources || {})) {
                     const typeName = value.Type;
                     debug(`Creating resource for ${logical}:\n${JSON.stringify(cfn)}`);
-                    let props = this.processIntrinsics(value.Properties);
+                    const props = this.processIntrinsics(value.Properties);
                     const normProps = normalize(props);
                     const res = this.host.remapCloudControlResource(logical, typeName, normProps);
                     if (Object.keys(res).length > 0) {
-                        let m: { [key: string]: Mapping<pulumi.CustomResource> } = {};
+                        const m: { [key: string]: Mapping<pulumi.CustomResource> } = {};
                         for (const [k, r] of Object.entries(res) ?? []) {
                             m[k] = { resource: r, resourceType: typeName };
                         }
@@ -84,27 +84,27 @@ class PulumiCDKBridge extends Construct {
                         continue;
                     }
                     switch (typeName) {
-                        case 'AWS::ECS::Cluster':
+                        case 'AWS::ECS::Cluster': {
                             debug('Creating ECS Cluster resource');
                             const c = new ecs.Cluster(logical, normProps, { parent: this.host.parent });
                             this.resources[logical] = { resource: c, resourceType: typeName };
-                            break;
-                        case 'AWS::ECS::TaskDefinition':
+                        } break;
+                        case 'AWS::ECS::TaskDefinition': {
                             debug('Creating ECS task definition');
                             const t = new ecs.TaskDefinition(logical, normProps, { parent: this.host.parent });
                             this.resources[logical] = { resource: t, resourceType: typeName };
-                            break;
-                        case 'AWS::AppRunner::Service':
+                        } break;
+                        case 'AWS::AppRunner::Service': {
                             const s = new apprunner.Service(logical, normProps, { parent: this.host.parent });
                             this.resources[logical] = { resource: s, resourceType: typeName };
-                            break;
-                        case 'AWS::Lambda::Function':
+                        } break;
+                        case 'AWS::Lambda::Function': {
                             debug(`lambda: ${JSON.stringify(normProps)}`);
                             debug(`Keys in function ${normProps['role'] != undefined}`);
                             const l = new lambda.Function(logical, normProps, { parent: this.host.parent });
                             this.resources[logical] = { resource: l, resourceType: typeName };
-                            break;
-                        case 'AWS::IAM::Role':
+                        } break;
+                        case 'AWS::IAM::Role': {
                             debug('Creating IAM Role');
                             // We need this because IAM Role's CFN json format has the following field in uppercase.
                             const morphed: any = {};
@@ -117,11 +117,12 @@ class PulumiCDKBridge extends Construct {
                             });
                             const r = new iam.Role(logical, morphed, { parent: this.host.parent });
                             this.resources[logical] = { resource: r, resourceType: typeName };
-                            break;
-                        default:
+                        } break;
+                        default: {
                             debug(`Creating fallthrough CdkResource for type: ${typeName} - ${logical}`);
                             const f = new CdkResource(logical, typeName, normProps, { parent: this.host.parent });
                             this.resources[logical] = { resource: f, resourceType: typeName };
+                        }
                     }
                     debug(`Done creating resource for ${logical}`);
                 }

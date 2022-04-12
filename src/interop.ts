@@ -10,7 +10,7 @@ export function firstToLower(str: string) {
 
 function moduleName(resourceType: string): string {
     const resourceTypeComponents = resourceType.split('::');
-    var module = resourceTypeComponents[1];
+    let module = resourceTypeComponents[1];
 
     // Override the name of the Config module.
     if (module == 'Config') {
