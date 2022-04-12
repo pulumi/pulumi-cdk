@@ -22,6 +22,8 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Install Yarn
         run: curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.13.0
+      - name: Install packages
+        run: yarn install
       - name: Run lint
         run: yarn run lint
   build:
@@ -39,6 +41,8 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Install Yarn
         run: curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.13.0
+      - name: Install packages
+        run: yarn install
       - name: Run build
         run: yarn run build
 name: main
