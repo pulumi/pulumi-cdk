@@ -46,7 +46,7 @@ jobs:
       - name: Run build
         run: yarn run build
       - name: yarn link
-        run: pushd lib && yarn run link && popd
+        run: pushd lib && yarn link && popd
       - name: Run examples
         run: yarn run text-examples
 name: main
