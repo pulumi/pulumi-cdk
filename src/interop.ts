@@ -1,4 +1,4 @@
-import * as cdk from 'aws-cdk-lib/core/lib';
+import * as cdk from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
 

@@ -1,4 +1,4 @@
-import * as cdk from 'aws-cdk-lib/core/lib';
+import * as cdk from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import { CdkResource, normalize, firstToLower } from './interop';
 import { Stack, CfnElement, Aspects, Token } from 'aws-cdk-lib';

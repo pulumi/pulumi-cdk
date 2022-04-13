@@ -1,0 +1,3 @@
+name: pulumi-cdk-apprunner
+runtime: nodejs
+description: A minimal TypeScript Pulumi program
