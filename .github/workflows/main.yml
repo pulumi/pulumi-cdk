@@ -48,7 +48,7 @@ jobs:
       - name: yarn link
         run: pushd lib && yarn link && popd
       - name: Run examples
-        run: yarn run text-examples
+        run: yarn run test-examples
 name: main
 "on":
   schedule:
