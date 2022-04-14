@@ -84,40 +84,50 @@ class PulumiCDKBridge extends Construct {
                         continue;
                     }
                     switch (typeName) {
-                        case 'AWS::ECS::Cluster': {
-                            debug('Creating ECS Cluster resource');
-                            const c = new ecs.Cluster(logical, normProps, { parent: this.host.parent });
-                            this.resources[logical] = { resource: c, resourceType: typeName };
-                        } break;
-                        case 'AWS::ECS::TaskDefinition': {
-                            debug('Creating ECS task definition');
-                            const t = new ecs.TaskDefinition(logical, normProps, { parent: this.host.parent });
-                            this.resources[logical] = { resource: t, resourceType: typeName };
-                        } break;
-                        case 'AWS::AppRunner::Service': {
-                            const s = new apprunner.Service(logical, normProps, { parent: this.host.parent });
-                            this.resources[logical] = { resource: s, resourceType: typeName };
-                        } break;
-                        case 'AWS::Lambda::Function': {
-                            debug(`lambda: ${JSON.stringify(normProps)}`);
-                            debug(`Keys in function ${normProps['role'] != undefined}`);
-                            const l = new lambda.Function(logical, normProps, { parent: this.host.parent });
-                            this.resources[logical] = { resource: l, resourceType: typeName };
-                        } break;
-                        case 'AWS::IAM::Role': {
-                            debug('Creating IAM Role');
-                            // We need this because IAM Role's CFN json format has the following field in uppercase.
-                            const morphed: any = {};
-                            Object.entries(props).forEach(([k, v]) => {
-                                if (k == 'AssumeRolePolicyDocument') {
-                                    morphed[firstToLower(k)] = v;
-                                } else {
-                                    morphed[k] = v;
-                                }
-                            });
-                            const r = new iam.Role(logical, morphed, { parent: this.host.parent });
-                            this.resources[logical] = { resource: r, resourceType: typeName };
-                        } break;
+                        case 'AWS::ECS::Cluster':
+                            {
+                                debug('Creating ECS Cluster resource');
+                                const c = new ecs.Cluster(logical, normProps, { parent: this.host.parent });
+                                this.resources[logical] = { resource: c, resourceType: typeName };
+                            }
+                            break;
+                        case 'AWS::ECS::TaskDefinition':
+                            {
+                                debug('Creating ECS task definition');
+                                const t = new ecs.TaskDefinition(logical, normProps, { parent: this.host.parent });
+                                this.resources[logical] = { resource: t, resourceType: typeName };
+                            }
+                            break;
+                        case 'AWS::AppRunner::Service':
+                            {
+                                const s = new apprunner.Service(logical, normProps, { parent: this.host.parent });
+                                this.resources[logical] = { resource: s, resourceType: typeName };
+                            }
+                            break;
+                        case 'AWS::Lambda::Function':
+                            {
+                                debug(`lambda: ${JSON.stringify(normProps)}`);
+                                debug(`Keys in function ${normProps['role'] != undefined}`);
+                                const l = new lambda.Function(logical, normProps, { parent: this.host.parent });
+                                this.resources[logical] = { resource: l, resourceType: typeName };
+                            }
+                            break;
+                        case 'AWS::IAM::Role':
+                            {
+                                debug('Creating IAM Role');
+                                // We need this because IAM Role's CFN json format has the following field in uppercase.
+                                const morphed: any = {};
+                                Object.entries(props).forEach(([k, v]) => {
+                                    if (k == 'AssumeRolePolicyDocument') {
+                                        morphed[firstToLower(k)] = v;
+                                    } else {
+                                        morphed[k] = v;
+                                    }
+                                });
+                                const r = new iam.Role(logical, morphed, { parent: this.host.parent });
+                                this.resources[logical] = { resource: r, resourceType: typeName };
+                            }
+                            break;
                         default: {
                             debug(`Creating fallthrough CdkResource for type: ${typeName} - ${logical}`);
                             const f = new CdkResource(logical, typeName, normProps, { parent: this.host.parent });
