@@ -1,8 +1,5 @@
-import * as cdk from 'aws-cdk-lib';
-import * as pulumi from '@pulumi/pulumi';
-import { CdkResource, normalize, firstToLower } from './interop';
-import { Stack, CfnElement, Aspects, Token } from 'aws-cdk-lib';
-import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
+import { Stack, CfnElement, Token } from 'aws-cdk-lib';
+import { Construct, ConstructOrder } from 'constructs';
 import { CloudFormationTemplate } from './cfn';
 
 export interface GraphNode {
