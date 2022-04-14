@@ -86,4 +86,4 @@ on:
     types: [run-acceptance-tests-command]
   pull_request:
     branches:
-      - master
+      - main
