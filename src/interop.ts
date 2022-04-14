@@ -53,7 +53,7 @@ export class CdkResource extends pulumi.CustomResource {
 
 export class CdkComponent extends pulumi.ComponentResource {
     constructor(name: string, args: (stack: cdk.Stack) => void, opts?: pulumi.CustomResourceOptions) {
-        super('aws-native:cdk:Component', name, args, opts);
+        super('cdk:index:Component', name, args, opts);
 
         const app = new cdk.App();
         const stack = new cdk.Stack(app);

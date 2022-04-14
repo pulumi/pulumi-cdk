@@ -74,6 +74,8 @@ jobs:
         run: yarn install
       - name: Run build
         run: yarn run build
+      - name: Run unit tests
+        run: yarn run test
       - name: yarn link
         run: pushd lib && yarn link && popd
       - name: Run examples

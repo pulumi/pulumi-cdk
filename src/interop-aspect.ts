@@ -14,7 +14,7 @@ export class CdkStackComponent extends pulumi.ComponentResource {
         args: (scope: Construct, parent: CdkStackComponent) => cdk.Stack,
         opts?: pulumi.CustomResourceOptions,
     ) {
-        super('aws-native:cdk:StackComponent', name, args, opts);
+        super('cdk:index:StackComponent', name, args, opts);
         this.outputs = {};
         const app = new cdk.App();
         const stack = args(app, this);
