@@ -15,6 +15,7 @@
     "node": ">=8.13.0 || >=10.10.0"
   },
   "devDependencies": {
+    "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
     "@types/chai": "^4.3.1",
     "@types/mocha": "^9.1.0",
     "@types/node": "^17.0.23",

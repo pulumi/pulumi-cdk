@@ -1,10 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
-import { CdkResource, normalize, firstToLower } from './interop';
-import { Stack, CfnElement, Aspects, Token } from 'aws-cdk-lib';
-import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
 import { ecs, iam, apprunner, lambda } from '@pulumi/aws-native';
 import { debug } from '@pulumi/pulumi/log';
+import { Stack, CfnElement, Aspects, Token } from 'aws-cdk-lib';
+import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
+import { CloudFormationTemplate } from "./cfn";
+import { GraphBuilder } from "./graph";
+import { CdkResource, normalize, firstToLower } from './interop';
 
 export class CdkStackComponent extends pulumi.ComponentResource {
     outputs!: { [outputId: string]: pulumi.Output<any> };
@@ -66,9 +68,10 @@ class PulumiCDKBridge extends Construct {
     }
 
     convert() {
-        for (const r of this.host.node.findAll(ConstructOrder.POSTORDER)) {
-            if (CfnElement.isCfnElement(r)) {
-                const cfn = this.host.resolve((r as any)._toCloudFormation()) as CloudFormationTemplate;
+        const dependencyGraphNodes = GraphBuilder.build(this.host);
+        for (const n of dependencyGraphNodes) {
+            if (CfnElement.isCfnElement(n.construct)) {
+                const cfn = n.template!;
                 for (const [logical, value] of Object.entries(cfn.Resources || {})) {
                     const typeName = value.Type;
                     debug(`Creating resource for ${logical}:\n${JSON.stringify(cfn)}`);
@@ -305,16 +308,4 @@ class PulumiCDKBridge extends Construct {
         debug(`resolveAtt for ${logicalId}`);
         throw new Error(`no "${attribute}" attribute mapping for resource ${logicalId}`);
     }
-}
-
-export interface CloudFormationResource {
-    readonly Type: string;
-    readonly Properties: any;
-    readonly Condition?: string;
-}
-
-export interface CloudFormationTemplate {
-    Resources?: { [id: string]: CloudFormationResource };
-    Conditions?: { [id: string]: any };
-    Outputs?: { [id: string]: any };
 }
