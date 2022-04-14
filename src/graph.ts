@@ -160,14 +160,16 @@ export class GraphBuilder {
                 this.addEdgeForRef(params[0], source);
                 break;
             case 'Fn::Sub':
-                const [template, vars] =
-                    typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
+                {
+                    const [template, vars] =
+                        typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 
-                this.addEdgesForFragment(vars, source);
+                    this.addEdgesForFragment(vars, source);
 
-                const subRegex = /\${([^!][^.}]*)(\.[^}]*)?}/g;
-                for (const m of template.matchAll(subRegex)) {
-                    this.addEdgeForRef(m[1], source);
+                    const subRegex = /\${([^!][^.}]*)(\.[^}]*)?}/g;
+                    for (const m of template.matchAll(subRegex)) {
+                        this.addEdgeForRef(m[1], source);
+                    }
                 }
                 break;
             default:
