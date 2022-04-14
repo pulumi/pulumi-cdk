@@ -4,8 +4,8 @@ import { ecs, iam, apprunner, lambda } from '@pulumi/aws-native';
 import { debug } from '@pulumi/pulumi/log';
 import { Stack, CfnElement, Aspects, Token } from 'aws-cdk-lib';
 import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
-import { CloudFormationTemplate } from "./cfn";
-import { GraphBuilder } from "./graph";
+import { CloudFormationTemplate } from './cfn';
+import { GraphBuilder } from './graph';
 import { CdkResource, normalize, firstToLower } from './interop';
 
 export class CdkStackComponent extends pulumi.ComponentResource {

@@ -3,7 +3,7 @@ import * as pulumi from '@pulumi/pulumi';
 import { CdkResource, normalize, firstToLower } from './interop';
 import { Stack, CfnElement, Aspects, Token } from 'aws-cdk-lib';
 import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
-import { CloudFormationTemplate } from "./cfn";
+import { CloudFormationTemplate } from './cfn';
 
 export interface GraphNode {
     incomingEdges: Set<GraphNode>;
@@ -34,7 +34,7 @@ export class GraphBuilder {
         // 3. sort the dependency graph
 
         // Create graph nodes and associate them with constructs and CFN logical IDs.
-        // 
+        //
         // NOTE: this doesn't handle cross-stack references, but that should be OK: IIUC we are operating within the
         // context of a single CFN stack by design.
         for (const construct of this.host.node.findAll(ConstructOrder.POSTORDER)) {
@@ -42,9 +42,9 @@ export class GraphBuilder {
                 continue;
             }
 
-            const template = CfnElement.isCfnElement(construct) ?
-                this.host.resolve((construct as any)._toCloudFormation()) as CloudFormationTemplate :
-                undefined;
+            const template = CfnElement.isCfnElement(construct)
+                ? (this.host.resolve((construct as any)._toCloudFormation()) as CloudFormationTemplate)
+                : undefined;
 
             const node = {
                 incomingEdges: new Set<GraphNode>(),
@@ -64,8 +64,8 @@ export class GraphBuilder {
         for (const [construct, node] of this.constructNodes) {
             if (construct.node.scope !== undefined && !Stack.isStack(construct.node.scope)) {
                 const parentNode = this.constructNodes.get(construct.node.scope)!;
-                node.outgoingEdges.add(parentNode)
-                parentNode.incomingEdges.add(node)
+                node.outgoingEdges.add(parentNode);
+                parentNode.incomingEdges.add(node);
             }
 
             if (node.template !== undefined) {
@@ -108,7 +108,7 @@ export class GraphBuilder {
     }
 
     private addEdgesForFragment(obj: any, source: GraphNode): void {
-        if (typeof obj === "string") {
+        if (typeof obj === 'string') {
             if (!Token.isUnresolved(obj)) {
                 return;
             }
@@ -116,7 +116,7 @@ export class GraphBuilder {
             obj = this.host.resolve(obj);
         }
 
-        if (typeof obj !== "object") {
+        if (typeof obj !== 'object') {
             return;
         }
 
@@ -132,7 +132,7 @@ export class GraphBuilder {
         }
 
         const keys = Object.keys(obj);
-        if (keys.length == 1 && keys[0]?.startsWith("Fn::")) {
+        if (keys.length == 1 && keys[0]?.startsWith('Fn::')) {
             this.addEdgesForIntrinsic(keys[0], obj[keys[0]], source);
             return;
         }
@@ -143,26 +143,25 @@ export class GraphBuilder {
     }
 
     private addEdgeForRef(targetLogicalId: string, source: GraphNode) {
-        if (!targetLogicalId.startsWith("AWS::")) {
+        if (!targetLogicalId.startsWith('AWS::')) {
             const targetNode = this.cfnElementNodes.get(targetLogicalId);
             if (targetNode === undefined) {
                 console.warn(`missing node for target element ${targetLogicalId}`);
             } else {
-                source.outgoingEdges.add(targetNode)
-                targetNode.incomingEdges.add(source)
+                source.outgoingEdges.add(targetNode);
+                targetNode.incomingEdges.add(source);
             }
         }
     }
 
     private addEdgesForIntrinsic(fn: string, params: any, source: GraphNode) {
         switch (fn) {
-            case "Fn::GetAtt":
+            case 'Fn::GetAtt':
                 this.addEdgeForRef(params[0], source);
                 break;
-            case "Fn::Sub":
-                const [template, vars] = typeof params === "string" ?
-                    [params, undefined] :
-                    [params[0] as string, params[1]];
+            case 'Fn::Sub':
+                const [template, vars] =
+                    typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 
                 this.addEdgesForFragment(vars, source);
 
@@ -177,4 +176,3 @@ export class GraphBuilder {
         }
     }
 }
-
