@@ -43,11 +43,26 @@ export function normalize(value: any): any {
 }
 
 export class CdkResource extends pulumi.CustomResource {
-    constructor(name: string, type: string, args: any, opts?: pulumi.CustomResourceOptions) {
+    constructor(
+        name: string,
+        type: string,
+        properties: any,
+        attributes: string[],
+        opts?: pulumi.CustomResourceOptions,
+    ) {
         const res = type.split('::')[2];
         const mod = moduleName(type);
         const resourceName = `aws-native:${mod}:${res}`;
-        debug(`CdkResource ${resourceName}: ${JSON.stringify(args)}`);
+
+        debug(`CdkResource ${resourceName}: ${JSON.stringify(properties)}, ${JSON.stringify(attributes)}`);
+
+        // Prepare an args bag with placeholders for output attributes.
+        const args: any = {};
+        for (const k of attributes) {
+            args[k] = undefined;
+        }
+        Object.assign(args, properties);
+
         // console.debug(`CdkResource opts: ${JSON.stringify(opts)}`)
         super(resourceName, name, args, opts);
     }
@@ -71,7 +86,7 @@ export class CdkComponent extends pulumi.ComponentResource {
             const sourceProps = (value as any).Properties;
             console.debug(`resource[${key}] Type:${typeName} props: ${sourceProps}`);
             opts = opts || { parent: this };
-            new CdkResource(key, typeName, normalize(sourceProps), opts);
+            new CdkResource(key, typeName, normalize(sourceProps), [], opts);
         });
     }
 }
