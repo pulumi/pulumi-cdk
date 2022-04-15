@@ -46,14 +46,18 @@ export class GraphBuilder {
             const node = {
                 incomingEdges: new Set<GraphNode>(),
                 outgoingEdges: new Set<GraphNode>(),
-                construct: construct,
-                template: template,
+                construct,
+                template,
             };
 
             this.constructNodes.set(construct, node);
             if (CfnElement.isCfnElement(construct)) {
                 const logicalId = this.host.resolve(construct.logicalId);
                 this.cfnElementNodes.set(logicalId, node);
+
+                for (const [logicalId, r] of Object.entries(template!.Resources || {})) {
+                    this.cfnElementNodes.set(logicalId, node);
+                }
             }
         }
 
@@ -101,6 +105,13 @@ export class GraphBuilder {
         for (const [logicalId, value] of Object.entries(template.Resources || {})) {
             const source = this.cfnElementNodes.get(logicalId)!;
             this.addEdgesForFragment(value, source);
+
+            const dependsOn = typeof value.DependsOn === 'string' ? [value.DependsOn] : value.DependsOn;
+            if (dependsOn !== undefined) {
+                for (const target of dependsOn) {
+                    this.addEdgeForRef(target, source);
+                }
+            }
         }
     }
 
@@ -139,7 +150,13 @@ export class GraphBuilder {
         }
     }
 
-    private addEdgeForRef(targetLogicalId: string, source: GraphNode) {
+    private addEdgeForRef(args: any, source: GraphNode) {
+        if (typeof args !== 'string') {
+            // Ignore these--they are either malformed references or Pulumi outputs.
+            return;
+        }
+        const targetLogicalId = args;
+
         if (!targetLogicalId.startsWith('AWS::')) {
             const targetNode = this.cfnElementNodes.get(targetLogicalId);
             if (targetNode === undefined) {

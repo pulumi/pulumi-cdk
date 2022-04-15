@@ -31,7 +31,9 @@ export function normalize(value: any): any {
         return result;
     }
 
-    if (typeof value !== 'object') return value;
+    if (typeof value !== 'object' || pulumi.Output.isInstance(value)) {
+        return value;
+    }
 
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {

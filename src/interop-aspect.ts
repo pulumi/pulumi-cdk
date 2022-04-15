@@ -4,9 +4,10 @@ import { ecs, iam, apprunner, lambda } from '@pulumi/aws-native';
 import { debug } from '@pulumi/pulumi/log';
 import { Stack, CfnElement, Aspects, Token } from 'aws-cdk-lib';
 import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
-import { CloudFormationTemplate } from './cfn';
+import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
 import { GraphBuilder } from './graph';
 import { CdkResource, normalize, firstToLower } from './interop';
+import { OutputRepr, OutputMap } from './output-map';
 
 export class CdkStackComponent extends pulumi.ComponentResource {
     outputs!: { [outputId: string]: pulumi.Output<any> };
@@ -49,6 +50,7 @@ export class AwsPulumiAdapter extends Stack {
         logicalId: string,
         typeName: string,
         props: any,
+        options: pulumi.ResourceOptions,
     ): { [key: string]: pulumi.CustomResource } {
         return {};
     }
@@ -77,7 +79,9 @@ class PulumiCDKBridge extends Construct {
                     debug(`Creating resource for ${logical}:\n${JSON.stringify(cfn)}`);
                     const props = this.processIntrinsics(value.Properties);
                     const normProps = normalize(props);
-                    const res = this.host.remapCloudControlResource(logical, typeName, normProps);
+                    const options = this.processOptions(value);
+                    debug(`Options for ${logical}: ${JSON.stringify(options)}`);
+                    const res = this.host.remapCloudControlResource(logical, typeName, normProps, options);
                     if (Object.keys(res).length > 0) {
                         const m: { [key: string]: Mapping<pulumi.CustomResource> } = {};
                         for (const [k, r] of Object.entries(res) ?? []) {
@@ -90,20 +94,20 @@ class PulumiCDKBridge extends Construct {
                         case 'AWS::ECS::Cluster':
                             {
                                 debug('Creating ECS Cluster resource');
-                                const c = new ecs.Cluster(logical, normProps, { parent: this.host.parent });
+                                const c = new ecs.Cluster(logical, normProps, options);
                                 this.resources[logical] = { resource: c, resourceType: typeName };
                             }
                             break;
                         case 'AWS::ECS::TaskDefinition':
                             {
                                 debug('Creating ECS task definition');
-                                const t = new ecs.TaskDefinition(logical, normProps, { parent: this.host.parent });
+                                const t = new ecs.TaskDefinition(logical, normProps, options);
                                 this.resources[logical] = { resource: t, resourceType: typeName };
                             }
                             break;
                         case 'AWS::AppRunner::Service':
                             {
-                                const s = new apprunner.Service(logical, normProps, { parent: this.host.parent });
+                                const s = new apprunner.Service(logical, normProps, options);
                                 this.resources[logical] = { resource: s, resourceType: typeName };
                             }
                             break;
@@ -111,7 +115,7 @@ class PulumiCDKBridge extends Construct {
                             {
                                 debug(`lambda: ${JSON.stringify(normProps)}`);
                                 debug(`Keys in function ${normProps['role'] != undefined}`);
-                                const l = new lambda.Function(logical, normProps, { parent: this.host.parent });
+                                const l = new lambda.Function(logical, normProps, options);
                                 this.resources[logical] = { resource: l, resourceType: typeName };
                             }
                             break;
@@ -127,13 +131,13 @@ class PulumiCDKBridge extends Construct {
                                         morphed[k] = v;
                                     }
                                 });
-                                const r = new iam.Role(logical, morphed, { parent: this.host.parent });
+                                const r = new iam.Role(logical, morphed, options);
                                 this.resources[logical] = { resource: r, resourceType: typeName };
                             }
                             break;
                         default: {
                             debug(`Creating fallthrough CdkResource for type: ${typeName} - ${logical}`);
-                            const f = new CdkResource(logical, typeName, normProps, { parent: this.host.parent });
+                            const f = new CdkResource(logical, typeName, normProps, options);
                             this.resources[logical] = { resource: f, resourceType: typeName };
                         }
                     }
@@ -148,6 +152,14 @@ class PulumiCDKBridge extends Construct {
                 }
             }
         }
+    }
+
+    private processOptions(resource: CloudFormationResource): pulumi.ResourceOptions {
+        const dependsOn = getDependsOn(resource);
+        return {
+            parent: this.host.parent,
+            dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources[id].resource) : undefined,
+        };
     }
 
     private processIntrinsics(obj: any): any {
@@ -173,11 +185,9 @@ class PulumiCDKBridge extends Construct {
             return this.resolveRef(ref);
         }
 
-        const intrinsic = Object.keys(obj)[0];
-        if (intrinsic?.startsWith('Fn::') && Object.keys(obj).length === 1) {
-            return this.resolveIntrinsic(intrinsic, obj[intrinsic]);
-        } else if (intrinsic?.startsWith('Fn:') && !intrinsic?.startsWith('Fn::')) {
-            console.warn('Found possible intrinsic function starting with "Fn:" instead of "Fn::". Typo?');
+        const keys = Object.keys(obj);
+        if (keys.length == 1 && keys[0]?.startsWith('Fn::')) {
+            return this.resolveIntrinsic(keys[0], obj[keys[0]]);
         }
 
         const result: any = {};
@@ -186,6 +196,10 @@ class PulumiCDKBridge extends Construct {
         }
 
         return result;
+    }
+
+    private resolveOutput(repr: OutputRepr): pulumi.Output<any> {
+        return OutputMap.instance().lookupOutput(repr)!;
     }
 
     private resolveIntrinsic(fn: string, params: any) {
@@ -219,15 +233,19 @@ class PulumiCDKBridge extends Construct {
         }
     }
 
-    private resolveRef(ref: string) {
-        switch (ref) {
+    private resolveRef(target: any): any {
+        if (typeof target !== 'string') {
+            return this.resolveOutput(<OutputRepr>target);
+        }
+
+        switch (target) {
             case 'AWS::Partition':
                 return 'aws'; // TODO support this through an invoke?
         }
-        if (ref?.startsWith('AWS::')) {
-            throw new Error(`don't support pseudo parameters ${ref}`);
+        if (target?.startsWith('AWS::')) {
+            throw new Error(`don't support pseudo parameters ${target}`);
         }
-        throw new Error(`unsupported reference ${ref}`);
+        throw new Error(`unsupported reference ${target}`);
     }
 
     private lookup(
