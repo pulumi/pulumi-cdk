@@ -12,7 +12,5 @@ export interface CloudFormationTemplate {
 }
 
 export function getDependsOn(resource: CloudFormationResource): string[] | undefined {
-    return typeof resource.DependsOn === "string"
-        ? [resource.DependsOn]
-        : resource.DependsOn;
+    return typeof resource.DependsOn === 'string' ? [resource.DependsOn] : resource.DependsOn;
 }

@@ -158,8 +158,8 @@ class PulumiCDKBridge extends Construct {
         const dependsOn = getDependsOn(resource);
         return {
             parent: this.host.parent,
-            dependsOn: dependsOn !== undefined ? dependsOn.map(id => this.resources[id].resource) : undefined,
-        }
+            dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources[id].resource) : undefined,
+        };
     }
 
     private processIntrinsics(obj: any): any {

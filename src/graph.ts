@@ -106,7 +106,7 @@ export class GraphBuilder {
             const source = this.cfnElementNodes.get(logicalId)!;
             this.addEdgesForFragment(value, source);
 
-            const dependsOn = typeof value.DependsOn === "string" ? [value.DependsOn] : value.DependsOn;
+            const dependsOn = typeof value.DependsOn === 'string' ? [value.DependsOn] : value.DependsOn;
             if (dependsOn !== undefined) {
                 for (const target of dependsOn) {
                     this.addEdgeForRef(target, source);
