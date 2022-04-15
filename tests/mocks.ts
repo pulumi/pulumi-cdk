@@ -15,6 +15,11 @@
 import * as pulumi from "@pulumi/pulumi";
 import { MockCallArgs, MockResourceArgs } from "@pulumi/pulumi/runtime";
 
+function arn(service: string, type: string): string {
+    const [region, account] = service === "s3" ? ["", ""] : ["us-west-2", "123456789012"];
+    return `arn:aws:${service}:${region}:${account}:${type}`;
+}
+
 export function setMocks() {
     pulumi.runtime.setMocks({
         call: (args: MockCallArgs) => {
@@ -31,7 +36,7 @@ export function setMocks() {
                         id: args.name,
                         state: {
                             ...args.inputs,
-                            arn: `arn:aws:s3:::${args.inputs["bucketName"]}`,
+                            arn: arn("s3", args.inputs["bucketName"]),
                         },
                     };
                 default:
