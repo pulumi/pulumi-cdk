@@ -29,8 +29,6 @@ func TestAppRunner(t *testing.T) {
 }
 
 func TestCronLambda(t *testing.T) {
-	t.Skipf("skipping due to missing 'role' property")
-
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "cron-lambda"),

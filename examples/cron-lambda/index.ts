@@ -19,10 +19,10 @@ const stack = new CdkStackComponent("teststack", (scope: Construct, parent: CdkS
             super(scope, id, parent);
         }
 
-        public remapCloudControlResource(logicalId: string, typeName: string, props: any): { [key: string]: pulumi.CustomResource } {
-            let resources: { [key: string]: pulumi.CustomResource } = {};
+        public remapCloudControlResource(logicalId: string, typeName: string, props: any): { [key: string]: pulumi.CustomResource } | undefined {
             switch (typeName) {
                 case "AWS::Events::Rule":
+                    const resources: { [key: string]: pulumi.CustomResource } = {};
                     const rule = new aws.cloudwatch.EventRule(logicalId,
                         {
                             scheduleExpression: props["scheduleExpression"],
@@ -41,7 +41,7 @@ const stack = new CdkStackComponent("teststack", (scope: Construct, parent: CdkS
                     for (const t of targets) {
                         resources[t.id] = new aws.cloudwatch.EventTarget(t.id, { arn: t.arn, rule: rule.name }, { parent: this.parent });
                     }
-                    break;
+                    return resources;
                 case "AWS::Lambda::Permission":
                     const perm = new aws.lambda.Permission(logicalId, {
                         action: props["action"],
@@ -49,11 +49,10 @@ const stack = new CdkStackComponent("teststack", (scope: Construct, parent: CdkS
                         principal: props["principal"],
                         sourceArn: props["sourceArn"] ?? undefined
                     }, { parent: this.parent });
-                    resources[logicalId] = perm;
-                    break;
+                    return { [logicalId]: perm };
             }
 
-            return resources;
+            return undefined;
         }
 
     }
