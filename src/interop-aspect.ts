@@ -79,7 +79,7 @@ class PulumiCDKBridge extends Construct {
                     const options = this.processOptions(value);
                     const mapped = this.mapResource(n.construct, logicalId, value.Type, props, options);
                     for (const [mappedId, resource] of Object.entries(mapped)) {
-                        debug(`${mappedId} -> ${logicalId}`);
+                        debug(`mapping ${mappedId} -> ${logicalId}`);
                         this.resources.set(mappedId, { resource, resourceType: value.Type });
                     }
                     debug(`Done creating resource for ${logicalId}`);
@@ -106,6 +106,7 @@ class PulumiCDKBridge extends Construct {
 
         const res = this.host.remapCloudControlResource(logicalId, typeName, normProps, options);
         if (res !== undefined) {
+            debug(`remapped ${logicalId}`);
             return res;
         }
 
@@ -117,7 +118,7 @@ class PulumiCDKBridge extends Construct {
             case 'AWS::AppRunner::Service':
                 return { [logicalId]: new apprunner.Service(logicalId, normProps, options) };
             case 'AWS::Lambda::Function':
-                return { [logicalId]: new lambda.Function(logicalId, props, options) };
+                return { [logicalId]: new lambda.Function(logicalId, normProps, options) };
             case 'AWS::IAM::Role': {
                 // We need this because IAM Role's CFN json format has the following field in uppercase.
                 const morphed: any = {};
