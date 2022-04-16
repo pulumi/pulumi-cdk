@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
+import { IConstruct } from 'constructs';
 
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
@@ -42,7 +43,7 @@ export function normalize(value: any): any {
     return result;
 }
 
-export class CdkResource extends pulumi.CustomResource {
+export class CfnResource extends pulumi.CustomResource {
     constructor(
         name: string,
         type: string,
@@ -54,7 +55,7 @@ export class CdkResource extends pulumi.CustomResource {
         const mod = moduleName(type);
         const resourceName = `aws-native:${mod}:${res}`;
 
-        debug(`CdkResource ${resourceName}: ${JSON.stringify(properties)}, ${JSON.stringify(attributes)}`);
+        debug(`CfnResource ${resourceName}: ${JSON.stringify(properties)}, ${JSON.stringify(attributes)}`);
 
         // Prepare an args bag with placeholders for output attributes.
         const args: any = {};
@@ -63,8 +64,21 @@ export class CdkResource extends pulumi.CustomResource {
         }
         Object.assign(args, properties);
 
-        // console.debug(`CdkResource opts: ${JSON.stringify(opts)}`)
+        // console.debug(`CfnResource opts: ${JSON.stringify(opts)}`)
         super(resourceName, name, args, opts);
+    }
+}
+
+export class CdkConstruct extends pulumi.ComponentResource {
+    constructor(name: string | undefined, construct: IConstruct, options?: pulumi.ComponentResourceOptions) {
+        const constructType = construct.constructor.name || 'Construct';
+        const constructName = name || construct.node.path;
+
+        super(`cdk:construct:${constructType}`, constructName, {}, options);
+    }
+
+    public done() {
+        this.registerOutputs({});
     }
 }
 
@@ -86,7 +100,7 @@ export class CdkComponent extends pulumi.ComponentResource {
             const sourceProps = (value as any).Properties;
             console.debug(`resource[${key}] Type:${typeName} props: ${sourceProps}`);
             opts = opts || { parent: this };
-            new CdkResource(key, typeName, normalize(sourceProps), [], opts);
+            new CfnResource(key, typeName, normalize(sourceProps), [], opts);
         });
     }
 }
