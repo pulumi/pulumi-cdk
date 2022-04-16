@@ -2,7 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import { ecs, iam, apprunner, lambda } from '@pulumi/aws-native';
 import { debug } from '@pulumi/pulumi/log';
-import { Stack, CfnElement, Aspects, Token } from 'aws-cdk-lib';
+import { Stack, CfnElement, Aspects, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
 import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
 import { GraphBuilder } from './graph';
@@ -51,22 +51,21 @@ export class AwsPulumiAdapter extends Stack {
         typeName: string,
         props: any,
         options: pulumi.ResourceOptions,
-    ): { [key: string]: pulumi.CustomResource } {
-        return {};
+    ): { [key: string]: pulumi.CustomResource } | undefined {
+        return undefined;
     }
 }
 
-export type Mapping<T extends pulumi.CustomResource> = {
+export type Mapping<T extends pulumi.Resource> = {
     resource: T;
     resourceType: string;
 };
 
 class PulumiCDKBridge extends Construct {
-    resources!: { [key: string]: Mapping<pulumi.CustomResource> };
+    readonly resources = new Map<string, Mapping<pulumi.Resource>>();
 
     constructor(scope: Construct, id: string, private readonly host: AwsPulumiAdapter) {
         super(scope, id);
-        this.resources = {};
     }
 
     convert() {
@@ -74,74 +73,16 @@ class PulumiCDKBridge extends Construct {
         for (const n of dependencyGraphNodes) {
             if (CfnElement.isCfnElement(n.construct)) {
                 const cfn = n.template!;
-                for (const [logical, value] of Object.entries(cfn.Resources || {})) {
-                    const typeName = value.Type;
-                    debug(`Creating resource for ${logical}:\n${JSON.stringify(cfn)}`);
+                for (const [logicalId, value] of Object.entries(cfn.Resources || {})) {
+                    debug(`Creating resource for ${logicalId}:\n${JSON.stringify(cfn)}`);
                     const props = this.processIntrinsics(value.Properties);
-                    const normProps = normalize(props);
                     const options = this.processOptions(value);
-                    debug(`Options for ${logical}: ${JSON.stringify(options)}`);
-                    const res = this.host.remapCloudControlResource(logical, typeName, normProps, options);
-                    if (Object.keys(res).length > 0) {
-                        const m: { [key: string]: Mapping<pulumi.CustomResource> } = {};
-                        for (const [k, r] of Object.entries(res) ?? []) {
-                            m[k] = { resource: r, resourceType: typeName };
-                        }
-                        this.resources = { ...m, ...this.resources };
-                        continue;
+                    const mapped = this.mapResource(n.construct, logicalId, value.Type, props, options);
+                    for (const [mappedId, resource] of Object.entries(mapped)) {
+                        debug(`${mappedId} -> ${logicalId}`);
+                        this.resources.set(mappedId, { resource, resourceType: value.Type });
                     }
-                    switch (typeName) {
-                        case 'AWS::ECS::Cluster':
-                            {
-                                debug('Creating ECS Cluster resource');
-                                const c = new ecs.Cluster(logical, normProps, options);
-                                this.resources[logical] = { resource: c, resourceType: typeName };
-                            }
-                            break;
-                        case 'AWS::ECS::TaskDefinition':
-                            {
-                                debug('Creating ECS task definition');
-                                const t = new ecs.TaskDefinition(logical, normProps, options);
-                                this.resources[logical] = { resource: t, resourceType: typeName };
-                            }
-                            break;
-                        case 'AWS::AppRunner::Service':
-                            {
-                                const s = new apprunner.Service(logical, normProps, options);
-                                this.resources[logical] = { resource: s, resourceType: typeName };
-                            }
-                            break;
-                        case 'AWS::Lambda::Function':
-                            {
-                                debug(`lambda: ${JSON.stringify(normProps)}`);
-                                debug(`Keys in function ${normProps['role'] != undefined}`);
-                                const l = new lambda.Function(logical, normProps, options);
-                                this.resources[logical] = { resource: l, resourceType: typeName };
-                            }
-                            break;
-                        case 'AWS::IAM::Role':
-                            {
-                                debug('Creating IAM Role');
-                                // We need this because IAM Role's CFN json format has the following field in uppercase.
-                                const morphed: any = {};
-                                Object.entries(props).forEach(([k, v]) => {
-                                    if (k == 'AssumeRolePolicyDocument') {
-                                        morphed[firstToLower(k)] = v;
-                                    } else {
-                                        morphed[k] = v;
-                                    }
-                                });
-                                const r = new iam.Role(logical, morphed, options);
-                                this.resources[logical] = { resource: r, resourceType: typeName };
-                            }
-                            break;
-                        default: {
-                            debug(`Creating fallthrough CdkResource for type: ${typeName} - ${logical}`);
-                            const f = new CdkResource(logical, typeName, normProps, options);
-                            this.resources[logical] = { resource: f, resourceType: typeName };
-                        }
-                    }
-                    debug(`Done creating resource for ${logical}`);
+                    debug(`Done creating resource for ${logicalId}`);
                 }
                 for (const [conditionId, condition] of Object.entries(cfn.Conditions || {})) {
                     // Do something with the condition
@@ -154,11 +95,62 @@ class PulumiCDKBridge extends Construct {
         }
     }
 
+    private mapResource(
+        element: CfnElement,
+        logicalId: string,
+        typeName: string,
+        props: any,
+        options: pulumi.ResourceOptions,
+    ): { [logicalId: string]: pulumi.Resource } {
+        const normProps = normalize(props);
+
+        const res = this.host.remapCloudControlResource(logicalId, typeName, normProps, options);
+        if (res !== undefined) {
+            return res;
+        }
+
+        switch (typeName) {
+            case 'AWS::ECS::Cluster':
+                return { [logicalId]: new ecs.Cluster(logicalId, normProps, options) };
+            case 'AWS::ECS::TaskDefinition':
+                return { [logicalId]: new ecs.TaskDefinition(logicalId, normProps, options) };
+            case 'AWS::AppRunner::Service':
+                return { [logicalId]: new apprunner.Service(logicalId, normProps, options) };
+            case 'AWS::Lambda::Function':
+                return { [logicalId]: new lambda.Function(logicalId, props, options) };
+            case 'AWS::IAM::Role': {
+                // We need this because IAM Role's CFN json format has the following field in uppercase.
+                const morphed: any = {};
+                Object.entries(props).forEach(([k, v]) => {
+                    if (k == 'AssumeRolePolicyDocument') {
+                        morphed[firstToLower(k)] = v;
+                    } else {
+                        morphed[k] = v;
+                    }
+                });
+                return { [logicalId]: new iam.Role(logicalId, morphed, options) };
+            }
+            default: {
+                // Scrape the attributes off of the construct.
+                //
+                // NOTE: this relies on CfnReference setting the reference's display name to the literal attribute name.
+                const attributes = Object.values(element)
+                    .filter(Token.isUnresolved)
+                    .map((v) => Tokenization.reverse(v))
+                    .filter(Reference.isReference)
+                    .filter((ref) => ref.target === element)
+                    .map((ref) => this.attributePropertyName(ref.displayName));
+
+                return { [logicalId]: new CdkResource(logicalId, typeName, normProps, attributes, options) };
+            }
+        }
+    }
+
     private processOptions(resource: CloudFormationResource): pulumi.ResourceOptions {
         const dependsOn = getDependsOn(resource);
         return {
             parent: this.host.parent,
-            dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources[id].resource) : undefined,
+            dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources.get(id)!.resource) : undefined,
         };
     }
 
@@ -243,87 +235,41 @@ class PulumiCDKBridge extends Construct {
                 return 'aws'; // TODO support this through an invoke?
         }
         if (target?.startsWith('AWS::')) {
-            throw new Error(`don't support pseudo parameters ${target}`);
+            throw new Error(`reference to unsupported pseudo parameter ${target}`);
         }
-        throw new Error(`unsupported reference ${target}`);
+
+        const mapping = this.lookup(target);
+        return (<pulumi.CustomResource>mapping.resource).id;
     }
 
-    private lookup(
-        logicalId: string,
-        visited: Set<IConstruct>,
-        startat: IConstruct = this.host,
-    ): IConstruct | undefined {
-        const c = startat.node.tryFindChild(logicalId);
-        if (c) {
-            return c;
+    private lookup(logicalId: string): Mapping<pulumi.Resource> {
+        const targetMapping = this.resources.get(logicalId);
+        if (targetMapping === undefined) {
+            throw new Error(`missing reference for ${logicalId}`);
         }
+        return targetMapping;
+    }
 
-        visited.add(startat);
-
-        for (const c of startat.node.children) {
-            debug(`looking for ${logicalId}: path = ${c.node.path}`);
-            if (visited.has(c)) {
-                debug(`found ${c.node.path} already`);
-                continue;
-            }
-
-            if (CfnElement.isCfnElement(c)) {
-                const resolved = this.host.resolve((c as CfnElement).logicalId);
-                if (resolved == logicalId) {
-                    return c;
-                }
-                debug(`${this.host.resolve((c as CfnElement).logicalId)}`);
-            }
-
-            const ret = this.lookup(logicalId, visited, c);
-            if (ret) {
-                return ret;
-            }
-        }
-
-        return undefined;
+    private attributePropertyName(attributeName: string): string {
+        return firstToLower(attributeName.split('.')[0]);
     }
 
     private resolveAtt(logicalId: string, attribute: string) {
-        const child = this.lookup(logicalId, new Set<IConstruct>());
-        debug(`resolving ref for ${logicalId}: ${child}`);
-        if (!CfnElement.isCfnElement(child)) {
-            throw new Error(
-                `unable to resolve a "Ref" to a resource with the logical ID ${logicalId}: ${typeof child}`,
-            );
-        }
+        const mapping = this.lookup(logicalId);
 
-        const cfn = (child as CfnElement)._toCloudFormation() as CloudFormationTemplate;
-        for (const [id, value] of Object.entries(cfn.Resources || {})) {
-            const resolvedId = this.host.resolve(id);
-            if (!value.Properties) {
-                debug(`No value for id: ${resolvedId} provided. Will look in resource.`);
-                const res = this.resources[resolvedId];
-                if (res) {
-                    debug(
-                        `Resource: ${resolvedId} - resourceType: ${res.resourceType} - ${Object.getOwnPropertyNames(
-                            res.resource,
-                        )}`,
-                    );
-                    const descs = Object.getOwnPropertyDescriptors(res.resource);
-                    const d = descs[attribute];
-                    if (!d) {
-                        throw new Error(`No attribute ${attribute} found for resource ${logicalId}`);
-                    }
-                    return d.value;
-                    // throw new Error(`Type of ${attribute} in resource ${logicalId} is ${typeof d.value}`)
-                } else {
-                    throw new Error(`No resource found for ${resolvedId} - current resources: ${this.resources.keys}`);
-                }
-                continue;
-            }
-            const att = value.Properties[attribute];
-            if (!att) {
-                throw new Error(`no "${attribute}" attribute mapping for resource ${logicalId}`);
-            }
-        }
+        debug(
+            `Resource: ${logicalId} - resourceType: ${mapping.resourceType} - ${Object.getOwnPropertyNames(
+                mapping.resource,
+            )}`,
+        );
 
-        debug(`resolveAtt for ${logicalId}`);
-        throw new Error(`no "${attribute}" attribute mapping for resource ${logicalId}`);
+        const propertyName = this.attributePropertyName(attribute);
+
+        const descs = Object.getOwnPropertyDescriptors(mapping.resource);
+        const d = descs[propertyName];
+        if (!d) {
+            throw new Error(`No property ${propertyName} for attribute ${attribute} on resource ${logicalId}`);
+        }
+        return d.value;
     }
 }
