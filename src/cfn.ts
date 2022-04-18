@@ -1,3 +1,8 @@
+export interface CloudFormationParameter {
+    readonly Type: string;
+    readonly Default?: any;
+}
+
 export interface CloudFormationResource {
     readonly Type: string;
     readonly Properties: any;
@@ -6,6 +11,7 @@ export interface CloudFormationResource {
 }
 
 export interface CloudFormationTemplate {
+    Parameters?: { [id: string]: CloudFormationParameter };
     Resources?: { [id: string]: CloudFormationResource };
     Conditions?: { [id: string]: any };
     Outputs?: { [id: string]: any };

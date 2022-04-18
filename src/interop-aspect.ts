@@ -1,6 +1,17 @@
 import * as cdk from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
-import { ecs, iam, apprunner, lambda } from '@pulumi/aws-native';
+import {
+    ecs,
+    iam,
+    apprunner,
+    lambda,
+    cidr,
+    getAccountId,
+    getPartition,
+    getAzs,
+    getRegion,
+    getUrlSuffix,
+} from '@pulumi/aws-native';
 import { debug } from '@pulumi/pulumi/log';
 import { Stack, CfnElement, Aspects, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
@@ -66,6 +77,7 @@ export type Mapping<T extends pulumi.Resource> = {
 };
 
 class PulumiCDKBridge extends Construct {
+    readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<IConstruct, pulumi.Resource>();
 
@@ -82,8 +94,12 @@ class PulumiCDKBridge extends Construct {
 
             if (CfnElement.isCfnElement(n.construct)) {
                 const cfn = n.template!;
+                debug(`Processing node with template: ${JSON.stringify(cfn)}`);
+                for (const [logicalId, value] of Object.entries(cfn.Parameters || {})) {
+                    this.mapParameter(n.construct, logicalId, value.Type, value.Default);
+                }
                 for (const [logicalId, value] of Object.entries(cfn.Resources || {})) {
-                    debug(`Creating resource for ${logicalId}:\n${JSON.stringify(cfn)}`);
+                    debug(`Creating resource for ${logicalId}`);
                     const props = this.processIntrinsics(value.Properties);
                     const options = this.processOptions(value, parent);
                     const mapped = this.mapResource(n.construct, logicalId, value.Type, props, options);
@@ -115,6 +131,19 @@ class PulumiCDKBridge extends Construct {
                 (<CdkConstruct>this.constructs.get(n.construct)!).done();
             }
         }
+    }
+
+    private mapParameter(element: CfnElement, logicalId: string, typeName: string, defaultValue: any | undefined) {
+        // TODO: support arbitrary parameters?
+
+        if (!typeName.startsWith('AWS::SSM::Parameter::')) {
+            throw new Error(`unsupported parameter ${logicalId} of type ${typeName}`);
+        }
+        if (defaultValue === undefined) {
+            throw new Error(`unsupported parameter ${logicalId} with no default value`);
+        }
+
+        this.parameters.set(logicalId, defaultValue);
     }
 
     private mapResource(
@@ -224,12 +253,31 @@ class PulumiCDKBridge extends Construct {
                 return this.resolveAtt(params[0], firstToLower(params[1]));
             }
 
-            case 'Fn::Join': {
-                const [delim, strings] = params;
-                const joined = (this.processIntrinsics(strings) as Array<string>).join(this.processIntrinsics(delim));
-                debug(`Fn::Join result: ${joined}`);
-                return joined;
-            }
+            case 'Fn::Join':
+                return this.lift(([delim, strings]) => strings.join(delim), this.processIntrinsics(params));
+
+            case 'Fn::Select':
+                return this.lift(([index, list]) => list[index], this.processIntrinsics(params));
+
+            case 'Fn::Split':
+                return this.lift(([delim, str]) => str.split(delim), this.processIntrinsics(params));
+
+            case 'Fn::Base64':
+                return this.lift(([str]) => btoa(str), this.processIntrinsics(params));
+
+            case 'Fn::Cidr':
+                return this.lift(
+                    ([ipBlock, count, cidrBits]) =>
+                        cidr({
+                            ipBlock,
+                            count,
+                            cidrBits,
+                        }).then((r) => r.subnets),
+                    this.processIntrinsics(params),
+                );
+
+            case 'Fn::GetAZs':
+                return this.lift(([region]) => getAzs({ region }).then((r) => r.azs), this.processIntrinsics(params));
 
             case 'Fn::Transform': {
                 // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-macros.html
@@ -254,23 +302,47 @@ class PulumiCDKBridge extends Construct {
         }
 
         switch (target) {
+            case 'AWS::AccountId':
+                return getAccountId({ parent: this.host.parent }).then((r) => r.accountId);
+            case 'AWS::NoValue':
+                return undefined;
             case 'AWS::Partition':
-                return 'aws'; // TODO support this through an invoke?
-        }
-        if (target?.startsWith('AWS::')) {
-            throw new Error(`reference to unsupported pseudo parameter ${target}`);
+                // TODO: this is tricky b/c it seems to be context-dependent. From the docs:
+                //
+                //     Returns the partition that the resource is in. For standard AWS Regions, the partition is aws.
+                //     For resources in other partitions, the partition is aws-partitionname.
+                //
+                // For now, just return 'aws'. In the future, we may need to keep track of the type of the resource
+                // we're walking and then ask the provider via an invoke.
+                return 'aws';
+            case 'AWS::Region':
+                return getRegion({ parent: this.host.parent }).then((r) => r.region);
+            case 'AWS::URLSuffix':
+                return getUrlSuffix({ parent: this.host.parent }).then((r) => r.urlSuffix);
+            case 'AWS::NotificationARNs':
+            case 'AWS::StackId':
+            case 'AWS::StackName':
+                // Can't support these
+                throw new Error(`reference to unsupported pseudo parameter ${target}`);
         }
 
         const mapping = this.lookup(target);
-        return (<pulumi.CustomResource>mapping.resource).id;
+        if ((<any>mapping).value !== undefined) {
+            return (<any>mapping).value;
+        }
+        return (<pulumi.CustomResource>(<Mapping<pulumi.Resource>>mapping).resource).id;
     }
 
-    private lookup(logicalId: string): Mapping<pulumi.Resource> {
-        const targetMapping = this.resources.get(logicalId);
-        if (targetMapping === undefined) {
-            throw new Error(`missing reference for ${logicalId}`);
+    private lookup(logicalId: string): Mapping<pulumi.Resource> | { value: any } {
+        const targetParameter = this.parameters.get(logicalId);
+        if (targetParameter !== undefined) {
+            return { value: targetParameter };
         }
-        return targetMapping;
+        const targetMapping = this.resources.get(logicalId);
+        if (targetMapping !== undefined) {
+            return targetMapping;
+        }
+        throw new Error(`missing reference for ${logicalId}`);
     }
 
     private attributePropertyName(attributeName: string): string {
@@ -278,7 +350,7 @@ class PulumiCDKBridge extends Construct {
     }
 
     private resolveAtt(logicalId: string, attribute: string) {
-        const mapping = this.lookup(logicalId);
+        const mapping = <Mapping<pulumi.Resource>>this.lookup(logicalId);
 
         debug(
             `Resource: ${logicalId} - resourceType: ${mapping.resourceType} - ${Object.getOwnPropertyNames(
@@ -294,5 +366,28 @@ class PulumiCDKBridge extends Construct {
             throw new Error(`No property ${propertyName} for attribute ${attribute} on resource ${logicalId}`);
         }
         return d.value;
+    }
+
+    private containsEventuals(v: any): boolean {
+        if (typeof v !== 'object') {
+            return false;
+        }
+
+        if (v instanceof Promise || pulumi.Output.isInstance(v)) {
+            return true;
+        }
+
+        if (Array.isArray(v)) {
+            return v.some((e) => this.containsEventuals(e));
+        }
+
+        return Object.values(v).some((e) => this.containsEventuals(e));
+    }
+
+    private lift(f: (args: any) => any, args: any): any {
+        if (!this.containsEventuals(args)) {
+            return f(args);
+        }
+        return pulumi.all(args).apply(f);
     }
 }

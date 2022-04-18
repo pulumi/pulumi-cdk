@@ -1,3 +1,4 @@
+import { debug } from '@pulumi/pulumi/log';
 import { Stack, CfnElement, Token } from 'aws-cdk-lib';
 import { Construct, ConstructOrder } from 'constructs';
 import { CloudFormationTemplate } from './cfn';
@@ -53,9 +54,11 @@ export class GraphBuilder {
             this.constructNodes.set(construct, node);
             if (CfnElement.isCfnElement(construct)) {
                 const logicalId = this.host.resolve(construct.logicalId);
+                debug(`adding node for ${logicalId}`);
                 this.cfnElementNodes.set(logicalId, node);
 
                 for (const [logicalId, r] of Object.entries(template!.Resources || {})) {
+                    debug(`adding node for ${logicalId}`);
                     this.cfnElementNodes.set(logicalId, node);
                 }
             }
@@ -157,10 +160,11 @@ export class GraphBuilder {
         }
         const targetLogicalId = args;
 
+        debug(`ref to ${args}`);
         if (!targetLogicalId.startsWith('AWS::')) {
             const targetNode = this.cfnElementNodes.get(targetLogicalId);
             if (targetNode === undefined) {
-                console.warn(`missing node for target element ${targetLogicalId}`);
+                debug(`missing node for target element ${targetLogicalId}`);
             } else {
                 source.outgoingEdges.add(targetNode);
                 targetNode.incomingEdges.add(source);
