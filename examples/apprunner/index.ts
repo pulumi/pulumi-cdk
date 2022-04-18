@@ -5,7 +5,6 @@ import { Construct } from "constructs";
 import { Service, Source } from "@aws-cdk/aws-apprunner-alpha"
 import { CfnOutput } from 'aws-cdk-lib';
 
-
 const stack = new CdkStackComponent("teststack", (scope: Construct, parent: CdkStackComponent) => {
     const adapter = new AwsPulumiAdapter(scope, "adapter", parent);
 

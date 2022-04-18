@@ -1,0 +1,3 @@
+name: pulumi-aws-cdk-alb
+runtime: nodejs
+description: ALB example for CDK

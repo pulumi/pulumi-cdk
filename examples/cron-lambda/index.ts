@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as aws_events from 'aws-cdk-lib/aws-events';
 import * as aws_events_targets from 'aws-cdk-lib/aws-events-targets';
 import * as aws_lambda from 'aws-cdk-lib/aws-lambda';
-import { Duration } from 'aws-cdk-lib';
+import { CfnElement, Duration } from 'aws-cdk-lib';
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import { CdkStackComponent, AwsPulumiAdapter } from "@pulumi/cdk/interop-aspect";
@@ -19,7 +19,7 @@ const stack = new CdkStackComponent("teststack", (scope: Construct, parent: CdkS
             super(scope, id, parent);
         }
 
-        public remapCloudControlResource(logicalId: string, typeName: string, props: any): { [key: string]: pulumi.CustomResource } | undefined {
+        public remapCloudControlResource(element: CfnElement, logicalId: string, typeName: string, props: any, options: pulumi.ResourceOptions): { [key: string]: pulumi.CustomResource } | undefined {
             switch (typeName) {
                 case "AWS::Events::Rule":
                     const resources: { [key: string]: pulumi.CustomResource } = {};
@@ -32,14 +32,17 @@ const stack = new CdkStackComponent("teststack", (scope: Construct, parent: CdkS
                             ? false
                             : undefined,
                             description: props.Description,
-                            eventBusName: props["EventBusName"] ?? undefined,
-                            eventPattern: props["EventPattern"] ?? undefined,
-                            roleArn: props["RoleArn"] ?? undefined,
-                        }, { parent: this.parent });
+                            eventBusName: props["eventBusName"] ?? undefined,
+                            eventPattern: props["eventPattern"] ?? undefined,
+                            roleArn: props["roleArn"] ?? undefined,
+                        }, options);
                     resources[logicalId] = rule;
                     const targets: target[] = props["targets"] ?? [];
                     for (const t of targets) {
-                        resources[t.id] = new aws.cloudwatch.EventTarget(t.id, { arn: t.arn, rule: rule.name }, { parent: this.parent });
+                        resources[t.id] = new aws.cloudwatch.EventTarget(t.id, { 
+                            arn: t.arn,
+                            rule: rule.name,
+                        }, options);
                     }
                     return resources;
                 case "AWS::Lambda::Permission":
@@ -48,7 +51,7 @@ const stack = new CdkStackComponent("teststack", (scope: Construct, parent: CdkS
                         function: props["functionName"],
                         principal: props["principal"],
                         sourceArn: props["sourceArn"] ?? undefined
-                    }, { parent: this.parent });
+                    }, options);
                     return { [logicalId]: perm };
             }
 

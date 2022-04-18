@@ -6,11 +6,13 @@ import { Stack, CfnElement, Aspects, Token, Reference, Tokenization } from 'aws-
 import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
 import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
 import { GraphBuilder } from './graph';
-import { CdkResource, normalize, firstToLower } from './interop';
+import { CfnResource, CdkConstruct, normalize, firstToLower } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 
 export class CdkStackComponent extends pulumi.ComponentResource {
     outputs!: { [outputId: string]: pulumi.Output<any> };
+
+    name: string;
 
     constructor(
         name: string,
@@ -19,6 +21,7 @@ export class CdkStackComponent extends pulumi.ComponentResource {
     ) {
         super('cdk:index:StackComponent', name, args, opts);
         this.outputs = {};
+        this.name = name;
         const app = new cdk.App();
         const stack = args(app, this);
         app.synth();
@@ -47,6 +50,7 @@ export class AwsPulumiAdapter extends Stack {
     }
 
     public remapCloudControlResource(
+        element: CfnElement,
         logicalId: string,
         typeName: string,
         props: any,
@@ -63,6 +67,7 @@ export type Mapping<T extends pulumi.Resource> = {
 
 class PulumiCDKBridge extends Construct {
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
+    readonly constructs = new Map<IConstruct, pulumi.Resource>();
 
     constructor(scope: Construct, id: string, private readonly host: AwsPulumiAdapter) {
         super(scope, id);
@@ -71,16 +76,21 @@ class PulumiCDKBridge extends Construct {
     convert() {
         const dependencyGraphNodes = GraphBuilder.build(this.host);
         for (const n of dependencyGraphNodes) {
+            const parent = Stack.isStack(n.construct.node.scope)
+                ? this.host.parent
+                : this.constructs.get(n.construct.node.scope!)!;
+
             if (CfnElement.isCfnElement(n.construct)) {
                 const cfn = n.template!;
                 for (const [logicalId, value] of Object.entries(cfn.Resources || {})) {
                     debug(`Creating resource for ${logicalId}:\n${JSON.stringify(cfn)}`);
                     const props = this.processIntrinsics(value.Properties);
-                    const options = this.processOptions(value);
+                    const options = this.processOptions(value, parent);
                     const mapped = this.mapResource(n.construct, logicalId, value.Type, props, options);
                     for (const [mappedId, resource] of Object.entries(mapped)) {
                         debug(`mapping ${mappedId} -> ${logicalId}`);
                         this.resources.set(mappedId, { resource, resourceType: value.Type });
+                        this.constructs.set(n.construct, resource);
                     }
                     debug(`Done creating resource for ${logicalId}`);
                 }
@@ -91,6 +101,18 @@ class PulumiCDKBridge extends Construct {
                 for (const [outputId, args] of Object.entries(cfn.Outputs || {})) {
                     this.host.parent.registerOutput(outputId, this.processIntrinsics(args.Value));
                 }
+            } else {
+                const r = new CdkConstruct(`${this.host.parent.name}/${n.construct.node.path}`, n.construct, {
+                    parent,
+                });
+                this.constructs.set(n.construct, r);
+            }
+        }
+
+        for (let i = dependencyGraphNodes.length - 1; i >= 0; i--) {
+            const n = dependencyGraphNodes[i];
+            if (!CfnElement.isCfnElement(n.construct)) {
+                (<CdkConstruct>this.constructs.get(n.construct)!).done();
             }
         }
     }
@@ -104,7 +126,7 @@ class PulumiCDKBridge extends Construct {
     ): { [logicalId: string]: pulumi.Resource } {
         const normProps = normalize(props);
 
-        const res = this.host.remapCloudControlResource(logicalId, typeName, normProps, options);
+        const res = this.host.remapCloudControlResource(element, logicalId, typeName, normProps, options);
         if (res !== undefined) {
             debug(`remapped ${logicalId}`);
             return res;
@@ -142,15 +164,15 @@ class PulumiCDKBridge extends Construct {
                     .filter((ref) => ref.target === element)
                     .map((ref) => this.attributePropertyName(ref.displayName));
 
-                return { [logicalId]: new CdkResource(logicalId, typeName, normProps, attributes, options) };
+                return { [logicalId]: new CfnResource(logicalId, typeName, normProps, attributes, options) };
             }
         }
     }
 
-    private processOptions(resource: CloudFormationResource): pulumi.ResourceOptions {
+    private processOptions(resource: CloudFormationResource, parent: pulumi.Resource): pulumi.ResourceOptions {
         const dependsOn = getDependsOn(resource);
         return {
-            parent: this.host.parent,
+            parent: parent,
             dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources.get(id)!.resource) : undefined,
         };
     }

@@ -57,7 +57,7 @@ describe('Graph tests', () => {
         ], done);
     });
 
-    it('Test sort for ASG example', done => {
+    it('Test sort for ALB example', done => {
         testGraph(stack => {
             const vpc = new ec2.Vpc(stack, 'VPC');
 
