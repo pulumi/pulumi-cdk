@@ -51,7 +51,7 @@ export class StackComponent extends pulumi.ComponentResource {
         this.name = name;
 
         const app = new cdk.App();
-        this.stack = new (<any>ctor)(app, "stack");
+        this.stack = new (<any>ctor)(app, 'stack');
 
         const bridge = new PulumiCDKBridge(this);
         Aspects.of(app).add({
@@ -83,8 +83,7 @@ class PulumiCDKBridge {
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<IConstruct, pulumi.Resource>();
 
-    constructor(private readonly host: StackComponent) {
-    }
+    constructor(private readonly host: StackComponent) {}
 
     convert() {
         const dependencyGraphNodes = GraphBuilder.build(this.host.stack);

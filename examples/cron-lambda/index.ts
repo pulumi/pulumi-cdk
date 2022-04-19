@@ -47,8 +47,7 @@ class LambdaStack extends Stack {
                     logicalId,
                     {
                         scheduleExpression: props['scheduleExpression'],
-                        isEnabled:
-                            props['state'] == 'ENABLED' ? true : props.State === 'DISABLED' ? false : undefined,
+                        isEnabled: props['state'] == 'ENABLED' ? true : props.State === 'DISABLED' ? false : undefined,
                         description: props.Description,
                         eventBusName: props['eventBusName'] ?? undefined,
                         eventPattern: props['eventPattern'] ?? undefined,
