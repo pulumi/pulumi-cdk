@@ -20,40 +20,29 @@ import { GraphBuilder } from './graph';
 import { CfnResource, CdkConstruct, normalize, firstToLower } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 
-export abstract class Stack extends cdk.Stack {
-    constructor(scope: Construct, id: string) {
-        super(scope, id);
-    }
-
-    public remapCloudControlResource(
+export interface StackOptions extends pulumi.ComponentResourceOptions {
+    remapCloudControlResource?(
         element: CfnElement,
         logicalId: string,
         typeName: string,
         props: any,
         options: pulumi.ResourceOptions,
-    ): { [key: string]: pulumi.CustomResource } | undefined {
-        return undefined;
-    }
-
-    public static create(name: string, ctor: typeof Stack, options?: pulumi.ComponentResourceOptions): StackComponent {
-        const component = new StackComponent(name, ctor, options);
-        return component;
-    }
+    ): { [key: string]: pulumi.CustomResource } | undefined;
 }
 
-export class StackComponent extends pulumi.ComponentResource {
+export class Stack extends pulumi.ComponentResource {
     outputs: { [outputId: string]: pulumi.Output<any> } = {};
     name: string;
-    stack: Stack;
+    stack: cdk.Stack;
 
-    constructor(name: string, ctor: typeof Stack, options?: pulumi.CustomResourceOptions) {
+    constructor(name: string, ctor: typeof cdk.Stack, options?: StackOptions) {
         super('cdk:index:Stack', name, {}, options);
         this.name = name;
 
         const app = new cdk.App();
-        this.stack = new (<any>ctor)(app, 'stack');
+        this.stack = new ctor(app, 'stack');
 
-        const bridge = new PulumiCDKBridge(this);
+        const bridge = new PulumiCDKBridge(this, options || {});
         Aspects.of(app).add({
             visit: (node) => {
                 if (node === app) {
@@ -83,12 +72,12 @@ class PulumiCDKBridge {
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<IConstruct, pulumi.Resource>();
 
-    constructor(private readonly host: StackComponent) {}
+    constructor(private readonly host: Stack, private readonly options: StackOptions) {}
 
     convert() {
         const dependencyGraphNodes = GraphBuilder.build(this.host.stack);
         for (const n of dependencyGraphNodes) {
-            const parent = Stack.isStack(n.construct.node.scope)
+            const parent = cdk.Stack.isStack(n.construct.node.scope)
                 ? this.host
                 : this.constructs.get(n.construct.node.scope!)!;
 
@@ -155,10 +144,12 @@ class PulumiCDKBridge {
     ): { [logicalId: string]: pulumi.Resource } {
         const normProps = normalize(props);
 
-        const res = this.host.stack.remapCloudControlResource(element, logicalId, typeName, normProps, options);
-        if (res !== undefined) {
-            debug(`remapped ${logicalId}`);
-            return res;
+        if (this.options.remapCloudControlResource !== undefined) {
+            const res = this.options.remapCloudControlResource(element, logicalId, typeName, normProps, options);
+            if (res !== undefined) {
+                debug(`remapped ${logicalId}`);
+                return res;
+            }
         }
 
         switch (typeName) {

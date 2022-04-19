@@ -1,9 +1,9 @@
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as pulumi from '@pulumi/pulumi';
-import { Stack } from '@pulumi/cdk/interop-aspect';
+import * as pulumicdk from '@pulumi/cdk';
 import { Construct } from 'constructs';
 import { Service, Source } from '@aws-cdk/aws-apprunner-alpha';
-import { CfnOutput } from 'aws-cdk-lib';
+import { CfnOutput, Stack } from 'aws-cdk-lib';
 
 class AppRunnerStack extends Stack {
     constructor(scope: Construct, id: string) {
@@ -20,5 +20,5 @@ class AppRunnerStack extends Stack {
     }
 }
 
-const stack = Stack.create('teststack', AppRunnerStack);
+const stack = new pulumicdk.Stack('teststack', AppRunnerStack);
 export const url = stack.outputs['url'];
