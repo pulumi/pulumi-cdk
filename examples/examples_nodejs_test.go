@@ -38,7 +38,7 @@ func TestCronLambda(t *testing.T) {
 }
 
 func TestALB(t *testing.T) {
-	t.Skipf("skipping due to missing support for `Fn::Select`")
+	t.Skipf("skipping due to missing support for `AWS::EC2::EIP`")
 
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
