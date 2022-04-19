@@ -2,7 +2,7 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as elasticloadbalancingv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as pulumi from '@pulumi/pulumi';
-import * as cdk from '@pulumi/cdk';
+import * as pulumicdk from '@pulumi/cdk';
 import { Construct } from 'constructs';
 import * as aws from '@pulumi/aws';
 import { CfnOutput } from 'aws-cdk-lib';
@@ -48,75 +48,76 @@ const atg = new aws.lb.TargetGroup('app-tg', {
 // 	policyArn: "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
 // });
 
-const stack = new cdk.CdkStackComponent('teststack', (scope: Construct, parent: cdk.CdkStackComponent) => {
-    const adapter = new cdk.AwsPulumiAdapter(scope, 'adapter', parent);
+class ClusterStack extends pulumicdk.Stack {
+    constructor(scope: Construct, id: string) {
+        super(scope, id);
 
-    const cluster = new ecs.CfnCluster(adapter, 'clusterstack');
+        const cluster = new ecs.CfnCluster(this, 'clusterstack');
 
-    const role = new iam.Role(adapter, 'taskexecrole', {
-        assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-    });
+        const role = new iam.Role(this, 'taskexecrole', {
+            assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+        });
 
-    const listener = new elasticloadbalancingv2.CfnListener(adapter, 'web', {
-        loadBalancerArn: cdk.asString(alb.arn),
-        port: 80,
-        protocol: 'HTTP',
-        defaultActions: [
-            {
-                type: 'forward',
-                targetGroupArn: cdk.asString(atg.arn),
+        const listener = new elasticloadbalancingv2.CfnListener(this, 'web', {
+            loadBalancerArn: pulumicdk.asString(alb.arn),
+            port: 80,
+            protocol: 'HTTP',
+            defaultActions: [
+                {
+                    type: 'forward',
+                    targetGroupArn: pulumicdk.asString(atg.arn),
+                },
+            ],
+        });
+
+        const taskDefinition = new ecs.CfnTaskDefinition(this, 'apptask', {
+            family: 'fargate-task-definition',
+            cpu: '256',
+            memory: '512',
+            networkMode: 'awsvpc',
+            requiresCompatibilities: ['FARGATE'],
+            executionRoleArn: role.roleArn,
+            containerDefinitions: [
+                {
+                    name: 'my-app',
+                    image: 'nginx',
+                    portMappings: [
+                        {
+                            containerPort: 80,
+                            hostPort: 80,
+                            protocol: 'tcp',
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const service = new ecs.CfnService(this, 'appsvc', {
+            serviceName: 'app-svc-cloud-api',
+            cluster: cluster.attrArn,
+            desiredCount: 1,
+            launchType: 'FARGATE',
+            taskDefinition: taskDefinition.attrTaskDefinitionArn,
+            networkConfiguration: {
+                awsvpcConfiguration: {
+                    assignPublicIp: 'ENABLED',
+                    subnets: pulumicdk.asList(defaultVpcSubnets.ids),
+                    securityGroups: [pulumicdk.asString(group.id)],
+                },
             },
-        ],
-    });
+            loadBalancers: [
+                {
+                    targetGroupArn: pulumicdk.asString(atg.arn),
+                    containerName: 'my-app',
+                    containerPort: 80,
+                },
+            ],
+        });
+        service.addDependsOn(listener);
 
-    const taskDefinition = new ecs.CfnTaskDefinition(adapter, 'apptask', {
-        family: 'fargate-task-definition',
-        cpu: '256',
-        memory: '512',
-        networkMode: 'awsvpc',
-        requiresCompatibilities: ['FARGATE'],
-        executionRoleArn: role.roleArn,
-        containerDefinitions: [
-            {
-                name: 'my-app',
-                image: 'nginx',
-                portMappings: [
-                    {
-                        containerPort: 80,
-                        hostPort: 80,
-                        protocol: 'tcp',
-                    },
-                ],
-            },
-        ],
-    });
+        new CfnOutput(this, 'serviceName', { value: service.attrName });
+    }
+}
 
-    const service = new ecs.CfnService(adapter, 'appsvc', {
-        serviceName: 'app-svc-cloud-api',
-        cluster: cluster.attrArn,
-        desiredCount: 1,
-        launchType: 'FARGATE',
-        taskDefinition: taskDefinition.attrTaskDefinitionArn,
-        networkConfiguration: {
-            awsvpcConfiguration: {
-                assignPublicIp: 'ENABLED',
-                subnets: cdk.asList(defaultVpcSubnets.ids),
-                securityGroups: [cdk.asString(group.id)],
-            },
-        },
-        loadBalancers: [
-            {
-                targetGroupArn: cdk.asString(atg.arn),
-                containerName: 'my-app',
-                containerPort: 80,
-            },
-        ],
-    });
-    service.addDependsOn(listener);
-
-    new CfnOutput(adapter, 'serviceName', { value: service.attrName });
-
-    return adapter;
-});
-
+const stack = pulumicdk.Stack.create('teststack', ClusterStack);
 export const serviceName = stack.outputs['serviceName'];
