@@ -13,51 +13,16 @@ import {
     getUrlSuffix,
 } from '@pulumi/aws-native';
 import { debug } from '@pulumi/pulumi/log';
-import { Stack, CfnElement, Aspects, Token, Reference, Tokenization } from 'aws-cdk-lib';
+import { CfnElement, Aspects, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
 import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
 import { GraphBuilder } from './graph';
 import { CfnResource, CdkConstruct, normalize, firstToLower } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 
-export class CdkStackComponent extends pulumi.ComponentResource {
-    outputs!: { [outputId: string]: pulumi.Output<any> };
-
-    name: string;
-
-    constructor(
-        name: string,
-        args: (scope: Construct, parent: CdkStackComponent) => cdk.Stack,
-        opts?: pulumi.CustomResourceOptions,
-    ) {
-        super('cdk:index:StackComponent', name, args, opts);
-        this.outputs = {};
-        this.name = name;
-        const app = new cdk.App();
-        const stack = args(app, this);
-        app.synth();
-        this.registerOutputs(this.outputs);
-    }
-
-    /** @internal */
-    registerOutput(outputId: string, output: any) {
-        this.outputs[outputId] = pulumi.output(output);
-    }
-}
-
-export class AwsPulumiAdapter extends Stack {
-    constructor(scope: Construct, id: string, readonly parent: CdkStackComponent) {
-        super(undefined, id);
-
-        const host = new PulumiCDKBridge(scope, id, this);
-
-        Aspects.of(scope).add({
-            visit: (node) => {
-                if (node === scope) {
-                    host.convert();
-                }
-            },
-        });
+export abstract class Stack extends cdk.Stack {
+    constructor(scope: Construct, id: string) {
+        super(scope, id);
     }
 
     public remapCloudControlResource(
@@ -69,6 +34,43 @@ export class AwsPulumiAdapter extends Stack {
     ): { [key: string]: pulumi.CustomResource } | undefined {
         return undefined;
     }
+
+    public static create(name: string, ctor: typeof Stack, options?: pulumi.ComponentResourceOptions): StackComponent {
+        const component = new StackComponent(name, ctor, options);
+        return component;
+    }
+}
+
+export class StackComponent extends pulumi.ComponentResource {
+    outputs: { [outputId: string]: pulumi.Output<any> } = {};
+    name: string;
+    stack: Stack;
+
+    constructor(name: string, ctor: typeof Stack, options?: pulumi.CustomResourceOptions) {
+        super('cdk:index:Stack', name, {}, options);
+        this.name = name;
+
+        const app = new cdk.App();
+        this.stack = new (<any>ctor)(app, "stack");
+
+        const bridge = new PulumiCDKBridge(this);
+        Aspects.of(app).add({
+            visit: (node) => {
+                if (node === app) {
+                    bridge.convert();
+                }
+            },
+        });
+
+        app.synth();
+
+        this.registerOutputs(this.outputs);
+    }
+
+    /** @internal */
+    registerOutput(outputId: string, output: any) {
+        this.outputs[outputId] = pulumi.output(output);
+    }
 }
 
 export type Mapping<T extends pulumi.Resource> = {
@@ -76,20 +78,19 @@ export type Mapping<T extends pulumi.Resource> = {
     resourceType: string;
 };
 
-class PulumiCDKBridge extends Construct {
+class PulumiCDKBridge {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<IConstruct, pulumi.Resource>();
 
-    constructor(scope: Construct, id: string, private readonly host: AwsPulumiAdapter) {
-        super(scope, id);
+    constructor(private readonly host: StackComponent) {
     }
 
     convert() {
-        const dependencyGraphNodes = GraphBuilder.build(this.host);
+        const dependencyGraphNodes = GraphBuilder.build(this.host.stack);
         for (const n of dependencyGraphNodes) {
             const parent = Stack.isStack(n.construct.node.scope)
-                ? this.host.parent
+                ? this.host
                 : this.constructs.get(n.construct.node.scope!)!;
 
             if (CfnElement.isCfnElement(n.construct)) {
@@ -115,10 +116,10 @@ class PulumiCDKBridge extends Construct {
                 }
                 // Register the outputs as outputs of the component resource.
                 for (const [outputId, args] of Object.entries(cfn.Outputs || {})) {
-                    this.host.parent.registerOutput(outputId, this.processIntrinsics(args.Value));
+                    this.host.registerOutput(outputId, this.processIntrinsics(args.Value));
                 }
             } else {
-                const r = new CdkConstruct(`${this.host.parent.name}/${n.construct.node.path}`, n.construct, {
+                const r = new CdkConstruct(`${this.host.name}/${n.construct.node.path}`, n.construct, {
                     parent,
                 });
                 this.constructs.set(n.construct, r);
@@ -155,7 +156,7 @@ class PulumiCDKBridge extends Construct {
     ): { [logicalId: string]: pulumi.Resource } {
         const normProps = normalize(props);
 
-        const res = this.host.remapCloudControlResource(element, logicalId, typeName, normProps, options);
+        const res = this.host.stack.remapCloudControlResource(element, logicalId, typeName, normProps, options);
         if (res !== undefined) {
             debug(`remapped ${logicalId}`);
             return res;
@@ -211,7 +212,7 @@ class PulumiCDKBridge extends Construct {
         if (typeof obj === 'string') {
             if (Token.isUnresolved(obj)) {
                 debug(`Unresolved: ${JSON.stringify(obj)}`);
-                return this.host.resolve(obj);
+                return this.host.stack.resolve(obj);
             }
             return obj;
         }
@@ -303,7 +304,7 @@ class PulumiCDKBridge extends Construct {
 
         switch (target) {
             case 'AWS::AccountId':
-                return getAccountId({ parent: this.host.parent }).then((r) => r.accountId);
+                return getAccountId({ parent: this.host }).then((r) => r.accountId);
             case 'AWS::NoValue':
                 return undefined;
             case 'AWS::Partition':
@@ -316,9 +317,9 @@ class PulumiCDKBridge extends Construct {
                 // we're walking and then ask the provider via an invoke.
                 return 'aws';
             case 'AWS::Region':
-                return getRegion({ parent: this.host.parent }).then((r) => r.region);
+                return getRegion({ parent: this.host }).then((r) => r.region);
             case 'AWS::URLSuffix':
-                return getUrlSuffix({ parent: this.host.parent }).then((r) => r.urlSuffix);
+                return getUrlSuffix({ parent: this.host }).then((r) => r.urlSuffix);
             case 'AWS::NotificationARNs':
             case 'AWS::StackId':
             case 'AWS::StackName':

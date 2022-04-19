@@ -1,6 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as s3 from "aws-cdk-lib/aws-s3";
-import { CdkStackComponent, AwsPulumiAdapter } from "../src/interop-aspect";
+import { Stack } from "../src/interop-aspect";
 import { Construct } from "constructs";
 import { expect } from "chai";
 import * as mocks from "./mocks";
@@ -8,12 +8,16 @@ import * as output from "../src/output";
 
 mocks.setMocks();
 
-function testStack(fn: (adapter: AwsPulumiAdapter) => void, done: any) {
-    const s = new CdkStackComponent("teststack", (scope: Construct, parent: CdkStackComponent) => {
-        const adapter = new AwsPulumiAdapter(scope, "adapter", parent);
-        fn(adapter);
-        return adapter;
-    });
+function testStack(fn: (scope: Construct) => void, done: any) {
+    class TestStack extends Stack {
+        constructor(scope: Construct, id: string) {
+            super(scope, id);
+
+            fn(this);
+        }
+    }
+
+    const s = Stack.create('teststack', TestStack);
     s.urn.apply(() => done());
 }
 
