@@ -5,7 +5,7 @@ import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import { Construct } from 'constructs';
 import * as aws from '@pulumi/aws';
-import { CfnOutput } from 'aws-cdk-lib';
+import { CfnOutput, Stack } from 'aws-cdk-lib';
 
 const defaultVpc = pulumi.output(aws.ec2.getVpc({ default: true }));
 const defaultVpcSubnets = defaultVpc.id.apply((id) => aws.ec2.getSubnetIds({ vpcId: id }));
@@ -48,7 +48,7 @@ const atg = new aws.lb.TargetGroup('app-tg', {
 // 	policyArn: "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
 // });
 
-class ClusterStack extends pulumicdk.Stack {
+class ClusterStack extends Stack {
     constructor(scope: Construct, id: string) {
         super(scope, id);
 
@@ -119,5 +119,5 @@ class ClusterStack extends pulumicdk.Stack {
     }
 }
 
-const stack = pulumicdk.Stack.create('teststack', ClusterStack);
+const stack = new pulumicdk.Stack('teststack', ClusterStack);
 export const serviceName = stack.outputs['serviceName'];

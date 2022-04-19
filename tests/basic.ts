@@ -1,4 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
+import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Stack } from "../src/interop-aspect";
 import { Construct } from "constructs";
@@ -9,7 +10,7 @@ import * as output from "../src/output";
 mocks.setMocks();
 
 function testStack(fn: (scope: Construct) => void, done: any) {
-    class TestStack extends Stack {
+    class TestStack extends cdk.Stack {
         constructor(scope: Construct, id: string) {
             super(scope, id);
 
@@ -17,7 +18,7 @@ function testStack(fn: (scope: Construct) => void, done: any) {
         }
     }
 
-    const s = Stack.create('teststack', TestStack);
+    const s = new Stack('teststack', TestStack);
     s.urn.apply(() => done());
 }
 
