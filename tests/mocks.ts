@@ -27,7 +27,7 @@ export function setMocks() {
         },
         newResource: (args: MockResourceArgs): {id: string; state: any} => {
             switch (args.type) {
-                case "cdk:index:StackComponent":
+                case "cdk:index:Stack":
                     return { id: "", state: {} };
                 case "cdk:index:Component":
                     return { id: "", state: {} };
