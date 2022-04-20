@@ -43,6 +43,10 @@ export function mapToCfnResource(
                     options,
                 ),
             };
+        case 'AWS::S3::Bucket':
+            // Lowercase the bucket name to comply with the Bucket resource's naming constraints, which only allow
+            // lowercase letters.
+            return { [logicalId]: new s3.Bucket(logicalId.toLowerCase(), props, options) };
         default: {
             // Scrape the attributes off of the construct.
             //
