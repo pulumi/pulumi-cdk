@@ -15,10 +15,13 @@ import {
 import { debug } from '@pulumi/pulumi/log';
 import { CfnElement, Aspects, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
+import { mapToAwsResource } from './aws-resource-mappings';
 import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
+import { attributePropertyName, mapToCfnResource } from './cfn-resource-mappings';
 import { GraphBuilder } from './graph';
 import { CfnResource, CdkConstruct, normalize, firstToLower } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
+import { parseSub } from './sub';
 
 /**
  * Options specific to the Stack component.
@@ -189,41 +192,13 @@ class PulumiCDKBridge {
             }
         }
 
-        switch (typeName) {
-            case 'AWS::ECS::Cluster':
-                return { [logicalId]: new ecs.Cluster(logicalId, normProps, options) };
-            case 'AWS::ECS::TaskDefinition':
-                return { [logicalId]: new ecs.TaskDefinition(logicalId, normProps, options) };
-            case 'AWS::AppRunner::Service':
-                return { [logicalId]: new apprunner.Service(logicalId, normProps, options) };
-            case 'AWS::Lambda::Function':
-                return { [logicalId]: new lambda.Function(logicalId, normProps, options) };
-            case 'AWS::IAM::Role': {
-                // We need this because IAM Role's CFN json format has the following field in uppercase.
-                const morphed: any = {};
-                Object.entries(props).forEach(([k, v]) => {
-                    if (k == 'AssumeRolePolicyDocument') {
-                        morphed[firstToLower(k)] = v;
-                    } else {
-                        morphed[k] = v;
-                    }
-                });
-                return { [logicalId]: new iam.Role(logicalId, morphed, options) };
-            }
-            default: {
-                // Scrape the attributes off of the construct.
-                //
-                // NOTE: this relies on CfnReference setting the reference's display name to the literal attribute name.
-                const attributes = Object.values(element)
-                    .filter(Token.isUnresolved)
-                    .map((v) => Tokenization.reverse(v))
-                    .filter(Reference.isReference)
-                    .filter((ref) => ref.target === element)
-                    .map((ref) => this.attributePropertyName(ref.displayName));
-
-                return { [logicalId]: new CfnResource(logicalId, typeName, normProps, attributes, options) };
-            }
+        const awsMapping = mapToAwsResource(element, logicalId, typeName, props, normProps, options);
+        if (awsMapping !== undefined) {
+            debug(`mapped ${logicalId} to classic AWS resource(s)`);
+            return awsMapping;
         }
+
+        return mapToCfnResource(element, logicalId, typeName, props, normProps, options);
     }
 
     private processOptions(resource: CloudFormationResource, parent: pulumi.Resource): pulumi.ResourceOptions {
@@ -307,6 +282,27 @@ class PulumiCDKBridge {
             case 'Fn::GetAZs':
                 return this.lift(([region]) => getAzs({ region }).then((r) => r.azs), this.processIntrinsics(params));
 
+            case 'Fn::Sub':
+                return this.lift(([params]) => {
+                    const [template, vars] =
+                        typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
+
+                    const parts = [];
+                    for (const part of parseSub(template)) {
+                        parts.push(part.str);
+
+                        if (part.ref !== undefined) {
+                            if (part.ref.attr !== undefined) {
+                                parts.push(this.resolveAtt(part.ref.id, part.ref.attr!));
+                            } else {
+                                parts.push(this.resolveRef(part.ref.id));
+                            }
+                        }
+                    }
+
+                    return this.lift((parts) => parts.map((v: any) => v.toString()).join(''), parts);
+                }, this.processIntrinsics(params));
+
             case 'Fn::Transform': {
                 // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-macros.html
                 throw new Error('Fn::Transform is not supported – Cfn Template Macros are not supported yet');
@@ -373,10 +369,6 @@ class PulumiCDKBridge {
         throw new Error(`missing reference for ${logicalId}`);
     }
 
-    private attributePropertyName(attributeName: string): string {
-        return firstToLower(attributeName.split('.')[0]);
-    }
-
     private resolveAtt(logicalId: string, attribute: string) {
         const mapping = <Mapping<pulumi.Resource>>this.lookup(logicalId);
 
@@ -386,7 +378,7 @@ class PulumiCDKBridge {
             )}`,
         );
 
-        const propertyName = this.attributePropertyName(attribute);
+        const propertyName = attributePropertyName(attribute);
 
         const descs = Object.getOwnPropertyDescriptors(mapping.resource);
         const d = descs[propertyName];

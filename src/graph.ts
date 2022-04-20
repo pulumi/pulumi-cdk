@@ -2,6 +2,7 @@ import { debug } from '@pulumi/pulumi/log';
 import { Stack, CfnElement, Token } from 'aws-cdk-lib';
 import { Construct, ConstructOrder } from 'constructs';
 import { CloudFormationTemplate } from './cfn';
+import { parseSub } from './sub';
 
 export interface GraphNode {
     incomingEdges: Set<GraphNode>;
@@ -184,9 +185,8 @@ export class GraphBuilder {
 
                     this.addEdgesForFragment(vars, source);
 
-                    const subRegex = /\${([^!][^.}]*)(\.[^}]*)?}/g;
-                    for (const m of template.matchAll(subRegex)) {
-                        this.addEdgeForRef(m[1], source);
+                    for (const part of parseSub(template).filter((p) => p.ref !== undefined)) {
+                        this.addEdgeForRef(part.ref!.id, source);
                     }
                 }
                 break;
