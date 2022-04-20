@@ -15,7 +15,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
-import { Stack } from "../src/interop-aspect";
+import { Stack } from "../src/stack";
 import { Construct } from "constructs";
 import { expect } from "chai";
 import * as mocks from "./mocks";
