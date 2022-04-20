@@ -32,7 +32,7 @@ export function normalize(value: any): any {
         return result;
     }
 
-    if (typeof value !== 'object' || pulumi.Output.isInstance(value)) {
+    if (typeof value !== 'object' || pulumi.Output.isInstance(value) || value instanceof Promise) {
         return value;
     }
 

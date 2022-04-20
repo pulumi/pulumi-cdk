@@ -1,13 +1,11 @@
 {
     "compilerOptions": {
         "strict": true,
-        "outDir": "lib",
+        "outDir": "bin",
         "target": "es2016",
         "module": "commonjs",
         "moduleResolution": "node",
-        "declaration": true,
         "sourceMap": true,
-        "stripInternal": true,
         "experimentalDecorators": true,
         "pretty": true,
         "noFallthroughCasesInSwitch": true,
@@ -15,13 +13,6 @@
         "forceConsistentCasingInFileNames": true
     },
     "files": [
-        "src/aws-resource-mappings.ts",
-        "src/cfn-resource-mappings.ts",
-        "src/cfn.ts",
-        "src/graph.ts",
-        "src/index.ts",
-        "src/interop-aspect.ts",
-        "src/interop.ts",
-        "src/sub.ts"
+        "index.ts"
     ]
 }

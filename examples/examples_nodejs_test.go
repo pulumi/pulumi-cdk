@@ -38,11 +38,20 @@ func TestCronLambda(t *testing.T) {
 }
 
 func TestALB(t *testing.T) {
-	t.Skipf("skipping due to missing support for `AWS::EC2::EIP`")
+	t.Skipf("skipping due to missing support for `AWS::EC2::SecurityGroup`")
 
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "alb"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
+func TestS3ObjectLambda(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "s3-object-lambda"),
 		})
 
 	integration.ProgramTest(t, &test)
