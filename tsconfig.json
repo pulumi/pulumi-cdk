@@ -20,8 +20,8 @@
         "src/cfn.ts",
         "src/graph.ts",
         "src/index.ts",
-        "src/interop-aspect.ts",
         "src/interop.ts",
+        "src/stack.ts",
         "src/sub.ts"
     ]
 }
