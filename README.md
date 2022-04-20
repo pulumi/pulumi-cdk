@@ -33,7 +33,7 @@ const stack = new pulumicdk.Stack('teststack', AppRunnerStack);
 export const url = stack.outputs['url'];
 ```
 
-And then deloy with `pulumi update`:
+And then deploy with `pulumi update`:
 
 ```
 > pulumi up
