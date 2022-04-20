@@ -20,7 +20,26 @@ import { GraphBuilder } from './graph';
 import { CfnResource, CdkConstruct, normalize, firstToLower } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 
+/**
+ * Options specific to the Stack component.
+ */
 export interface StackOptions extends pulumi.ComponentResourceOptions {
+    /**
+     * Defines a mapping to override and/or provide an implementation for a CloudFormation resource
+     * type that is not (yet) implemented in the AWS Cloud Control API (and thus not yet available in
+     * the Pulumi AWS Native provider). Pulumi code can override this method to provide a custom mapping
+     * of CloudFormation elements and their properties into Pulumi CustomResources, commonly by using the
+     * AWS Classic provider to implement the missing resource.
+     *
+     * @param element The full CloudFormation element object being mapped.
+     * @param logicalId The logical ID of the resource being mapped.
+     * @param typeName The CloudFormation type name of the resource being mapped.
+     * @param props The bag of input properties to the CloudFormation resource being mapped.
+     * @param options The set of Pulumi ResourceOptions to apply to the resource being mapped.
+     * @returns An object containing one or more logical IDs mapped to Pulumi resources that must be
+     * created to implement the mapped CloudFormation resource, or else undefined if no mapping is
+     * implemented.
+     */
     remapCloudControlResource?(
         element: CfnElement,
         logicalId: string,
@@ -30,17 +49,35 @@ export interface StackOptions extends pulumi.ComponentResourceOptions {
     ): { [key: string]: pulumi.CustomResource } | undefined;
 }
 
+/**
+ * A Pulumi Component that represents an AWS CDK stack deployed with Pulumi.
+ */
 export class Stack extends pulumi.ComponentResource {
+    /**
+     * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
+     * Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs.
+     */
     outputs: { [outputId: string]: pulumi.Output<any> } = {};
+
+    /** @internal */
     name: string;
+
+    /** @internal */
     stack: cdk.Stack;
 
-    constructor(name: string, ctor: typeof cdk.Stack, options?: StackOptions) {
+    /**
+     * Create and register an AWS CDK stack deployed with Pulumi.
+     *
+     * @param name The _unique_ name of the resource.
+     * @param stack The CDK Stack subclass to create.
+     * @param options A bag of options that control this resource's behavior.
+     */
+    constructor(name: string, stack: typeof cdk.Stack, options?: StackOptions) {
         super('cdk:index:Stack', name, {}, options);
         this.name = name;
 
         const app = new cdk.App();
-        this.stack = new ctor(app, 'stack');
+        this.stack = new stack(app, 'stack');
 
         const bridge = new PulumiCDKBridge(this, options || {});
         Aspects.of(app).add({
@@ -62,7 +99,7 @@ export class Stack extends pulumi.ComponentResource {
     }
 }
 
-export type Mapping<T extends pulumi.Resource> = {
+type Mapping<T extends pulumi.Resource> = {
     resource: T;
     resourceType: string;
 };

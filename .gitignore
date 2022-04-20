@@ -1,6 +1,12 @@
 # Build output
 lib/
 
+# Pulumi stacks
+Pulumi.*.yaml
+
+# Example lock files
+examples/**/yarn.lock
+
 # Logs
 logs
 *.log
