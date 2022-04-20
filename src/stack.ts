@@ -27,7 +27,7 @@ import {
     getUrlSuffix,
 } from '@pulumi/aws-native';
 import { debug } from '@pulumi/pulumi/log';
-import { CfnElement, Aspects, Token, Reference, Tokenization } from 'aws-cdk-lib';
+import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
 import { mapToAwsResource } from './aws-resource-mappings';
 import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
@@ -95,17 +95,9 @@ export class Stack extends pulumi.ComponentResource {
 
         const app = new cdk.App();
         this.stack = new stack(app, 'stack');
-
-        const bridge = new PulumiCDKBridge(this, options || {});
-        Aspects.of(app).add({
-            visit: (node) => {
-                if (node === app) {
-                    bridge.convert();
-                }
-            },
-        });
-
         app.synth();
+
+        PulumiCDKBridge.convert(this, options || {});
 
         this.registerOutputs(this.outputs);
     }
@@ -128,7 +120,12 @@ class PulumiCDKBridge {
 
     constructor(private readonly host: Stack, private readonly options: StackOptions) {}
 
-    convert() {
+    public static convert(host: Stack, options: StackOptions) {
+        const bridge = new PulumiCDKBridge(host, options);
+        bridge.convert();
+    }
+
+    private convert() {
         const dependencyGraphNodes = GraphBuilder.build(this.host.stack);
         for (const n of dependencyGraphNodes) {
             const parent = cdk.Stack.isStack(n.construct.node.scope)
