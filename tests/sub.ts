@@ -53,4 +53,12 @@ describe('Sub tests', () => {
             ]},
         ]);
     });
+    it('Correctly parses regression cases', () => {
+        testSub([
+            {template: "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}", expected: [
+                {str: "cdk-hnb659fds-assets-", ref: {id: "AWS::AccountId", attr: undefined}},
+                {str: "-", ref: {id: "AWS::Region", attr: undefined}},
+            ]},
+        ]);
+    });
 });

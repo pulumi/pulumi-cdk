@@ -283,7 +283,10 @@ class PulumiCDKBridge {
                 return this.lift(([region]) => getAzs({ region }).then((r) => r.azs), this.processIntrinsics(params));
 
             case 'Fn::Sub':
-                return this.lift(([template, vars]) => {
+                return this.lift(([params]) => {
+                    const [template, vars] =
+                        typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
+
                     const parts = [];
                     for (const part of parseSub(template)) {
                         parts.push(part.str);
