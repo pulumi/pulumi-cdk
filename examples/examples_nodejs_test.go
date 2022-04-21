@@ -71,6 +71,17 @@ func TestS3ObjectLambda(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestEC2Instance(t *testing.T) {
+	t.Skipf("skipping due to missing support for `AWS::EC2::SecurityGroup`")
+
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "ec2-instance"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {
 	base := getBaseOptions(t)
 	baseJS := base.With(integration.ProgramTestOptions{
