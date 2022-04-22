@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import * as cx from 'aws-cdk-lib/cx-api';
 import * as cloud_assembly from 'aws-cdk-lib/cloud-assembly-schema';
@@ -40,6 +41,7 @@ import { GraphBuilder } from './graph';
 import { CfnResource, CdkConstruct, normalize, firstToLower } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 import { parseSub } from './sub';
+import { zipDirectory } from './zip';
 
 /**
  * Options specific to the Stack component.
@@ -118,7 +120,6 @@ type Mapping<T extends pulumi.Resource> = {
 
 class AppConverter {
     readonly stacks = new Map<string, StackConverter>();
-    readonly assets = new Map<string, AssetManifestConverter>();
 
     constructor(
         readonly host: Stack,
@@ -141,7 +142,7 @@ class AppConverter {
         }
 
         // Find the CFN stack artifacts and process them in dependency order.
-        const done = new Set<cx.CloudArtifact>();
+        const done = new Map<cx.CloudArtifact, ArtifactConverter>();
         for (const stack of this.assembly.artifacts.filter(
             (a) => a.manifest.type === cloud_assembly.ArtifactType.AWS_CLOUDFORMATION_STACK,
         )) {
@@ -149,52 +150,67 @@ class AppConverter {
         }
     }
 
-    private convertArtifact(artifact: cx.CloudArtifact, done: Set<cx.CloudArtifact>) {
+    private convertArtifact(
+        artifact: cx.CloudArtifact,
+        done: Map<cx.CloudArtifact, ArtifactConverter>,
+    ): ArtifactConverter | undefined {
         if (done.has(artifact)) {
-            return;
+            return done.get(artifact)!;
         }
-        done.add(artifact);
 
-        // TODO: plumb edges from these dependencies through to the artifact (e.g. for a stack that depends on assets,
-        // ensure that the root of the converted stack depends on the asset resources).
-        for (const dependency of artifact.dependencies) {
-            this.convertArtifact(dependency, done);
+        const dependencies = new Set<ArtifactConverter>();
+        for (const d of artifact.dependencies) {
+            const c = this.convertArtifact(d, done);
+            if (c !== undefined) {
+                debug(`${artifact.id} depends on ${d.id}`);
+                dependencies.add(c);
+            }
         }
 
         switch (artifact.manifest.type) {
             case cloud_assembly.ArtifactType.ASSET_MANIFEST:
-                this.convertAssetManifest(artifact as cx.AssetManifestArtifact);
-                break;
+                return this.convertAssetManifest(artifact as cx.AssetManifestArtifact, dependencies);
             case cloud_assembly.ArtifactType.AWS_CLOUDFORMATION_STACK:
-                this.convertStack(artifact as cx.CloudFormationStackArtifact);
-                break;
+                return this.convertStack(artifact as cx.CloudFormationStackArtifact, dependencies);
             default:
                 debug(`attempting to convert artifact ${artifact.id} with unsupported type ${artifact.manifest.type}`);
-                break;
+                return undefined;
         }
     }
 
-    private convertStack(artifact: cx.CloudFormationStackArtifact) {
+    private convertStack(
+        artifact: cx.CloudFormationStackArtifact,
+        dependencies: Set<ArtifactConverter>,
+    ): StackConverter {
         const stack = this.stacks.get(artifact.id);
         if (stack === undefined) {
             throw new Error(`missing CDK Stack for artifact ${artifact.id}`);
         }
-        stack.convert();
+        stack.convert(dependencies);
+        return stack;
     }
 
-    private convertAssetManifest(artifact: cx.AssetManifestArtifact) {
+    private convertAssetManifest(
+        artifact: cx.AssetManifestArtifact,
+        dependencies: Set<ArtifactConverter>,
+    ): ArtifactConverter {
         const converter = new AssetManifestConverter(this, cloud_assembly.Manifest.loadAssetManifest(artifact.file));
         converter.convert();
-
-        this.assets.set(artifact.id, converter);
+        return converter;
     }
 }
 
-class AssetManifestConverter {
-    public readonly files = new Map<string, aws.s3.BucketObject>();
-    public readonly dockerImages = new Map<string, docker.Image>();
+class ArtifactConverter {
+    constructor(readonly app: AppConverter) {}
+}
 
-    constructor(readonly app: AppConverter, readonly manifest: cloud_assembly.AssetManifest) {}
+class AssetManifestConverter extends ArtifactConverter {
+    public readonly files = new Map<string, aws.s3.BucketObjectv2[]>();
+    public readonly dockerImages = new Map<string, docker.Image[]>();
+
+    constructor(app: AppConverter, readonly manifest: cloud_assembly.AssetManifest) {
+        super(app);
+    }
 
     public convert() {
         for (const [id, file] of Object.entries(this.manifest.files || {})) {
@@ -207,28 +223,77 @@ class AssetManifestConverter {
     }
 
     private convertFile(id: string, asset: cloud_assembly.FileAsset) {
-        debug('TODO: convert file asset');
+        if (asset.source.executable !== undefined) {
+            throw new Error(`file assets produced by commands are not yet supported`);
+        }
+
+        const inputPath = path.join(this.app.assembly.directory, asset.source.path!);
+        const outputPath =
+            asset.source.packaging === cloud_assembly.FileAssetPackaging.FILE
+                ? Promise.resolve(inputPath)
+                : zipDirectory(inputPath, inputPath + '.zip');
+
+        const objects = Object.entries(asset.destinations).map(
+            ([destId, d]) =>
+                new aws.s3.BucketObjectv2(
+                    `${id}/${destId}`,
+                    {
+                        source: outputPath,
+                        bucket: this.resolvePlaceholders(d.bucketName),
+                        key: this.resolvePlaceholders(d.objectKey),
+                    },
+                    { parent: this.app.host },
+                ),
+        );
+
+        this.files.set(id, objects);
     }
 
     private convertDockerImage(id: string, asset: cloud_assembly.DockerImageAsset) {
         debug('TODO: convert docker image asset');
     }
+
+    private resolvePlaceholders(s: string): Promise<string> {
+        const app = this.app;
+        return cx.EnvironmentPlaceholders.replaceAsync(s, {
+            async region(): Promise<string> {
+                return getRegion({ parent: app.host }).then((r) => r.region);
+            },
+
+            async accountId(): Promise<string> {
+                return getAccountId({ parent: app.host }).then((r) => r.accountId);
+            },
+
+            async partition(): Promise<string> {
+                return 'aws';
+            },
+        });
+    }
 }
 
-class StackConverter {
+class StackConverter extends ArtifactConverter {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<IConstruct, pulumi.Resource>();
+    stackResource!: CdkConstruct;
 
-    constructor(readonly app: AppConverter, readonly stack: cdk.Stack) {}
+    constructor(app: AppConverter, readonly stack: cdk.Stack) {
+        super(app);
+    }
 
-    public convert() {
+    public convert(dependencies: Set<ArtifactConverter>) {
         const dependencyGraphNodes = GraphBuilder.build(this.stack);
         for (const n of dependencyGraphNodes) {
-            const parent = cdk.Stack.isStack(n.construct.node.scope)
-                ? this.app.host
-                : this.constructs.get(n.construct.node.scope!)!;
+            if (n.construct === this.stack) {
+                this.stackResource = new CdkConstruct(`${this.app.host.name}/${n.construct.node.path}`, n.construct, {
+                    parent: this.app.host,
+                    dependsOn: this.stackDependsOn(dependencies),
+                });
+                this.constructs.set(n.construct, this.stackResource);
+                continue;
+            }
 
+            const parent = this.constructs.get(n.construct.node.scope!)!;
             if (CfnElement.isCfnElement(n.construct)) {
                 const cfn = n.template!;
                 debug(`Processing node with template: ${JSON.stringify(cfn)}`);
@@ -268,6 +333,21 @@ class StackConverter {
                 (<CdkConstruct>this.constructs.get(n.construct)!).done();
             }
         }
+    }
+
+    private stackDependsOn(dependencies: Set<ArtifactConverter>): pulumi.Resource[] {
+        const dependsOn: pulumi.Resource[] = [];
+        for (const d of dependencies) {
+            if (d instanceof AssetManifestConverter) {
+                for (const objects of d.files.values()) {
+                    dependsOn.push(...objects);
+                }
+                for (const images of d.dockerImages.values()) {
+                    dependsOn.push(...images);
+                }
+            }
+        }
+        return dependsOn;
     }
 
     private mapParameter(element: CfnElement, logicalId: string, typeName: string, defaultValue: any | undefined) {
@@ -391,7 +471,7 @@ class StackConverter {
                 return lift(([region]) => getAzs({ region }).then((r) => r.azs), this.processIntrinsics(params));
 
             case 'Fn::Sub':
-                return lift(([params]) => {
+                return lift((params) => {
                     const [template, vars] =
                         typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 

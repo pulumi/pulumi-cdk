@@ -53,31 +53,31 @@ export function mapToAwsResource(
                 options,
             );
 
-            for (const group of props.groups || []) {
+            for (let i = 0; i < (props.groups || []).length; i++) {
                 const attachment = new aws.iam.GroupPolicyAttachment(
-                    `${logicalId}-${group}`,
+                    `${logicalId}-${i}`,
                     {
-                        group: group,
+                        group: props.groups[i],
                         policyArn: policy.arn,
                     },
                     options,
                 );
             }
-            for (const role of props.roles || []) {
+            for (let i = 0; i < (props.roles || []).length; i++) {
                 const attachment = new aws.iam.RolePolicyAttachment(
-                    `${logicalId}-${role}`,
+                    `${logicalId}-${i}`,
                     {
-                        role: role,
+                        role: props.roles[i],
                         policyArn: policy.arn,
                     },
                     options,
                 );
             }
-            for (const user of props.users || []) {
+            for (let i = 0; i < (props.users || []).length; i++) {
                 const attachment = new aws.iam.UserPolicyAttachment(
-                    `${logicalId}-${user}`,
+                    `${logicalId}-${i}`,
                     {
-                        user: user,
+                        user: props.users[i],
                         policyArn: policy.arn,
                     },
                     options,

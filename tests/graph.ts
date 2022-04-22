@@ -66,6 +66,7 @@ describe('Graph tests', () => {
         testGraph(stack => {
             new s3.Bucket(stack, 'MyFirstBucket', { versioned: true });
         }, [
+            "graphtest",
             "graphtest/MyFirstBucket",
             "graphtest/MyFirstBucket/Resource",
         ], done);
@@ -101,6 +102,7 @@ describe('Graph tests', () => {
               targetRequestsPerMinute: 60,
             });
         }, [
+            "graphtest",
             "graphtest/VPC",
             "graphtest/VPC/Resource",
             "graphtest/VPC/PublicSubnet1",
@@ -209,6 +211,7 @@ describe('Graph tests', () => {
                 }],
             });
         }, [
+            "graphtest",
             "graphtest/clusterstack",
             "graphtest/taskexecrole",
             "graphtest/taskexecrole/Resource",
@@ -227,6 +230,7 @@ describe('Graph tests', () => {
                 }),
             });
         }, [
+            "graphtest",
             "graphtest/service",
             "graphtest/service/Resource",
         ], done);
