@@ -61,6 +61,8 @@ func TestALB(t *testing.T) {
 }
 
 func TestS3ObjectLambda(t *testing.T) {
+	t.Skipf("skipping due to a bug in the aws-native SDK for `AWS::S3::AccessPoint`")
+
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "s3-object-lambda"),
