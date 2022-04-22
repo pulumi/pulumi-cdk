@@ -13,7 +13,11 @@
 // limitations under the License.
 
 import * as cdk from 'aws-cdk-lib';
+import * as cx from 'aws-cdk-lib/cx-api';
+import * as cloud_assembly from 'aws-cdk-lib/cloud-assembly-schema';
 import * as pulumi from '@pulumi/pulumi';
+import * as aws from '@pulumi/aws';
+import * as docker from '@pulumi/docker';
 import {
     ecs,
     iam,
@@ -79,9 +83,6 @@ export class Stack extends pulumi.ComponentResource {
     /** @internal */
     name: string;
 
-    /** @internal */
-    stack: cdk.Stack;
-
     /**
      * Create and register an AWS CDK stack deployed with Pulumi.
      *
@@ -94,10 +95,12 @@ export class Stack extends pulumi.ComponentResource {
         this.name = name;
 
         const app = new cdk.App();
-        this.stack = new stack(app, 'stack');
-        app.synth();
+        new stack(app, 'stack');
+        const assembly = app.synth();
 
-        PulumiCDKBridge.convert(this, options || {});
+        debug(JSON.stringify(debugAssembly(assembly)));
+
+        AppConverter.convert(this, app, assembly, options || {});
 
         this.registerOutputs(this.outputs);
     }
@@ -113,23 +116,117 @@ type Mapping<T extends pulumi.Resource> = {
     resourceType: string;
 };
 
-class PulumiCDKBridge {
+class AppConverter {
+    readonly stacks = new Map<string, StackConverter>();
+    readonly assets = new Map<string, AssetManifestConverter>();
+
+    constructor(
+        readonly host: Stack,
+        readonly app: cdk.App,
+        readonly assembly: cx.CloudAssembly,
+        readonly options: StackOptions,
+    ) {}
+
+    public static convert(host: Stack, app: cdk.App, assembly: cx.CloudAssembly, options: StackOptions) {
+        const converter = new AppConverter(host, app, assembly, options);
+        converter.convert();
+    }
+
+    private convert() {
+        // Build a lookup table for the app's stacks.
+        for (const construct of this.app.node.findAll()) {
+            if (cdk.Stack.isStack(construct)) {
+                this.stacks.set(construct.artifactId, new StackConverter(this, construct));
+            }
+        }
+
+        // Find the CFN stack artifacts and process them in dependency order.
+        const done = new Set<cx.CloudArtifact>();
+        for (const stack of this.assembly.artifacts.filter(
+            (a) => a.manifest.type === cloud_assembly.ArtifactType.AWS_CLOUDFORMATION_STACK,
+        )) {
+            this.convertArtifact(stack, done);
+        }
+    }
+
+    private convertArtifact(artifact: cx.CloudArtifact, done: Set<cx.CloudArtifact>) {
+        if (done.has(artifact)) {
+            return;
+        }
+        done.add(artifact);
+
+        // TODO: plumb edges from these dependencies through to the artifact (e.g. for a stack that depends on assets,
+        // ensure that the root of the converted stack depends on the asset resources).
+        for (const dependency of artifact.dependencies) {
+            this.convertArtifact(dependency, done);
+        }
+
+        switch (artifact.manifest.type) {
+            case cloud_assembly.ArtifactType.ASSET_MANIFEST:
+                this.convertAssetManifest(artifact as cx.AssetManifestArtifact);
+                break;
+            case cloud_assembly.ArtifactType.AWS_CLOUDFORMATION_STACK:
+                this.convertStack(artifact as cx.CloudFormationStackArtifact);
+                break;
+            default:
+                debug(`attempting to convert artifact ${artifact.id} with unsupported type ${artifact.manifest.type}`);
+                break;
+        }
+    }
+
+    private convertStack(artifact: cx.CloudFormationStackArtifact) {
+        const stack = this.stacks.get(artifact.id);
+        if (stack === undefined) {
+            throw new Error(`missing CDK Stack for artifact ${artifact.id}`);
+        }
+        stack.convert();
+    }
+
+    private convertAssetManifest(artifact: cx.AssetManifestArtifact) {
+        const converter = new AssetManifestConverter(this, cloud_assembly.Manifest.loadAssetManifest(artifact.file));
+        converter.convert();
+
+        this.assets.set(artifact.id, converter);
+    }
+}
+
+class AssetManifestConverter {
+    public readonly files = new Map<string, aws.s3.BucketObject>();
+    public readonly dockerImages = new Map<string, docker.Image>();
+
+    constructor(readonly app: AppConverter, readonly manifest: cloud_assembly.AssetManifest) {}
+
+    public convert() {
+        for (const [id, file] of Object.entries(this.manifest.files || {})) {
+            this.convertFile(id, file);
+        }
+
+        for (const [id, image] of Object.entries(this.manifest.dockerImages || {})) {
+            this.convertDockerImage(id, image);
+        }
+    }
+
+    private convertFile(id: string, asset: cloud_assembly.FileAsset) {
+        debug('TODO: convert file asset');
+    }
+
+    private convertDockerImage(id: string, asset: cloud_assembly.DockerImageAsset) {
+        debug('TODO: convert docker image asset');
+    }
+}
+
+class StackConverter {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<IConstruct, pulumi.Resource>();
 
-    constructor(private readonly host: Stack, private readonly options: StackOptions) {}
+    constructor(readonly app: AppConverter, readonly stack: cdk.Stack) {}
 
-    public static convert(host: Stack, options: StackOptions) {
-        const bridge = new PulumiCDKBridge(host, options);
-        bridge.convert();
-    }
-
-    private convert() {
-        const dependencyGraphNodes = GraphBuilder.build(this.host.stack);
+    public convert() {
+        const dependencyGraphNodes = GraphBuilder.build(this.stack);
         for (const n of dependencyGraphNodes) {
             const parent = cdk.Stack.isStack(n.construct.node.scope)
-                ? this.host
+                ? this.app.host
                 : this.constructs.get(n.construct.node.scope!)!;
 
             if (CfnElement.isCfnElement(n.construct)) {
@@ -155,10 +252,10 @@ class PulumiCDKBridge {
                 }
                 // Register the outputs as outputs of the component resource.
                 for (const [outputId, args] of Object.entries(cfn.Outputs || {})) {
-                    this.host.registerOutput(outputId, this.processIntrinsics(args.Value));
+                    this.app.host.registerOutput(outputId, this.processIntrinsics(args.Value));
                 }
             } else {
-                const r = new CdkConstruct(`${this.host.name}/${n.construct.node.path}`, n.construct, {
+                const r = new CdkConstruct(`${this.app.host.name}/${n.construct.node.path}`, n.construct, {
                     parent,
                 });
                 this.constructs.set(n.construct, r);
@@ -195,8 +292,8 @@ class PulumiCDKBridge {
     ): { [logicalId: string]: pulumi.Resource } {
         const normProps = normalize(props);
 
-        if (this.options.remapCloudControlResource !== undefined) {
-            const res = this.options.remapCloudControlResource(element, logicalId, typeName, normProps, options);
+        if (this.app.options.remapCloudControlResource !== undefined) {
+            const res = this.app.options.remapCloudControlResource(element, logicalId, typeName, normProps, options);
             if (res !== undefined) {
                 debug(`remapped ${logicalId}`);
                 return res;
@@ -225,7 +322,7 @@ class PulumiCDKBridge {
         if (typeof obj === 'string') {
             if (Token.isUnresolved(obj)) {
                 debug(`Unresolved: ${JSON.stringify(obj)}`);
-                return this.host.stack.resolve(obj);
+                return this.stack.resolve(obj);
             }
             return obj;
         }
@@ -268,19 +365,19 @@ class PulumiCDKBridge {
             }
 
             case 'Fn::Join':
-                return this.lift(([delim, strings]) => strings.join(delim), this.processIntrinsics(params));
+                return lift(([delim, strings]) => strings.join(delim), this.processIntrinsics(params));
 
             case 'Fn::Select':
-                return this.lift(([index, list]) => list[index], this.processIntrinsics(params));
+                return lift(([index, list]) => list[index], this.processIntrinsics(params));
 
             case 'Fn::Split':
-                return this.lift(([delim, str]) => str.split(delim), this.processIntrinsics(params));
+                return lift(([delim, str]) => str.split(delim), this.processIntrinsics(params));
 
             case 'Fn::Base64':
-                return this.lift(([str]) => btoa(str), this.processIntrinsics(params));
+                return lift(([str]) => btoa(str), this.processIntrinsics(params));
 
             case 'Fn::Cidr':
-                return this.lift(
+                return lift(
                     ([ipBlock, count, cidrBits]) =>
                         cidr({
                             ipBlock,
@@ -291,10 +388,10 @@ class PulumiCDKBridge {
                 );
 
             case 'Fn::GetAZs':
-                return this.lift(([region]) => getAzs({ region }).then((r) => r.azs), this.processIntrinsics(params));
+                return lift(([region]) => getAzs({ region }).then((r) => r.azs), this.processIntrinsics(params));
 
             case 'Fn::Sub':
-                return this.lift(([params]) => {
+                return lift(([params]) => {
                     const [template, vars] =
                         typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 
@@ -311,7 +408,7 @@ class PulumiCDKBridge {
                         }
                     }
 
-                    return this.lift((parts) => parts.map((v: any) => v.toString()).join(''), parts);
+                    return lift((parts) => parts.map((v: any) => v.toString()).join(''), parts);
                 }, this.processIntrinsics(params));
 
             case 'Fn::Transform': {
@@ -338,7 +435,7 @@ class PulumiCDKBridge {
 
         switch (target) {
             case 'AWS::AccountId':
-                return getAccountId({ parent: this.host }).then((r) => r.accountId);
+                return getAccountId({ parent: this.app.host }).then((r) => r.accountId);
             case 'AWS::NoValue':
                 return undefined;
             case 'AWS::Partition':
@@ -351,9 +448,9 @@ class PulumiCDKBridge {
                 // we're walking and then ask the provider via an invoke.
                 return 'aws';
             case 'AWS::Region':
-                return getRegion({ parent: this.host }).then((r) => r.region);
+                return getRegion({ parent: this.app.host }).then((r) => r.region);
             case 'AWS::URLSuffix':
-                return getUrlSuffix({ parent: this.host }).then((r) => r.urlSuffix);
+                return getUrlSuffix({ parent: this.app.host }).then((r) => r.urlSuffix);
             case 'AWS::NotificationARNs':
             case 'AWS::StackId':
             case 'AWS::StackName':
@@ -398,27 +495,44 @@ class PulumiCDKBridge {
         }
         return d.value;
     }
+}
 
-    private containsEventuals(v: any): boolean {
-        if (typeof v !== 'object') {
-            return false;
-        }
-
-        if (v instanceof Promise || pulumi.Output.isInstance(v)) {
-            return true;
-        }
-
-        if (Array.isArray(v)) {
-            return v.some((e) => this.containsEventuals(e));
-        }
-
-        return Object.values(v).some((e) => this.containsEventuals(e));
+function containsEventuals(v: any): boolean {
+    if (typeof v !== 'object') {
+        return false;
     }
 
-    private lift(f: (args: any) => any, args: any): any {
-        if (!this.containsEventuals(args)) {
-            return f(args);
-        }
-        return pulumi.all(args).apply(f);
+    if (v instanceof Promise || pulumi.Output.isInstance(v)) {
+        return true;
     }
+
+    if (Array.isArray(v)) {
+        return v.some((e) => containsEventuals(e));
+    }
+
+    return Object.values(v).some((e) => containsEventuals(e));
+}
+
+function lift(f: (args: any) => any, args: any): any {
+    if (!containsEventuals(args)) {
+        return f(args);
+    }
+    return pulumi.all(args).apply(f);
+}
+
+function debugAssembly(assembly: cx.CloudAssembly): any {
+    return {
+        version: assembly.version,
+        directory: assembly.directory,
+        runtime: assembly.runtime,
+        artifacts: assembly.artifacts.map(debugArtifact),
+    };
+}
+
+function debugArtifact(artifact: cx.CloudArtifact): any {
+    return {
+        dependencies: artifact.dependencies.map((artifact) => artifact.id),
+        manifest: artifact.manifest,
+        messages: artifact.messages,
+    };
 }

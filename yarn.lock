@@ -165,6 +165,14 @@
     read-package-tree "^5.2.1"
     resolve "^1.7.1"
 
+"@pulumi/docker@^3.2.0":
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/docker/-/docker-3.2.0.tgz#bbfeccb6dbf4a522e844f4de889c822cf0743ee1"
+  integrity sha512-Mm8xz1vMhuxOOtyCU/V2Py7QW+M6zMxPBBtTjKzvWBYxLe8cygh12+EjCDFK6E9X+x3mV+ZrEkon+JY93kQWhw==
+  dependencies:
+    "@pulumi/pulumi" "^3.0.0"
+    semver "^5.4.0"
+
 "@pulumi/pulumi@^3.0.0", "@pulumi/pulumi@^3.28.0":
   version "3.28.0"
   resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-3.28.0.tgz#3758499e656ac9d599c885bf11ec302d34fc9fc2"
@@ -1827,7 +1835,7 @@ sax@>=0.6.0:
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.4.tgz#2816234e2378bddc4e5354fab5caa895df7100d9"
   integrity sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==
 
-"semver@2 || 3 || 4 || 5":
+"semver@2 || 3 || 4 || 5", semver@^5.4.0:
   version "5.7.1"
   resolved "https://registry.yarnpkg.com/semver/-/semver-5.7.1.tgz#a954f931aeba508d307bbf069eff0c01c96116f7"
   integrity sha512-sauaDf/PZdVgrLTNYHRtpXa1iRiKcaebiKQ1BJdpQlWH2lCvexQdX55snPFyK7QzpudqbCI0qXFfOasHdyNDGQ==
