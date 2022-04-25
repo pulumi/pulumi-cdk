@@ -38,7 +38,7 @@ import { mapToAwsResource } from './aws-resource-mappings';
 import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
 import { attributePropertyName, mapToCfnResource } from './cfn-resource-mappings';
 import { GraphBuilder } from './graph';
-import { CfnResource, CdkConstruct, normalize, firstToLower } from './interop';
+import { CfnResource, CdkConstruct, ResourceMapping, normalize, firstToLower } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 import { parseSub } from './sub';
 import { zipDirectory } from './zip';
@@ -69,7 +69,7 @@ export interface StackOptions extends pulumi.ComponentResourceOptions {
         typeName: string,
         props: any,
         options: pulumi.ResourceOptions,
-    ): { [key: string]: pulumi.CustomResource } | undefined;
+    ): ResourceMapping | undefined;
 }
 
 /**
@@ -116,6 +116,7 @@ export class Stack extends pulumi.ComponentResource {
 type Mapping<T extends pulumi.Resource> = {
     resource: T;
     resourceType: string;
+    attributes?: { [name: string]: pulumi.Input<any> };
 };
 
 class AppConverter {
@@ -304,12 +305,13 @@ class StackConverter extends ArtifactConverter {
                     debug(`Creating resource for ${logicalId}`);
                     const props = this.processIntrinsics(value.Properties);
                     const options = this.processOptions(value, parent);
+
                     const mapped = this.mapResource(n.construct, logicalId, value.Type, props, options);
-                    for (const [mappedId, resource] of Object.entries(mapped)) {
-                        debug(`mapping ${mappedId} -> ${logicalId}`);
-                        this.resources.set(mappedId, { resource, resourceType: value.Type });
-                        this.constructs.set(n.construct, resource);
-                    }
+                    const resource = pulumi.Resource.isInstance(mapped) ? mapped : mapped.resource;
+                    const attributes = pulumi.Resource.isInstance(mapped) ? undefined : mapped.attributes;
+                    this.resources.set(logicalId, { resource, attributes, resourceType: value.Type });
+                    this.constructs.set(n.construct, resource);
+
                     debug(`Done creating resource for ${logicalId}`);
                 }
                 for (const [conditionId, condition] of Object.entries(cfn.Conditions || {})) {
@@ -369,24 +371,22 @@ class StackConverter extends ArtifactConverter {
         typeName: string,
         props: any,
         options: pulumi.ResourceOptions,
-    ): { [logicalId: string]: pulumi.Resource } {
-        const normProps = normalize(props);
-
+    ): ResourceMapping {
         if (this.app.options.remapCloudControlResource !== undefined) {
-            const res = this.app.options.remapCloudControlResource(element, logicalId, typeName, normProps, options);
+            const res = this.app.options.remapCloudControlResource(element, logicalId, typeName, props, options);
             if (res !== undefined) {
                 debug(`remapped ${logicalId}`);
                 return res;
             }
         }
 
-        const awsMapping = mapToAwsResource(element, logicalId, typeName, props, normProps, options);
+        const awsMapping = mapToAwsResource(element, logicalId, typeName, props, options);
         if (awsMapping !== undefined) {
             debug(`mapped ${logicalId} to classic AWS resource(s)`);
             return awsMapping;
         }
 
-        return mapToCfnResource(element, logicalId, typeName, props, normProps, options);
+        return mapToCfnResource(element, logicalId, typeName, props, options);
     }
 
     private processOptions(resource: CloudFormationResource, parent: pulumi.Resource): pulumi.ResourceOptions {
@@ -412,7 +412,9 @@ class StackConverter extends ArtifactConverter {
         }
 
         if (Array.isArray(obj)) {
-            return obj.map((x) => this.processIntrinsics(x));
+            return obj
+                .filter((x) => !this.isNoValue(x))
+                .map((x) => this.processIntrinsics(x));
         }
 
         const ref = obj.Ref;
@@ -425,12 +427,13 @@ class StackConverter extends ArtifactConverter {
             return this.resolveIntrinsic(keys[0], obj[keys[0]]);
         }
 
-        const result: any = {};
-        for (const [k, v] of Object.entries(obj)) {
-            result[k] = this.processIntrinsics(v);
-        }
+        return Object.entries(obj)
+            .filter(([_, v]) => !this.isNoValue(v))
+            .reduce((result, [k, v]) => ({...result, [k]: this.processIntrinsics(v)}), {});
+    }
 
-        return result;
+    private isNoValue(obj: any): boolean {
+        return obj?.Ref === 'AWS::NoValue';
     }
 
     private resolveOutput(repr: OutputRepr): pulumi.Output<any> {
@@ -566,9 +569,12 @@ class StackConverter extends ArtifactConverter {
             )}`,
         );
 
-        const propertyName = attributePropertyName(attribute);
+        // If this resource has explicit attribute mappings, those mappings will use PascalCase, not camelCase.
+        const propertyName = mapping.attributes !== undefined
+            ? attribute
+            : attributePropertyName(attribute);
 
-        const descs = Object.getOwnPropertyDescriptors(mapping.resource);
+        const descs = Object.getOwnPropertyDescriptors(mapping.attributes || mapping.resource);
         const d = descs[propertyName];
         if (!d) {
             throw new Error(`No property ${propertyName} for attribute ${attribute} on resource ${logicalId}`);
