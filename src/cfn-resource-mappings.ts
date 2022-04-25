@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { ecs, iam, apprunner, lambda, s3 } from '@pulumi/aws-native';
+import { ecs, iam, apprunner, lambda, s3, s3objectlambda } from '@pulumi/aws-native';
 import { CfnResource, firstToLower } from './interop';
 import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
 
@@ -61,6 +61,26 @@ export function mapToCfnResource(
             // Lowercase the bucket name to comply with the Bucket resource's naming constraints, which only allow
             // lowercase letters.
             return { [logicalId]: new s3.Bucket(logicalId.toLowerCase(), props, options) };
+        case 'AWS::S3ObjectLambda::AccessPoint':
+            return {
+                [logicalId]: new s3objectlambda.AccessPoint(
+                    logicalId,
+                    {
+                        name: props.name,
+                        objectLambdaConfiguration: {
+                            allowedFeatures: props.objectLambdaConfiguration.allowedFeatures,
+                            cloudWatchMetricsEnabled: props.objectLambdaConfiguration.cloudWatchMetricsEnabled,
+                            supportingAccessPoint: props.objectLambdaConfiguration.supportingAccessPoint,
+                            transformationConfigurations:
+                                rawProps.ObjectLambdaConfiguration.TransformationConfigurations.map((config: any) => ({
+                                    actions: config.Actions,
+                                    contentTransformation: config.ContentTransformation,
+                                })),
+                        },
+                    },
+                    options,
+                ),
+            };
         default: {
             // Scrape the attributes off of the construct.
             //

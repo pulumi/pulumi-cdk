@@ -29,14 +29,14 @@ export class GraphBuilder {
     constructNodes: Map<Construct, GraphNode>;
     cfnElementNodes: Map<string, GraphNode>;
 
-    constructor(private readonly host: Stack) {
+    constructor(private readonly stack: Stack) {
         this.constructNodes = new Map<Construct, GraphNode>();
         this.cfnElementNodes = new Map<string, GraphNode>();
     }
 
     // build constructs a dependency graph from the adapter and returns its nodes sorted in topological order.
-    public static build(host: Stack): GraphNode[] {
-        const b = new GraphBuilder(host);
+    public static build(stack: Stack): GraphNode[] {
+        const b = new GraphBuilder(stack);
         return b._build();
     }
 
@@ -48,15 +48,10 @@ export class GraphBuilder {
 
         // Create graph nodes and associate them with constructs and CFN logical IDs.
         //
-        // NOTE: this doesn't handle cross-stack references, but that should be OK: IIUC we are operating within the
-        // context of a single CFN stack by design.
-        for (const construct of this.host.node.findAll(ConstructOrder.POSTORDER)) {
-            if (Stack.isStack(construct)) {
-                continue;
-            }
-
+        // NOTE: this doesn't handle cross-stack references. We'll likely need to do so, at least for nested stacks.
+        for (const construct of this.stack.node.findAll(ConstructOrder.POSTORDER)) {
             const template = CfnElement.isCfnElement(construct)
-                ? (this.host.resolve((construct as any)._toCloudFormation()) as CloudFormationTemplate)
+                ? (this.stack.resolve((construct as any)._toCloudFormation()) as CloudFormationTemplate)
                 : undefined;
 
             const node = {
@@ -68,7 +63,7 @@ export class GraphBuilder {
 
             this.constructNodes.set(construct, node);
             if (CfnElement.isCfnElement(construct)) {
-                const logicalId = this.host.resolve(construct.logicalId);
+                const logicalId = this.stack.resolve(construct.logicalId);
                 debug(`adding node for ${logicalId}`);
                 this.cfnElementNodes.set(logicalId, node);
 
@@ -81,7 +76,7 @@ export class GraphBuilder {
 
         // Add dependency edges.
         for (const [construct, node] of this.constructNodes) {
-            if (construct.node.scope !== undefined && !Stack.isStack(construct.node.scope)) {
+            if (construct.node.scope !== undefined && !Stack.isStack(construct)) {
                 const parentNode = this.constructNodes.get(construct.node.scope)!;
                 node.outgoingEdges.add(parentNode);
                 parentNode.incomingEdges.add(node);
@@ -139,7 +134,7 @@ export class GraphBuilder {
                 return;
             }
             console.warn(`unresolved token ${obj}`);
-            obj = this.host.resolve(obj);
+            obj = this.stack.resolve(obj);
         }
 
         if (typeof obj !== 'object') {

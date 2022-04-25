@@ -61,8 +61,6 @@ func TestALB(t *testing.T) {
 }
 
 func TestS3ObjectLambda(t *testing.T) {
-	t.Skipf("skipping due to missing support for asset buckets (used for lambda code)")
-
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "s3-object-lambda"),
