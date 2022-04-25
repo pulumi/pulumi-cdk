@@ -265,7 +265,7 @@ class AssetManifestConverter extends ArtifactConverter {
             },
 
             async partition(): Promise<string> {
-                return 'aws';
+                return getPartition({ parent: app.host }).then((p) => p.partition);
             },
         });
     }
