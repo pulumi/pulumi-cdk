@@ -98,14 +98,26 @@ export function getFqn(construct: IConstruct): string | undefined {
 
 export class CdkConstruct extends pulumi.ComponentResource {
     constructor(name: string | undefined, construct: IConstruct, options?: pulumi.ComponentResourceOptions) {
-        const constructType = construct.constructor.name || 'Construct';
+        const constructType = CdkConstruct.getTypeName(construct);
         const constructName = name || construct.node.path;
 
-        super(`cdk:construct:${constructType}`, constructName, {}, options);
+        super(constructType, constructName, {}, options);
     }
 
     public done() {
         this.registerOutputs({});
+    }
+
+    static getTypeName(construct: IConstruct): string {
+        const fqn = getFqn(construct);
+        if (!fqn) {
+            return `cdk:construct:${construct.constructor.name || 'Construct'}`;
+        }
+
+        const components = fqn.split('.');
+        const mod = components.slice(0, components.length - 1).join('/');
+        const type = components[components.length - 1];
+        return `cdk:${mod}:${type}`;
     }
 }
 
