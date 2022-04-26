@@ -96,7 +96,13 @@ export class Stack extends pulumi.ComponentResource {
         super('cdk:index:Stack', name, {}, options);
         this.name = name;
 
-        const app = new cdk.App();
+        const app = new cdk.App({
+            context: {
+                [cx.ASSET_RESOURCE_METADATA_ENABLED_CONTEXT]: true,
+                [cx.PATH_METADATA_ENABLE_CONTEXT]: true,
+            },
+        });
+
         new stack(app, 'stack');
         const assembly = app.synth();
 
@@ -120,6 +126,7 @@ type Mapping<T extends pulumi.Resource> = {
 
 class AppConverter {
     readonly stacks = new Map<string, StackConverter>();
+    readonly stackTemplates = new Set<string>();
 
     constructor(
         readonly host: Stack,
@@ -137,11 +144,14 @@ class AppConverter {
         // Build a lookup table for the app's stacks.
         for (const construct of this.app.node.findAll()) {
             if (cdk.Stack.isStack(construct)) {
-                this.stacks.set(construct.artifactId, new StackConverter(this, construct));
+                const artifact = this.assembly.getStackArtifact(construct.artifactId);
+                this.stacks.set(construct.artifactId, new StackConverter(this, construct, artifact));
+                this.stackTemplates.add(artifact.templateFullPath);
+                debug(`${artifact.templateFullPath} is a stack template`);
             }
         }
 
-        // Find the CFN stack artifacts and process them in dependency order.
+        // Process stack artifacts in dependency order.
         const done = new Map<cx.CloudArtifact, ArtifactConverter>();
         for (const stack of this.assembly.artifacts.filter(
             (a) => a.manifest.type === cloud_assembly.ArtifactType.AWS_CLOUDFORMATION_STACK,
@@ -178,14 +188,19 @@ class AppConverter {
         }
     }
 
-    private convertStack(
-        artifact: cx.CloudFormationStackArtifact,
-        dependencies: Set<ArtifactConverter>,
-    ): StackConverter {
+    private getStack(artifact: cx.CloudFormationStackArtifact): StackConverter {
         const stack = this.stacks.get(artifact.id);
         if (stack === undefined) {
             throw new Error(`missing CDK Stack for artifact ${artifact.id}`);
         }
+        return stack;
+    }
+
+    private convertStack(
+        artifact: cx.CloudFormationStackArtifact,
+        dependencies: Set<ArtifactConverter>,
+    ): StackConverter {
+        const stack = this.getStack(artifact);
         stack.convert(dependencies);
         return stack;
     }
@@ -228,6 +243,11 @@ class AssetManifestConverter extends ArtifactConverter {
         }
 
         const inputPath = path.join(this.app.assembly.directory, asset.source.path!);
+        if (this.app.stackTemplates.has(inputPath)) {
+            // Ignore stack templates.
+            return;
+        }
+
         const outputPath =
             asset.source.packaging === cloud_assembly.FileAssetPackaging.FILE
                 ? Promise.resolve(inputPath)
@@ -277,7 +297,7 @@ class StackConverter extends ArtifactConverter {
     readonly constructs = new Map<IConstruct, pulumi.Resource>();
     stackResource!: CdkConstruct;
 
-    constructor(app: AppConverter, readonly stack: cdk.Stack) {
+    constructor(app: AppConverter, readonly stack: cdk.Stack, readonly artifact: cx.CloudFormationStackArtifact) {
         super(app);
     }
 
