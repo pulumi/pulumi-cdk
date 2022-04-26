@@ -412,9 +412,7 @@ class StackConverter extends ArtifactConverter {
         }
 
         if (Array.isArray(obj)) {
-            return obj
-                .filter((x) => !this.isNoValue(x))
-                .map((x) => this.processIntrinsics(x));
+            return obj.filter((x) => !this.isNoValue(x)).map((x) => this.processIntrinsics(x));
         }
 
         const ref = obj.Ref;
@@ -429,7 +427,7 @@ class StackConverter extends ArtifactConverter {
 
         return Object.entries(obj)
             .filter(([_, v]) => !this.isNoValue(v))
-            .reduce((result, [k, v]) => ({...result, [k]: this.processIntrinsics(v)}), {});
+            .reduce((result, [k, v]) => ({ ...result, [k]: this.processIntrinsics(v) }), {});
     }
 
     private isNoValue(obj: any): boolean {
@@ -570,9 +568,7 @@ class StackConverter extends ArtifactConverter {
         );
 
         // If this resource has explicit attribute mappings, those mappings will use PascalCase, not camelCase.
-        const propertyName = mapping.attributes !== undefined
-            ? attribute
-            : attributePropertyName(attribute);
+        const propertyName = mapping.attributes !== undefined ? attribute : attributePropertyName(attribute);
 
         const descs = Object.getOwnPropertyDescriptors(mapping.attributes || mapping.resource);
         const d = descs[propertyName];
