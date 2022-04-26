@@ -98,7 +98,15 @@ export class Stack extends pulumi.ComponentResource {
 
         const app = new cdk.App({
             context: {
+                // Ask CDK to attach 'aws:asset:*' metadata to resources in generated stack templates. Although this
+                // metadata is not currently used, it may be useful in the future to map between assets and the
+                // resources with which they are associated. For example, the lambda.Function L2 construct attaches
+                // metadata for its Code asset (if any) to its generated CFN resource.
                 [cx.ASSET_RESOURCE_METADATA_ENABLED_CONTEXT]: true,
+
+                // Ask CDK to embed 'aws:cdk:path' metadata in resources in generated stack templates. Although this
+                // metadata is not currently used, it provides an aditional mechanism by which we can map between
+                // constructs and the resources they emit in the CFN template.
                 [cx.PATH_METADATA_ENABLE_CONTEXT]: true,
             },
         });
@@ -188,19 +196,14 @@ class AppConverter {
         }
     }
 
-    private getStack(artifact: cx.CloudFormationStackArtifact): StackConverter {
-        const stack = this.stacks.get(artifact.id);
-        if (stack === undefined) {
-            throw new Error(`missing CDK Stack for artifact ${artifact.id}`);
-        }
-        return stack;
-    }
-
     private convertStack(
         artifact: cx.CloudFormationStackArtifact,
         dependencies: Set<ArtifactConverter>,
     ): StackConverter {
-        const stack = this.getStack(artifact);
+        const stack = this.stacks.get(artifact.id);
+        if (stack === undefined) {
+            throw new Error(`missing CDK Stack for artifact ${artifact.id}`);
+        }
         stack.convert(dependencies);
         return stack;
     }
