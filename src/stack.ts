@@ -38,7 +38,7 @@ import { mapToAwsResource } from './aws-resource-mappings';
 import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
 import { attributePropertyName, mapToCfnResource } from './cfn-resource-mappings';
 import { GraphBuilder } from './graph';
-import { CfnResource, CdkConstruct, ResourceMapping, normalize, firstToLower } from './interop';
+import { CfnResource, CdkConstruct, JSII_RUNTIME_SYMBOL, ResourceMapping, normalize, firstToLower, getFqn } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 import { parseSub } from './sub';
 import { zipDirectory } from './zip';
@@ -136,6 +136,7 @@ type Mapping<T extends pulumi.Resource> = {
 class AppConverter {
     readonly stacks = new Map<string, StackConverter>();
     readonly stackTemplates = new Set<string>();
+    readonly s3Assets = new Map<string, cdk.aws_s3_assets.Asset>();
 
     constructor(
         readonly host: Stack,
@@ -154,9 +155,15 @@ class AppConverter {
         for (const construct of this.app.node.findAll()) {
             if (cdk.Stack.isStack(construct)) {
                 const artifact = this.assembly.getStackArtifact(construct.artifactId);
-                this.stacks.set(construct.artifactId, new StackConverter(this, construct, artifact));
+                const stack = new StackConverter(this, construct, artifact)
+                this.stacks.set(construct.artifactId, stack);
                 this.stackTemplates.add(artifact.templateFullPath);
                 debug(`${artifact.templateFullPath} is a stack template`);
+
+                for (const asset of stack.findS3Assets()) {
+                    debug(`${path.join(this.assembly.directory, asset.assetPath)} -> ${asset.node.path}`);
+                    this.s3Assets.set(path.join(this.assembly.directory, asset.assetPath), asset);
+                }
             }
         }
 
@@ -252,6 +259,9 @@ class AssetManifestConverter extends ArtifactConverter {
             return;
         }
 
+        const s3Asset = this.app.s3Assets.get(inputPath);
+        const name = s3Asset?.node.path || id;
+
         const outputPath =
             asset.source.packaging === cloud_assembly.FileAssetPackaging.FILE
                 ? Promise.resolve(inputPath)
@@ -260,7 +270,7 @@ class AssetManifestConverter extends ArtifactConverter {
         const objects = Object.entries(asset.destinations).map(
             ([destId, d]) =>
                 new aws.s3.BucketObjectv2(
-                    `${id}/${destId}`,
+                    `${this.app.host.name}/${name}/${destId}`,
                     {
                         source: outputPath,
                         bucket: this.resolvePlaceholders(d.bucketName),
@@ -295,6 +305,12 @@ class AssetManifestConverter extends ArtifactConverter {
     }
 }
 
+const s3AssetFqn = (<any>cdk.aws_s3_assets.Asset)[JSII_RUNTIME_SYMBOL]?.fqn;
+
+function isS3Asset(construct: IConstruct): construct is cdk.aws_s3_assets.Asset {
+    return s3AssetFqn !== undefined && getFqn(construct) === s3AssetFqn;
+}
+
 class StackConverter extends ArtifactConverter {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
@@ -303,6 +319,10 @@ class StackConverter extends ArtifactConverter {
 
     constructor(app: AppConverter, readonly stack: cdk.Stack, readonly artifact: cx.CloudFormationStackArtifact) {
         super(app);
+    }
+
+    public findS3Assets(): cdk.aws_s3_assets.Asset[] {
+        return [...this.stack.node.findAll().filter(isS3Asset)];
     }
 
     public convert(dependencies: Set<ArtifactConverter>) {
