@@ -1,5 +1,6 @@
 import { CfnElement } from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
+import * as pulumicdk from '@pulumi/cdk';
 import * as aws from '@pulumi/aws';
 import { Construct } from 'constructs';
 
@@ -12,9 +13,10 @@ export function remapCloudControlResource(
     element: CfnElement,
     logicalId: string,
     typeName: string,
-    props: any,
+    rawProps: any,
     options: pulumi.ResourceOptions,
-): { [key: string]: pulumi.CustomResource } | undefined {
+): pulumi.CustomResource | undefined {
+    const props = pulumicdk.interop.normalize(rawProps);
     switch (typeName) {
         case 'AWS::Events::Rule':
             const resources: { [key: string]: pulumi.CustomResource } = {};
@@ -30,10 +32,9 @@ export function remapCloudControlResource(
                 },
                 options,
             );
-            resources[logicalId] = rule;
             const targets: target[] = props['targets'] ?? [];
             for (const t of targets) {
-                resources[t.id] = new aws.cloudwatch.EventTarget(
+                new aws.cloudwatch.EventTarget(
                     t.id,
                     {
                         arn: t.arn,
@@ -42,9 +43,9 @@ export function remapCloudControlResource(
                     options,
                 );
             }
-            return resources;
+            return rule;
         case 'AWS::Lambda::Permission':
-            const perm = new aws.lambda.Permission(
+            return new aws.lambda.Permission(
                 logicalId,
                 {
                     action: props['action'],
@@ -54,7 +55,6 @@ export function remapCloudControlResource(
                 },
                 options,
             );
-            return { [logicalId]: perm };
     }
 
     return undefined;

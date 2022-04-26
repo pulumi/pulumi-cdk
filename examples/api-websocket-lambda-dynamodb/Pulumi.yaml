@@ -1,0 +1,3 @@
+name: api-websocket-lambda-dynamodb
+runtime: nodejs
+description: api-websocket-lambda-dynamodb CDK example

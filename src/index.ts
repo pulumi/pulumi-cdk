@@ -14,3 +14,6 @@
 
 export * from './stack';
 export * from './output';
+
+import * as interop from './interop';
+export { interop };
