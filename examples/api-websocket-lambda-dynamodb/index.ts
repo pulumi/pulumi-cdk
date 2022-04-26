@@ -15,7 +15,6 @@ const config = {
 class ChatAppStack extends Stack {
     constructor(scope: Construct, id: string, props?: StackProps) {
         super(scope, id, props);
-        const tableName = 'simplechat_connections';
 
         // initialise api
         const name = id + '-api';
@@ -25,7 +24,6 @@ class ChatAppStack extends Stack {
             routeSelectionExpression: '$request.body.action',
         });
         const table = new Table(this, `${name}-table`, {
-            tableName: tableName,
             partitionKey: {
                 name: 'connectionId',
                 type: AttributeType.STRING,
@@ -42,7 +40,7 @@ class ChatAppStack extends Stack {
             timeout: Duration.seconds(300),
             memorySize: 256,
             environment: {
-                TABLE_NAME: tableName,
+                TABLE_NAME: table.tableName,
             },
         });
 
@@ -55,7 +53,7 @@ class ChatAppStack extends Stack {
             timeout: Duration.seconds(300),
             memorySize: 256,
             environment: {
-                TABLE_NAME: tableName,
+                TABLE_NAME: table.tableName,
             },
         });
 
@@ -77,7 +75,7 @@ class ChatAppStack extends Stack {
                 }),
             ],
             environment: {
-                TABLE_NAME: tableName,
+                TABLE_NAME: table.tableName,
             },
         });
 
