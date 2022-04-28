@@ -498,7 +498,7 @@ class StackConverter extends ArtifactConverter {
                 return lift(([delim, str]) => str.split(delim), this.processIntrinsics(params));
 
             case 'Fn::Base64':
-                return lift(([str]) => btoa(str), this.processIntrinsics(params));
+                return lift(([str]) => Buffer.from(str).toString('base64'), this.processIntrinsics(params));
 
             case 'Fn::Cidr':
                 return lift(
