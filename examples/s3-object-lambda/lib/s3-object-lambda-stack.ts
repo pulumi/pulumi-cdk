@@ -1,3 +1,4 @@
+import * as pulumicdk from '@pulumi/cdk';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -9,9 +10,9 @@ import { Construct } from 'constructs';
 const S3_ACCESS_POINT_NAME = 'example-test-ap';
 const OBJECT_LAMBDA_ACCESS_POINT_NAME = 's3-object-lambda-ap';
 
-export class S3ObjectLambdaStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-        super(scope, id, props);
+export class S3ObjectLambdaStack extends pulumicdk.Stack {
+    constructor(id: string) {
+        super(id);
 
         const accessPoint = `arn:aws:s3:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:accesspoint/${S3_ACCESS_POINT_NAME}`;
 
@@ -100,5 +101,7 @@ export class S3ObjectLambdaStack extends cdk.Stack {
         new cdk.CfnOutput(this, 'objectLambdaAccessPointUrl', {
             value: `https://console.aws.amazon.com/s3/olap/${cdk.Aws.ACCOUNT_ID}/${OBJECT_LAMBDA_ACCESS_POINT_NAME}?region=${cdk.Aws.REGION}`,
         });
+
+        this.synth();
     }
 }

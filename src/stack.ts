@@ -82,10 +82,36 @@ export interface StackOptions extends pulumi.ComponentResourceOptions {
     ): ResourceMapping | undefined;
 }
 
+class StackComponent extends pulumi.ComponentResource {
+    /** @internal */
+    name: string;
+
+    constructor(private readonly stack: Stack, options?: StackOptions) {
+        super('cdk:index:Stack', stack.node.id, {}, options);
+
+        this.name = stack.node.id;
+
+        const assembly = stack.app.synth();
+
+        debug(JSON.stringify(debugAssembly(assembly)));
+
+        AppConverter.convert(this, stack.app, assembly, options || {});
+
+        this.registerOutputs(stack.outputs);
+    }
+
+    /** @internal */
+    registerOutput(outputId: string, output: any) {
+        this.stack.outputs[outputId] = pulumi.output(output);
+    }
+}
+
 /**
  * A Pulumi Component that represents an AWS CDK stack deployed with Pulumi.
  */
-export class Stack extends pulumi.ComponentResource {
+export class Stack extends cdk.Stack {
+    urn!: pulumi.Output<pulumi.URN>;
+
     /**
      * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
      * Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs.
@@ -93,19 +119,15 @@ export class Stack extends pulumi.ComponentResource {
     outputs: { [outputId: string]: pulumi.Output<any> } = {};
 
     /** @internal */
-    name: string;
+    app: cdk.App;
 
     /**
      * Create and register an AWS CDK stack deployed with Pulumi.
      *
      * @param name The _unique_ name of the resource.
-     * @param stack The CDK Stack subclass to create.
      * @param options A bag of options that control this resource's behavior.
      */
-    constructor(name: string, stack: typeof cdk.Stack, options?: StackOptions) {
-        super('cdk:index:Stack', name, {}, options);
-        this.name = name;
-
+    constructor(name: string, options?: StackOptions) {
         const app = new cdk.App({
             context: {
                 // Ask CDK to attach 'aws:asset:*' metadata to resources in generated stack templates. Although this
@@ -121,19 +143,14 @@ export class Stack extends pulumi.ComponentResource {
             },
         });
 
-        new stack(app, 'stack');
-        const assembly = app.synth();
+        super(app, name);
 
-        debug(JSON.stringify(debugAssembly(assembly)));
-
-        AppConverter.convert(this, app, assembly, options || {});
-
-        this.registerOutputs(this.outputs);
+        this.app = app;
     }
 
-    /** @internal */
-    registerOutput(outputId: string, output: any) {
-        this.outputs[outputId] = pulumi.output(output);
+    protected synth() {
+        const component = new StackComponent(this);
+        this.urn = component.urn;
     }
 }
 
@@ -149,13 +166,13 @@ class AppConverter {
     readonly s3Assets = new Map<string, cdk.aws_s3_assets.Asset>();
 
     constructor(
-        readonly host: Stack,
+        readonly host: StackComponent,
         readonly app: cdk.App,
         readonly assembly: cx.CloudAssembly,
         readonly options: StackOptions,
     ) {}
 
-    public static convert(host: Stack, app: cdk.App, assembly: cx.CloudAssembly, options: StackOptions) {
+    public static convert(host: StackComponent, app: cdk.App, assembly: cx.CloudAssembly, options: StackOptions) {
         const converter = new AppConverter(host, app, assembly, options);
         converter.convert();
     }

@@ -4,11 +4,11 @@ import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import { Construct } from 'constructs';
-import { CfnOutput, Stack } from 'aws-cdk-lib';
+import { CfnOutput } from 'aws-cdk-lib';
 
-class AlbStack extends Stack {
-    constructor(scope: Construct, id: string) {
-        super(scope, id);
+class AlbStack extends pulumicdk.Stack {
+    constructor(id: string) {
+        super(id);
 
         const vpc = new ec2.Vpc(this, 'VPC');
 
@@ -39,8 +39,10 @@ class AlbStack extends Stack {
         });
 
         new CfnOutput(this, 'url', { value: lb.loadBalancerDnsName });
+
+        this.synth();
     }
 }
 
-const stack = new pulumicdk.Stack('teststack', AlbStack);
+const stack = new AlbStack('teststack');
 export const url = stack.outputs['url'];

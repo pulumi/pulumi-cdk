@@ -2,14 +2,14 @@ import * as fs from 'fs';
 import * as aws_events from 'aws-cdk-lib/aws-events';
 import * as aws_events_targets from 'aws-cdk-lib/aws-events-targets';
 import * as aws_lambda from 'aws-cdk-lib/aws-lambda';
-import { CfnOutput, Duration, Stack } from 'aws-cdk-lib';
+import { CfnOutput, Duration } from 'aws-cdk-lib';
 import * as pulumicdk from '@pulumi/cdk';
 import { Construct } from 'constructs';
 import { remapCloudControlResource } from './adapter';
 
-class LambdaStack extends Stack {
-    constructor(scope: Construct, id: string) {
-        super(scope, id);
+class LambdaStack extends pulumicdk.Stack {
+    constructor(id: string, options?: pulumicdk.StackOptions) {
+        super(id, { ...options, remapCloudControlResource });
 
         // Use the AWS CDK Lambda Function API directly.
         const lambdaFn = new aws_lambda.Function(this, 'lambda', {
@@ -30,8 +30,10 @@ class LambdaStack extends Stack {
 
         // Register a CDK Output for the Lambda functionArn so that it can be retreived from Pulumi.
         new CfnOutput(this, 'lambdaArn', { value: lambdaFn.functionArn });
+
+        this.synth();
     }
 }
 
-const stack = new pulumicdk.Stack('teststack', LambdaStack, { remapCloudControlResource });
+const stack = new LambdaStack('teststack');
 export const lambdaArn = stack.outputs.lambdaArn;
