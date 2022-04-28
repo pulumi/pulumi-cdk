@@ -86,8 +86,8 @@ class StackComponent extends pulumi.ComponentResource {
     /** @internal */
     name: string;
 
-    constructor(private readonly stack: Stack, options?: StackOptions) {
-        super('cdk:index:Stack', stack.node.id, {}, options);
+    constructor(private readonly stack: Stack) {
+        super('cdk:index:Stack', stack.node.id, {}, stack.options);
 
         this.name = stack.node.id;
 
@@ -95,7 +95,7 @@ class StackComponent extends pulumi.ComponentResource {
 
         debug(JSON.stringify(debugAssembly(assembly)));
 
-        AppConverter.convert(this, stack.app, assembly, options || {});
+        AppConverter.convert(this, stack.app, assembly, stack.options || {});
 
         this.registerOutputs(stack.outputs);
     }
@@ -120,6 +120,9 @@ export class Stack extends cdk.Stack {
 
     /** @internal */
     app: cdk.App;
+
+    /** @internal */
+    options: StackOptions | undefined;
 
     /**
      * Create and register an AWS CDK stack deployed with Pulumi.
@@ -146,6 +149,7 @@ export class Stack extends cdk.Stack {
         super(app, name);
 
         this.app = app;
+        this.options = options;
     }
 
     protected synth() {
