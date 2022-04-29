@@ -45,10 +45,15 @@ export function mapToCfnResource(
             return new iam.Role(logicalId, morphed, options);
         }
         case 'AWS::Lambda::Function':
-            return new lambda.Function(logicalId, {
-                ...props,
-                environment: rawProps.Environment === undefined ? undefined : { variables: rawProps.Environment.Variables },
-            }, options);
+            return new lambda.Function(
+                logicalId,
+                {
+                    ...props,
+                    environment:
+                        rawProps.Environment === undefined ? undefined : { variables: rawProps.Environment.Variables },
+                },
+                options,
+            );
         case 'AWS::S3::AccessPoint':
             return new s3.AccessPoint(
                 logicalId,

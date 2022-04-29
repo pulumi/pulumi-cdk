@@ -12,9 +12,9 @@ const config = {
     account_id: '',
 };
 
-class ChatAppStack extends Stack {
-    constructor(scope: Construct, id: string, props?: StackProps) {
-        super(scope, id, props);
+class ChatAppStack extends pulumicdk.Stack {
+    constructor(id: string) {
+        super(id);
 
         // initialise api
         const name = id + '-api';
@@ -163,8 +163,10 @@ class ChatAppStack extends Stack {
         deployment.node.addDependency(connectRoute);
         deployment.node.addDependency(disconnectRoute);
         deployment.node.addDependency(messageRoute);
+
+        this.synth();
     }
 }
 
-const stack = new pulumicdk.Stack('chat-app', ChatAppStack);
+const stack = new ChatAppStack('chat-app');
 export default stack.outputs;

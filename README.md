@@ -9,14 +9,15 @@ The adpater allows writing AWS CDK code as part of an AWS CDK Stack inside a Pul
 For example, to construct an [AWS AppRunner `Service` resource](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-apprunner-alpha-readme.html) from within a Pulumi program, and export the resulting service's URL as as Pulumi Stack Output you write the following:
 
 ```ts
+import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
-import { Construct } from 'constructs';
 import { Service, Source } from '@aws-cdk/aws-apprunner-alpha';
-import { CfnOutput, Stack } from 'aws-cdk-lib';
 
-class AppRunnerStack extends Stack {
-    constructor(scope: Construct, id: string) {
-        super(scope, id);
+class AppRunnerStack extends pulumicdk.Stack {
+    url: pulumi.Output<string>;
+
+    constructor(id: string, options?: pulumicdk.StackOptions) {
+        super(id, options);
 
         const service = new Service(this, 'service', {
             source: Source.fromEcrPublic({
@@ -25,12 +26,14 @@ class AppRunnerStack extends Stack {
             }),
         });
 
-        new CfnOutput(this, 'url', { value: service.serviceUrl });
+        this.url = this.asOutput(service.serviceUrl);
+
+        this.synth();
     }
 }
 
 const stack = new pulumicdk.Stack('teststack', AppRunnerStack);
-export const url = stack.outputs['url'];
+export const url = stack.url;
 ```
 
 And then deploy with `pulumi update`:
@@ -86,20 +89,23 @@ Coming soon!
 
 ### `Stack`
 
-A Pulumi Component that represents an AWS CDK stack deployed with Pulumi.
+A Construct that represents an AWS CDK stack deployed with Pulumi. In order to deploy a CDK stack with Pulumi, it must derive from this class. The `synth` method must be called after all CDK resources have been defined in order to deploy the stack (usually, this is done as the last line of the subclass's constructor).
 
 #### `constructor`
 
 Create and register an AWS CDK stack deployed with Pulumi.
 
 ```ts
-constructor(name: string, stack: typeof cdk.Stack, options?: StackOptions)
+constructor(name: string, options?: StackOptions)
 ```
 
 Parameters:
 * `name`: The _unique_ name of the resource.
-* `stack`: The CDK Stack subclass to create.
 * `options`: A bag of options that control this resource's behavior.
+
+### `urn`
+
+The URN of the underlying Pulumi component.
 
 #### `outputs`
 
@@ -107,6 +113,25 @@ The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. 
 
 ```ts
 outputs: { [outputId: string]: pulumi.Output<any> }
+```
+
+#### `synth`
+
+Finalize the stack and deploy its resources.
+
+```ts
+protected synth()
+```
+
+#### `asOutput`
+
+Convert a CDK value to a Pulumi output.
+
+Parameters:
+* `v`: A CDK value.
+
+```ts
+asOutput<T>(v: T): pulumi.Output<T>
 ```
 
 ### `StackOptions`

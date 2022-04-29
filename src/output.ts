@@ -22,7 +22,7 @@ import { OutputMap } from './output-map';
  * @param o A Pulumi Output value which represents a string.
  * @returns A CDK token representing a string value.
  */
-export function asString<T>(o: pulumi.Output<T>): string {
+export function asString(o: pulumi.Output<string>): string {
     return Token.asString(OutputMap.instance().registerOutput(o));
 }
 
@@ -32,16 +32,16 @@ export function asString<T>(o: pulumi.Output<T>): string {
  * @param o A Pulumi Output value which represents a number.
  * @returns A CDK token representing a number value.
  */
-export function asNumber<T>(o: pulumi.Output<T>): number {
+export function asNumber(o: pulumi.Output<number>): number {
     return Token.asNumber(OutputMap.instance().registerOutput(o));
 }
 
 /**
- * Convert a Pulumi Output to a list of CDK values.
+ * Convert a Pulumi Output to a list of CDK string values.
  *
- * @param o A Pulumi Output value which represents a list.
- * @returns A CDK token representing a list of values.
+ * @param o A Pulumi Output value which represents a list of strings.
+ * @returns A CDK token representing a list of string values.
  */
-export function asList<T>(o: pulumi.Output<T>): string[] {
+export function asList(o: pulumi.Output<string[]>): string[] {
     return Token.asList(OutputMap.instance().registerOutput(o));
 }

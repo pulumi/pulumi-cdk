@@ -24,15 +24,17 @@ import * as output from "../src/output";
 mocks.setMocks();
 
 function testStack(fn: (scope: Construct) => void, done: any) {
-    class TestStack extends cdk.Stack {
-        constructor(scope: Construct, id: string) {
-            super(scope, id);
+    class TestStack extends Stack {
+        constructor(id: string) {
+            super(id);
 
             fn(this);
+
+            this.synth();
         }
     }
 
-    const s = new Stack('teststack', TestStack);
+    const s = new TestStack('teststack');
     s.urn.apply(() => done());
 }
 

@@ -82,10 +82,47 @@ export interface StackOptions extends pulumi.ComponentResourceOptions {
     ): ResourceMapping | undefined;
 }
 
+class StackComponent extends pulumi.ComponentResource {
+    /** @internal */
+    name: string;
+
+    /** @internal */
+    converter: AppConverter;
+
+    constructor(private readonly stack: Stack) {
+        super('cdk:index:Stack', stack.node.id, {}, stack.options);
+
+        this.name = stack.node.id;
+
+        const assembly = stack.app.synth();
+
+        debug(JSON.stringify(debugAssembly(assembly)));
+
+        this.converter = new AppConverter(this, stack.app, assembly, stack.options || {});
+        this.converter.convert();
+
+        this.registerOutputs(stack.outputs);
+    }
+
+    /** @internal */
+    registerOutput(outputId: string, output: any) {
+        this.stack.outputs[outputId] = pulumi.output(output);
+    }
+}
+
 /**
- * A Pulumi Component that represents an AWS CDK stack deployed with Pulumi.
+ * A Construct that represents an AWS CDK stack deployed with Pulumi.
+ *
+ * In order to deploy a CDK stack with Pulumi, it must derive from this class. The `synth` method must be called after
+ * all CDK resources have been defined in order to deploy the stack (usually, this is done as the last line of the
+ * subclass's constructor).
  */
-export class Stack extends pulumi.ComponentResource {
+export class Stack extends cdk.Stack {
+    // The URN of the underlying Pulumi component.
+    urn!: pulumi.Output<pulumi.URN>;
+    resolveURN!: (urn: pulumi.Output<pulumi.URN>) => void;
+    rejectURN!: (error: any) => void;
+
     /**
      * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
      * Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs.
@@ -93,19 +130,26 @@ export class Stack extends pulumi.ComponentResource {
     outputs: { [outputId: string]: pulumi.Output<any> } = {};
 
     /** @internal */
-    name: string;
+    app: cdk.App;
+
+    /** @internal */
+    options: StackOptions | undefined;
+
+    // The stack's converter. This is used by asOutput in order to convert CDK values to Pulumi Outputs. This is a
+    // Promise so users are able to call asOutput before they've called synth. Note that this _does_ make forgetting
+    // to call synth a sharper edge: calling asOutput without calling synth will create outputs that never resolve
+    // and the program will hang.
+    converter!: Promise<StackConverter>;
+    resolveConverter!: (converter: StackConverter) => void;
+    rejectConverter!: (error: any) => void;
 
     /**
      * Create and register an AWS CDK stack deployed with Pulumi.
      *
      * @param name The _unique_ name of the resource.
-     * @param stack The CDK Stack subclass to create.
      * @param options A bag of options that control this resource's behavior.
      */
-    constructor(name: string, stack: typeof cdk.Stack, options?: StackOptions) {
-        super('cdk:index:Stack', name, {}, options);
-        this.name = name;
-
+    constructor(name: string, options?: StackOptions) {
         const app = new cdk.App({
             context: {
                 // Ask CDK to attach 'aws:asset:*' metadata to resources in generated stack templates. Although this
@@ -121,19 +165,55 @@ export class Stack extends pulumi.ComponentResource {
             },
         });
 
-        new stack(app, 'stack');
-        const assembly = app.synth();
+        super(app, name);
 
-        debug(JSON.stringify(debugAssembly(assembly)));
+        this.app = app;
+        this.options = options;
 
-        AppConverter.convert(this, app, assembly, options || {});
+        const urnPromise = new Promise((resolve, reject) => {
+            this.resolveURN = resolve;
+            this.rejectURN = reject;
+        });
+        this.urn = pulumi.output(urnPromise);
 
-        this.registerOutputs(this.outputs);
+        this.converter = new Promise((resolve, reject) => {
+            this.resolveConverter = resolve;
+            this.rejectConverter = reject;
+        });
     }
 
-    /** @internal */
-    registerOutput(outputId: string, output: any) {
-        this.outputs[outputId] = pulumi.output(output);
+    /**
+     * Finalize the stack and deploy its resources.
+     */
+    protected synth() {
+        try {
+            const component = new StackComponent(this);
+            this.resolveURN(component.urn);
+            this.resolveConverter(component.converter.stacks.get(this.artifactId)!);
+        } catch (e) {
+            this.rejectURN(e);
+            this.rejectConverter(e);
+        }
+    }
+
+    /**
+     * Convert a CDK value to a Pulumi Output.
+     *
+     * @param v A CDK value.
+     * @returns A Pulumi Output value.
+     */
+    public asOutput<T>(v: T): pulumi.Output<pulumi.Unwrap<T>> {
+        // NOTE: we hang this method off of Stack b/c we need a context for token resolution. If it were not for
+        // pseudos like cdk.Aws.REGION (which have no associated Stack), we would be able to derive the context
+        // from the input by crawling for Reference tokens and pulling the Stack off of the referenced construct.
+        //
+        // The idea of faking a context for values that only contain pseudos is appealing, but runs into trouble
+        // due to how these pseudos are translated into resolved values. Each pseudo is resolved via a call to some
+        // AWS provider function, and it would be confusing if the provider that was used was not the same as that
+        // used for the stack that is exporting the value (imagine a stack that is deployed to a different region
+        // than that used by the default provider--using a fake global context would necessarily use the default
+        // provider or would require unintuitive options in order to produce the expected result).
+        return pulumi.output(this.converter.then((converter) => converter.asOutputValue(v)));
     }
 }
 
@@ -149,18 +229,13 @@ class AppConverter {
     readonly s3Assets = new Map<string, cdk.aws_s3_assets.Asset>();
 
     constructor(
-        readonly host: Stack,
+        readonly host: StackComponent,
         readonly app: cdk.App,
         readonly assembly: cx.CloudAssembly,
         readonly options: StackOptions,
     ) {}
 
-    public static convert(host: Stack, app: cdk.App, assembly: cx.CloudAssembly, options: StackOptions) {
-        const converter = new AppConverter(host, app, assembly, options);
-        converter.convert();
-    }
-
-    private convert() {
+    convert() {
         // Build a lookup table for the app's stacks.
         for (const construct of this.app.node.findAll()) {
             if (cdk.Stack.isStack(construct)) {
@@ -461,6 +536,11 @@ class StackConverter extends ArtifactConverter {
             parent: parent,
             dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources.get(id)!.resource) : undefined,
         };
+    }
+
+    /** @internal */
+    asOutputValue<T>(v: T): T {
+        return this.processIntrinsics(this.stack.resolve(v)) as T;
     }
 
     private processIntrinsics(obj: any): any {
