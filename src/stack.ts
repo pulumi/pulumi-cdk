@@ -111,10 +111,17 @@ class StackComponent extends pulumi.ComponentResource {
 }
 
 /**
- * A Pulumi Component that represents an AWS CDK stack deployed with Pulumi.
+ * A Construct that represents an AWS CDK stack deployed with Pulumi.
+ *
+ * In order to deploy a CDK stack with Pulumi, it must derive from this class. The `synth` method must be called after
+ * all CDK resources have been defined in order to deploy the stack (usually, this is done as the last line of the
+ * subclass's constructor).
  */
 export class Stack extends cdk.Stack {
+    // The URN of the underlying Pulumi component.
     urn!: pulumi.Output<pulumi.URN>;
+    resolveURN!: (urn: pulumi.Output<pulumi.URN>) => void;
+    rejectURN!: (error: any) => void;
 
     /**
      * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
@@ -163,18 +170,28 @@ export class Stack extends cdk.Stack {
         this.app = app;
         this.options = options;
 
+        const urnPromise = new Promise((resolve, reject) => {
+            this.resolveURN = resolve;
+            this.rejectURN = reject;
+        });
+        this.urn = pulumi.output(urnPromise);
+
         this.converter = new Promise((resolve, reject) => {
             this.resolveConverter = resolve;
             this.rejectConverter = reject;
         });
     }
 
+    /**
+     * Finalize the stack and deploy its resources.
+     */
     protected synth() {
         try {
             const component = new StackComponent(this);
-            this.urn = component.urn;
+            this.resolveURN(component.urn);
             this.resolveConverter(component.converter.stacks.get(this.artifactId)!);
         } catch (e) {
+            this.rejectURN(e);
             this.rejectConverter(e);
         }
     }
@@ -182,7 +199,7 @@ export class Stack extends cdk.Stack {
     /**
      * Convert a CDK value to a Pulumi Output.
      *
-     * @param v A CDK value value.
+     * @param v A CDK value.
      * @returns A Pulumi Output value.
      */
     public asOutput<T>(v: T): pulumi.Output<pulumi.Unwrap<T>> {
