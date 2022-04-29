@@ -15,7 +15,7 @@ export function remapCloudControlResource(
     typeName: string,
     rawProps: any,
     options: pulumi.ResourceOptions,
-): pulumicdk.interop.ResourceMapping | undefined {
+): pulumi.CustomResource | undefined {
     const props = pulumicdk.interop.normalize(rawProps);
     switch (typeName) {
         case 'AWS::Events::Rule':
