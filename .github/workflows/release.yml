@@ -74,7 +74,7 @@ jobs:
           access: "restricted"
           token: ${{ secrets.NPM_TOKEN }}
           package: ${{github.workspace}}/lib/package.json
-          tag: dev
+          tag: latest
 name: main
 "on":
   schedule:
