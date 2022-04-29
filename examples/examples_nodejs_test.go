@@ -58,6 +58,15 @@ func TestALB(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestFargate(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "fargate"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func TestS3ObjectLambda(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
