@@ -104,7 +104,9 @@ export class S3ObjectLambdaStack extends pulumicdk.Stack {
         this.exampleBucketArn = this.asOutput(bucket.bucketArn);
         this.objectLambdaArn = this.asOutput(retrieveTransformedObjectLambda.functionArn);
         this.objectLambdaAccessPointArn = this.asOutput(objectLambdaAP.attrArn);
-        this.objectLambdaAccessPointUrl = this.asOutput(`https://console.aws.amazon.com/s3/olap/${cdk.Aws.ACCOUNT_ID}/${OBJECT_LAMBDA_ACCESS_POINT_NAME}?region=${cdk.Aws.REGION}`);
+        this.objectLambdaAccessPointUrl = this.asOutput(
+            `https://console.aws.amazon.com/s3/olap/${cdk.Aws.ACCOUNT_ID}/${OBJECT_LAMBDA_ACCESS_POINT_NAME}?region=${cdk.Aws.REGION}`,
+        );
 
         this.synth();
     }
