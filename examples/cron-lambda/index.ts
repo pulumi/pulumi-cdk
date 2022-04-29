@@ -8,6 +8,8 @@ import { Construct } from 'constructs';
 import { remapCloudControlResource } from './adapter';
 
 class LambdaStack extends pulumicdk.Stack {
+    lambdaArn: pulumi.Output<string>;
+
     constructor(id: string, options?: pulumicdk.StackOptions) {
         super(id, { ...options, remapCloudControlResource });
 
@@ -28,12 +30,12 @@ class LambdaStack extends pulumicdk.Stack {
         // Use the AWS CDK to add a Rule target to trigger the Function.
         rule.addTarget(new aws_events_targets.LambdaFunction(lambdaFn));
 
-        // Register a CDK Output for the Lambda functionArn so that it can be retreived from Pulumi.
-        new CfnOutput(this, 'lambdaArn', { value: lambdaFn.functionArn });
+        // Export the Lambda function's ARN as an output.
+        this.lambdaArn = this.asOutput(lambdaArn.functionArn);
 
         this.synth();
     }
 }
 
 const stack = new LambdaStack('teststack');
-export const lambdaArn = stack.outputs.lambdaArn;
+export const lambdaArn = stack.lambdaArn;

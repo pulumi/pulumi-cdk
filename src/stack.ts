@@ -86,6 +86,9 @@ class StackComponent extends pulumi.ComponentResource {
     /** @internal */
     name: string;
 
+    /** @internal */
+    converter: AppConverter;
+
     constructor(private readonly stack: Stack) {
         super('cdk:index:Stack', stack.node.id, {}, stack.options);
 
@@ -95,7 +98,8 @@ class StackComponent extends pulumi.ComponentResource {
 
         debug(JSON.stringify(debugAssembly(assembly)));
 
-        AppConverter.convert(this, stack.app, assembly, stack.options || {});
+        this.converter = new AppConverter(this, stack.app, assembly, stack.options || {});
+        this.converter.convert();
 
         this.registerOutputs(stack.outputs);
     }
@@ -124,6 +128,14 @@ export class Stack extends cdk.Stack {
     /** @internal */
     options: StackOptions | undefined;
 
+    // The stack's converter. This is used by asOutput in order to convert CDK values to Pulumi Outputs. This is a
+    // Promise so users are able to call asOutput before they've called synth. Note that this _does_ make forgetting
+    // to call synth a sharper edge: calling asOutput without calling synth will create outputs that never resolve
+    // and the program will hang.
+    converter!: Promise<StackConverter>;
+    resolveConverter!: (converter: StackConverter) => void;
+    rejectConverter!: (error: any) => void;
+
     /**
      * Create and register an AWS CDK stack deployed with Pulumi.
      *
@@ -150,11 +162,41 @@ export class Stack extends cdk.Stack {
 
         this.app = app;
         this.options = options;
+
+        this.converter = new Promise((resolve, reject) => {
+            this.resolveConverter = resolve;
+            this.rejectConverter = reject;
+        });
     }
 
     protected synth() {
-        const component = new StackComponent(this);
-        this.urn = component.urn;
+        try {
+            const component = new StackComponent(this);
+            this.urn = component.urn;
+            this.resolveConverter(component.converter.stacks.get(this.artifactId)!);
+        } catch (e) {
+            this.rejectConverter(e);
+        }
+    }
+
+    /**
+     * Convert a CDK value to a Pulumi Output.
+     *
+     * @param v A CDK value value.
+     * @returns A Pulumi Output value.
+     */
+    public asOutput<T>(v: T): pulumi.Output<pulumi.Unwrap<T>> {
+        // NOTE: we hang this method off of Stack b/c we need a context for token resolution. If it were not for
+        // pseudos like cdk.Aws.REGION (which have no associated Stack), we would be able to derive the context
+        // from the input by crawling for Reference tokens and pulling the Stack off of the referenced construct.
+        //
+        // The idea of faking a context for values that only contain pseudos is appealing, but runs into trouble
+        // due to how these pseudos are translated into resolved values. Each pseudo is resolved via a call to some
+        // AWS provider function, and it would be confusing if the provider that was used was not the same as that
+        // used for the stack that is exporting the value (imagine a stack that is deployed to a different region
+        // than that used by the default provider--using a fake global context would necessarily use the default
+        // provider or would require unintuitive options in order to produce the expected result).
+        return pulumi.output(this.converter.then((converter) => converter.asOutputValue(v)));
     }
 }
 
@@ -176,12 +218,7 @@ class AppConverter {
         readonly options: StackOptions,
     ) {}
 
-    public static convert(host: StackComponent, app: cdk.App, assembly: cx.CloudAssembly, options: StackOptions) {
-        const converter = new AppConverter(host, app, assembly, options);
-        converter.convert();
-    }
-
-    private convert() {
+    convert() {
         // Build a lookup table for the app's stacks.
         for (const construct of this.app.node.findAll()) {
             if (cdk.Stack.isStack(construct)) {
@@ -482,6 +519,11 @@ class StackConverter extends ArtifactConverter {
             parent: parent,
             dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources.get(id)!.resource) : undefined,
         };
+    }
+
+    /** @internal */
+    asOutputValue<T>(v: T): T {
+        return this.processIntrinsics(this.stack.resolve(v)) as T;
     }
 
     private processIntrinsics(obj: any): any {

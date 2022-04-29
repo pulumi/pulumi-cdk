@@ -49,6 +49,8 @@ const atg = new aws.lb.TargetGroup('app-tg', {
 // });
 
 class ClusterStack extends pulumicdk.Stack {
+    serviceName: pulumi.Output<string>;
+
     constructor(name: string) {
         super(name);
 
@@ -115,11 +117,11 @@ class ClusterStack extends pulumicdk.Stack {
         });
         service.addDependsOn(listener);
 
-        new CfnOutput(this, 'serviceName', { value: service.attrName });
-
         this.synth();
+
+        this.serviceName = this.asOutput(service.attrName);
     }
 }
 
 const stack = new ClusterStack('teststack');
-export const serviceName = stack.outputs['serviceName'];
+export const serviceName = stack.serviceName;

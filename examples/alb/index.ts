@@ -7,6 +7,8 @@ import { Construct } from 'constructs';
 import { CfnOutput } from 'aws-cdk-lib';
 
 class AlbStack extends pulumicdk.Stack {
+    url: pulumi.Output<string>;
+
     constructor(id: string) {
         super(id);
 
@@ -38,11 +40,11 @@ class AlbStack extends pulumicdk.Stack {
             targetRequestsPerMinute: 60,
         });
 
-        new CfnOutput(this, 'url', { value: lb.loadBalancerDnsName });
+        this.url = this.asOutput(lb.loadBalancerDnsName);
 
         this.synth();
     }
 }
 
 const stack = new AlbStack('teststack');
-export const url = stack.outputs['url'];
+export const url = stack.url;

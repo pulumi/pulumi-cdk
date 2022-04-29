@@ -1,3 +1,4 @@
+import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -11,6 +12,11 @@ const S3_ACCESS_POINT_NAME = 'example-test-ap';
 const OBJECT_LAMBDA_ACCESS_POINT_NAME = 's3-object-lambda-ap';
 
 export class S3ObjectLambdaStack extends pulumicdk.Stack {
+    exampleBucketArn: pulumi.Output<string>;
+    objectLambdaArn: pulumi.Output<string>;
+    objectLambdaAccessPointArn: pulumi.Output<string>;
+    objectLambdaAccessPointUrl: pulumi.Output<string>;
+
     constructor(id: string) {
         super(id);
 
@@ -95,12 +101,10 @@ export class S3ObjectLambdaStack extends pulumicdk.Stack {
             },
         });
 
-        new cdk.CfnOutput(this, 'exampleBucketArn', { value: bucket.bucketArn });
-        new cdk.CfnOutput(this, 'objectLambdaArn', { value: retrieveTransformedObjectLambda.functionArn });
-        new cdk.CfnOutput(this, 'objectLambdaAccessPointArn', { value: objectLambdaAP.attrArn });
-        new cdk.CfnOutput(this, 'objectLambdaAccessPointUrl', {
-            value: `https://console.aws.amazon.com/s3/olap/${cdk.Aws.ACCOUNT_ID}/${OBJECT_LAMBDA_ACCESS_POINT_NAME}?region=${cdk.Aws.REGION}`,
-        });
+        this.exampleBucketArn = this.asOutput(bucket.bucketArn);
+        this.objectLambdaArn = this.asOutput(retrieveTransformedObjectLambda.functionArn);
+        this.objectLambdaAccessPointArn = this.asOutput(objectLambdaAP.attrArn);
+        this.objectLambdaAccessPointUrl = this.asOutput(`https://console.aws.amazon.com/s3/olap/${cdk.Aws.ACCOUNT_ID}/${OBJECT_LAMBDA_ACCESS_POINT_NAME}?region=${cdk.Aws.REGION}`);
 
         this.synth();
     }

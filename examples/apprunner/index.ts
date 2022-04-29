@@ -6,6 +6,8 @@ import { Service, Source } from '@aws-cdk/aws-apprunner-alpha';
 import { CfnOutput } from 'aws-cdk-lib';
 
 class AppRunnerStack extends pulumicdk.Stack {
+    url: pulumi.Output<string>;
+
     constructor(id: string) {
         super(id);
 
@@ -16,9 +18,11 @@ class AppRunnerStack extends pulumicdk.Stack {
             }),
         });
 
-        new CfnOutput(this, 'url', { value: service.serviceUrl });
+        this.url = this.asOutput(service.serviceUrl);
+
+        this.synth();
     }
 }
 
 const stack = new AppRunnerStack('teststack');
-export const url = stack.outputs['url'];
+export const url = stack.url;
