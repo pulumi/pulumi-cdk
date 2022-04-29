@@ -93,8 +93,7 @@ export function mapToAwsResource(
                     tags: tags(props.tags),
                 },
                 options,
-            )
-                ;
+            );
 
         // DynamoDB
         case 'AWS::DynamoDB::Table':
