@@ -247,7 +247,8 @@ export function mapToAwsResource(
                     matcher: props.matcher ? (props.matcher.httpCode || props.matcher.grpcCode) : undefined,
                     healthyThreshold: props.healthyThresholdCount,
                 },
-                name: logicalId, // FIXME: Not setting this complains that the name exceeds 32 characters.
+                // logicalId can be too big and cause autonaming to spill beyond 32 char limit for names
+                name: props.name ?? (logicalId.length > 24 ? logicalId.slice(-32) : undefined), 
                 port: props.port,
                 protocol: props.protocol,
                 protocolVersion: props.protocolVersion,
