@@ -433,13 +433,10 @@ class StackConverter extends ArtifactConverter {
                     debug(`Creating resource for ${logicalId}`);
                     const props = this.processIntrinsics(value.Properties);
                     const options = this.processOptions(value, parent);
+
                     const mapped = this.mapResource(n.construct, logicalId, value.Type, props, options);
-                    if (mapped.exclude) {
-                        debug(`Excluding resource for ${logicalId}: ${mapped.excludeReason}`);
-                        continue
-                    }
-                    const resource = mapped.resource!;
-                    const attributes = mapped.attributes;
+                    const resource = pulumi.Resource.isInstance(mapped) ? mapped : mapped.resource;
+                    const attributes = pulumi.Resource.isInstance(mapped) ? undefined : mapped.attributes;
                     this.resources.set(logicalId, { resource, attributes, resourceType: value.Type });
                     this.constructs.set(n.construct, resource);
 
@@ -537,7 +534,7 @@ class StackConverter extends ArtifactConverter {
         const dependsOn = getDependsOn(resource);
         return {
             parent: parent,
-            dependsOn: dependsOn !== undefined ? dependsOn.filter(id => this.resources.has(id)).map((id) => this.resources.get(id)!.resource) : undefined,
+            dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources.get(id)!.resource) : undefined,
         };
     }
 

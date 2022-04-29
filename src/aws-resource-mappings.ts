@@ -51,74 +51,67 @@ export function mapToAwsResource(
     switch (typeName) {
         // ApiGatewayV2
         case 'AWS::ApiGatewayV2::Api':
-            return { resource: new aws.apigatewayv2.Api(logicalId, props, options) };
+            return new aws.apigatewayv2.Api(logicalId, props, options);
         case 'AWS::ApiGatewayV2::Deployment':
-            return { resource: new aws.apigatewayv2.Deployment(logicalId, props, options) };
+            return new aws.apigatewayv2.Deployment(logicalId, props, options);
         case 'AWS::ApiGatewayV2::Integration':
-            return {
-                resource: new aws.apigatewayv2.Integration(
-                    logicalId,
-                    {
-                        ...props,
-                        requestParameters: rawProps.RequestParameters,
-                        requestTemplates: rawProps.RequestTemplates,
-                        responseParameters: rawProps.ResponseParameters,
-                        tlsConfig: maybe(props.tlsConfig, (_) => ({ insecureSkipVerification: true })),
-                    },
-                    options,
-                )
-            };
+            return new aws.apigatewayv2.Integration(
+                logicalId,
+                {
+                    ...props,
+                    requestParameters: rawProps.RequestParameters,
+                    requestTemplates: rawProps.RequestTemplates,
+                    responseParameters: rawProps.ResponseParameters,
+                    tlsConfig: maybe(props.tlsConfig, (_) => ({ insecureSkipVerification: true })),
+                },
+                options,
+            );
         case 'AWS::ApiGatewayV2::Route':
-            return {
-                resource: new aws.apigatewayv2.Route(
-                    logicalId,
-                    {
-                        ...props,
-                        requestModels: rawProps.RequestModels,
-                        requestParameters: rawProps.RequestParameters,
-                    },
-                    options,
-                )
-            };
+            return new aws.apigatewayv2.Route(
+                logicalId,
+                {
+                    ...props,
+                    requestModels: rawProps.RequestModels,
+                    requestParameters: rawProps.RequestParameters,
+                },
+                options,
+            );
         case 'AWS::ApiGatewayV2::Stage':
-            return {
-                resource: new aws.apigatewayv2.Stage(
-                    logicalId,
-                    {
-                        accessLogSettings: props.accessLogSettings,
-                        apiId: props.apiId,
-                        autoDeploy: props.autoDeploy,
-                        clientCertificateId: props.clientCertificateId,
-                        defaultRouteSettings: props.defaultRouteSettings,
-                        deploymentId: props.deploymentId,
-                        description: props.description,
-                        name: props.stageName,
-                        routeSettings: props.routeSettings,
-                        stageVariables: rawProps.StageVariables,
-                        tags: tags(props.tags),
-                    },
-                    options,
-                )
-            };
+            return new aws.apigatewayv2.Stage(
+                logicalId,
+                {
+                    accessLogSettings: props.accessLogSettings,
+                    apiId: props.apiId,
+                    autoDeploy: props.autoDeploy,
+                    clientCertificateId: props.clientCertificateId,
+                    defaultRouteSettings: props.defaultRouteSettings,
+                    deploymentId: props.deploymentId,
+                    description: props.description,
+                    name: props.stageName,
+                    routeSettings: props.routeSettings,
+                    stageVariables: rawProps.StageVariables,
+                    tags: tags(props.tags),
+                },
+                options,
+            )
+                ;
 
         // DynamoDB
         case 'AWS::DynamoDB::Table':
-            return { resource: mapDynamoDBTable(element, logicalId, typeName, rawProps, props, options) };
+            return mapDynamoDBTable(element, logicalId, typeName, rawProps, props, options);
 
         // EC2
         case 'AWS::EC2::EIP':
-            return {
-                resource: new aws.ec2.Eip(
-                    logicalId,
-                    {
-                        instance: props.instanceId,
-                        publicIpv4Pool: props.publicIpv4Pool,
-                        tags: tags(props.tags),
-                        vpc: props.domain ? pulumi.output(props.domain).apply((domain) => domain === 'vpc') : undefined,
-                    },
-                    options,
-                )
-            };
+            return new aws.ec2.Eip(
+                logicalId,
+                {
+                    instance: props.instanceId,
+                    publicIpv4Pool: props.publicIpv4Pool,
+                    tags: tags(props.tags),
+                    vpc: props.domain ? pulumi.output(props.domain).apply((domain) => domain === 'vpc') : undefined,
+                },
+                options,
+            );
         case 'AWS::EC2::SecurityGroup': {
             debug(`AWS::EC2::SecurityGroup props: ${JSON.stringify(props)}`);
             const securityGroup = new aws.ec2.SecurityGroup(
@@ -165,52 +158,44 @@ export function mapToAwsResource(
         }
         case 'AWS::EC2::SecurityGroupEgress':
             debug(`AWS::EC2::SecurityGroupEgress props: ${JSON.stringify(props)}`);
-            return {
-                resource: new aws.ec2.SecurityGroupRule(logicalId, {
+            return new aws.ec2.SecurityGroupRule(logicalId, {
 
-                    protocol: props.ipProtocol,
-                    fromPort: props.fromPort,
-                    toPort: props.toPort,
-                    sourceSecurityGroupId: props.destinationSecurityGroupId,
-                    securityGroupId: props.groupId,
-                    prefixListIds: props.destinationPrefixListId,
-                    cidrBlocks: props.cidrIp ? [props.cidrIp] : undefined,
-                    ipv6CidrBlocks: props.cidrIpv6 ? [props.cidrIpv6] : undefined,
-                    type: "egress",
-                }),
-            };
+                protocol: props.ipProtocol,
+                fromPort: props.fromPort,
+                toPort: props.toPort,
+                sourceSecurityGroupId: props.destinationSecurityGroupId,
+                securityGroupId: props.groupId,
+                prefixListIds: props.destinationPrefixListId,
+                cidrBlocks: props.cidrIp ? [props.cidrIp] : undefined,
+                ipv6CidrBlocks: props.cidrIpv6 ? [props.cidrIpv6] : undefined,
+                type: "egress",
+            });
         case 'AWS::EC2::SecurityGroupIngress':
             debug(`AWS::EC2::SecurityGroupIngress props: ${JSON.stringify(props)}: cidr_blocks: ${props.cidrIp}`);
-            return {
-                resource: new aws.ec2.SecurityGroupRule(logicalId, {
-                    protocol: props.ipProtocol,
-                    fromPort: props.fromPort,
-                    toPort: props.toPort,
-                    securityGroupId: props.groupId,
-                    prefixListIds: props.sourcePrefixListId,
-                    sourceSecurityGroupId: props.sourceSecurityGroupId,
-                    cidrBlocks: props.cidrIp ? [props.cidrIp] : undefined,
-                    ipv6CidrBlocks: props.cidrIpv6 ? [props.cidrIpv6] : undefined,
-                    type: "ingress",
-                }),
-            };
+            return new aws.ec2.SecurityGroupRule(logicalId, {
+                protocol: props.ipProtocol,
+                fromPort: props.fromPort,
+                toPort: props.toPort,
+                securityGroupId: props.groupId,
+                prefixListIds: props.sourcePrefixListId,
+                sourceSecurityGroupId: props.sourceSecurityGroupId,
+                cidrBlocks: props.cidrIp ? [props.cidrIp] : undefined,
+                ipv6CidrBlocks: props.cidrIpv6 ? [props.cidrIpv6] : undefined,
+                type: "ingress",
+            });
         case 'AWS::EC2::VPCGatewayAttachment':
             // Create either an internet gateway attachment or a VPC gateway attachment
             // depending on the payload. 
             if (props.vpnGatewayId === undefined) {
-                return {
-                    resource: new aws.ec2.InternetGatewayAttachment(logicalId, {
-                        internetGatewayId: props.internetGatewayId,
-                        vpcId: props.vpcId,
-                    }),
-                };
-            }
-            return {
-                resource: new aws.ec2.VpnGatewayAttachment(logicalId, {
+                return new aws.ec2.InternetGatewayAttachment(logicalId, {
+                    internetGatewayId: props.internetGatewayId,
                     vpcId: props.vpcId,
-                    vpnGatewayId: props.vpnGatewayId,
-                })
-            };
+                });
+            }
+            return new aws.ec2.VpnGatewayAttachment(logicalId, {
+                vpcId: props.vpcId,
+                vpnGatewayId: props.vpnGatewayId,
+            });
         case 'AWS::ElasticLoadBalancingV2::LoadBalancer': {
             debug(`AWS::ElasticLoadBalancingV2::LoadBalancer props: ${JSON.stringify(props)}`)
             const lb = new aws.lb.LoadBalancer(logicalId, {
@@ -248,7 +233,7 @@ export function mapToAwsResource(
                     healthyThreshold: props.healthyThresholdCount,
                 },
                 // logicalId can be too big and cause autonaming to spill beyond 32 char limit for names
-                name: props.name ?? (logicalId.length > 24 ? logicalId.slice(-32) : undefined), 
+                name: props.name ?? (logicalId.length > 24 ? logicalId.slice(-32) : undefined),
                 port: props.port,
                 protocol: props.protocol,
                 protocolVersion: props.protocolVersion,
@@ -274,7 +259,7 @@ export function mapToAwsResource(
         }
         case 'AWS::AutoScaling::AutoScalingGroup': {
             debug(`AWS::AutoScaling::AutoScalingGroup props: ${JSON.stringify(props)}`);
-            const asg = new aws.autoscaling.Group(logicalId, {
+            return new aws.autoscaling.Group(logicalId, {
                 availabilityZones: props.availabilityZones,
                 maxSize: parseInt(props.maxSize),
                 minSize: parseInt(props.minSize),
@@ -315,12 +300,9 @@ export function mapToAwsResource(
                 terminationPolicies: props.terminationPolicies,
                 vpcZoneIdentifiers: props.vPCZoneIdentifier,
             });
-            return {
-                resource: asg,
-            };
         }
         case 'AWS::AutoScaling::ScalingPolicy': {
-            const scalingPolicy = new aws.autoscaling.Policy(logicalId, {
+            return new aws.autoscaling.Policy(logicalId, {
                 adjustmentType: props.adjustmentType,
                 autoscalingGroupName: props.autoScalingGroupName,
                 cooldown: props.cooldown ? parseInt(props.cooldown) : undefined,
@@ -335,10 +317,9 @@ export function mapToAwsResource(
                 // "arnSuffix": "targetgroup/LBListenerTargetGroupF04FCF6D/927730dc4d990549"
                 targetTrackingConfiguration: props.targetTrackingConfiguration,
             });
-            return { resource: scalingPolicy };
         }
-        case 'AWS::EC2::Route': {
-            const route = new aws.ec2.Route(logicalId, {
+        case 'AWS::EC2::Route':
+            return new aws.ec2.Route(logicalId, {
                 routeTableId: props.routeTableId,
                 carrierGatewayId: props.carrierGatewayId,
                 destinationCidrBlock: props.destinationCidrBlock,
@@ -353,19 +334,14 @@ export function mapToAwsResource(
                 vpcEndpointId: props.vpcEndpointId,
                 vpcPeeringConnectionId: props.vpcPeeringConnectionId,
             });
-            return {
-                resource: route,
-            };
-        }
-        case 'AWS::EC2::NatGateway': {
-            const NatGateway = new aws.ec2.NatGateway(logicalId, {
+        case 'AWS::EC2::NatGateway':
+            return new aws.ec2.NatGateway(logicalId, {
                 subnetId: props.subnetId,
                 allocationId: props.allocationId,
                 connectivityType: props.connectivityType,
                 tags: tags(props.tags)
             });
-            return { resource: NatGateway };
-        }
+
         // IAM
         case 'AWS::IAM::Policy': {
             const policy = new aws.iam.Policy(
@@ -408,40 +384,36 @@ export function mapToAwsResource(
                 );
             }
 
-            return { resource: policy };
+            return policy;
         }
 
         // Lambda
         case 'AWS::Lambda::Permission':
             // TODO: throw on the presence of functionUrlAuthType / principalOrgId?
-            return {
-                resource: new aws.lambda.Permission(
-                    logicalId,
-                    {
-                        action: props.action,
-                        eventSourceToken: props.eventSourceToken,
-                        function: props.functionName,
-                        principal: props.principal,
-                        sourceAccount: props.sourceAccount,
-                        sourceArn: props.sourceArn,
-                        statementId: logicalId,
-                    },
-                    options,
-                )
-            };
+            return new aws.lambda.Permission(
+                logicalId,
+                {
+                    action: props.action,
+                    eventSourceToken: props.eventSourceToken,
+                    function: props.functionName,
+                    principal: props.principal,
+                    sourceAccount: props.sourceAccount,
+                    sourceArn: props.sourceArn,
+                    statementId: logicalId,
+                },
+                options,
+            );
 
         // S3
         case 'AWS::S3::BucketPolicy':
-            return {
-                resource: new aws.s3.BucketPolicy(
-                    logicalId,
-                    {
-                        bucket: rawProps.Bucket,
-                        policy: rawProps.PolicyDocument,
-                    },
-                    options,
-                )
-            };
+            return new aws.s3.BucketPolicy(
+                logicalId,
+                {
+                    bucket: rawProps.Bucket,
+                    policy: rawProps.PolicyDocument,
+                },
+                options,
+            )
 
         default:
             return undefined;
