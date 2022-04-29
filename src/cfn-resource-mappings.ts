@@ -13,9 +13,10 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { ecs, iam, apprunner, lambda, s3, s3objectlambda } from '@pulumi/aws-native';
+import { ecs, iam, apprunner, lambda, s3, s3objectlambda, autoscaling } from '@pulumi/aws-native';
 import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { CfnResource, ResourceMapping, firstToLower, normalize } from './interop';
+import { debug } from '@pulumi/pulumi/log';
 
 export function mapToCfnResource(
     element: CfnElement,
@@ -25,13 +26,17 @@ export function mapToCfnResource(
     options: pulumi.ResourceOptions,
 ): ResourceMapping {
     const props = normalize(rawProps);
+    debug(`mapToCfnResource typeName: ${typeName} props: ${JSON.stringify(props)}`)
     switch (typeName) {
+        case 'AWS::AutoScaling::LaunchConfiguration':
+            debug(`${typeName} props: ${JSON.stringify(props)}`);
+            return {resource: new autoscaling.LaunchConfiguration(logicalId, props, options)};
         case 'AWS::AppRunner::Service':
-            return new apprunner.Service(logicalId, props, options);
+            return { resource: new apprunner.Service(logicalId, props, options) };
         case 'AWS::ECS::Cluster':
-            return new ecs.Cluster(logicalId, props, options);
+            return { resource: new ecs.Cluster(logicalId, props, options) };
         case 'AWS::ECS::TaskDefinition':
-            return new ecs.TaskDefinition(logicalId, props, options);
+            return { resource: new ecs.TaskDefinition(logicalId, props, options) };
         case 'AWS::IAM::Role': {
             // We need this because IAM Role's CFN json format has the following field in uppercase.
             const morphed: any = {};
@@ -42,7 +47,7 @@ export function mapToCfnResource(
                     morphed[k] = v;
                 }
             });
-            return new iam.Role(logicalId, morphed, options);
+            return { resource: new iam.Role(logicalId, morphed, options) };
         }
         case 'AWS::Lambda::Function':
             return new lambda.Function(
@@ -59,32 +64,44 @@ export function mapToCfnResource(
                 logicalId,
                 {
                     ...props,
-                    policy: rawProps.Policy,
-                },
-                options,
-            );
+                    environment: rawProps.Environment === undefined ? undefined : { variables: rawProps.Environment.Variables },
+                }, options)
+            };
+        case 'AWS::S3::AccessPoint':
+            return {
+                resource: new s3.AccessPoint(
+                    logicalId,
+                    {
+                        ...props,
+                        policy: rawProps.Policy,
+                    },
+                    options,
+                )
+            };
         case 'AWS::S3::Bucket':
             // Lowercase the bucket name to comply with the Bucket resource's naming constraints, which only allow
             // lowercase letters.
-            return new s3.Bucket(logicalId.toLowerCase(), props, options);
+            return { resource: new s3.Bucket(logicalId.toLowerCase(), props, options) };
         case 'AWS::S3ObjectLambda::AccessPoint':
-            return new s3objectlambda.AccessPoint(
-                logicalId,
-                {
-                    name: props.name,
-                    objectLambdaConfiguration: {
-                        allowedFeatures: props.objectLambdaConfiguration.allowedFeatures,
-                        cloudWatchMetricsEnabled: props.objectLambdaConfiguration.cloudWatchMetricsEnabled,
-                        supportingAccessPoint: props.objectLambdaConfiguration.supportingAccessPoint,
-                        transformationConfigurations:
-                            rawProps.ObjectLambdaConfiguration.TransformationConfigurations.map((config: any) => ({
-                                actions: config.Actions,
-                                contentTransformation: config.ContentTransformation,
-                            })),
+            return {
+                resource: new s3objectlambda.AccessPoint(
+                    logicalId,
+                    {
+                        name: props.name,
+                        objectLambdaConfiguration: {
+                            allowedFeatures: props.objectLambdaConfiguration.allowedFeatures,
+                            cloudWatchMetricsEnabled: props.objectLambdaConfiguration.cloudWatchMetricsEnabled,
+                            supportingAccessPoint: props.objectLambdaConfiguration.supportingAccessPoint,
+                            transformationConfigurations:
+                                rawProps.ObjectLambdaConfiguration.TransformationConfigurations.map((config: any) => ({
+                                    actions: config.Actions,
+                                    contentTransformation: config.ContentTransformation,
+                                })),
+                        },
                     },
-                },
-                options,
-            );
+                    options,
+                )
+            };
         default: {
             // Scrape the attributes off of the construct.
             //
@@ -101,7 +118,7 @@ export function mapToCfnResource(
                 .filter((ref) => ref.target === element)
                 .map((ref) => attributePropertyName(ref.displayName));
 
-            return new CfnResource(logicalId, typeName, props, attributes, options);
+            return { resource: new CfnResource(logicalId, typeName, props, attributes, options) };
         }
     }
 }
