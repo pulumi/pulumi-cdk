@@ -50,8 +50,6 @@ func TestCronLambda(t *testing.T) {
 }
 
 func TestALB(t *testing.T) {
-	t.Skipf("skipping due to missing support for `AWS::EC2::SecurityGroup`")
-
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "alb"),

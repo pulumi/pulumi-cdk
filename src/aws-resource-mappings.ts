@@ -63,7 +63,7 @@ export function mapToAwsResource(
                         requestParameters: rawProps.RequestParameters,
                         requestTemplates: rawProps.RequestTemplates,
                         responseParameters: rawProps.ResponseParameters,
-                        tlsConfig: maybe(props.tlsConfig, (tls) => ({ insecureSkipVerification: true })),
+                        tlsConfig: maybe(props.tlsConfig, (_) => ({ insecureSkipVerification: true })),
                     },
                     options,
                 )
@@ -119,7 +119,7 @@ export function mapToAwsResource(
                     options,
                 )
             };
-        case 'AWS::EC2::SecurityGroup':
+        case 'AWS::EC2::SecurityGroup': {
             debug(`AWS::EC2::SecurityGroup props: ${JSON.stringify(props)}`);
             const securityGroup = new aws.ec2.SecurityGroup(
                 logicalId,
@@ -162,6 +162,7 @@ export function mapToAwsResource(
                 resource: securityGroup,
                 attributes: { "groupId": securityGroup.id },
             };
+        }
         case 'AWS::EC2::SecurityGroupEgress':
             debug(`AWS::EC2::SecurityGroupEgress props: ${JSON.stringify(props)}`);
             return {
@@ -210,7 +211,7 @@ export function mapToAwsResource(
                     vpnGatewayId: props.vpnGatewayId,
                 })
             };
-        case 'AWS::ElasticLoadBalancingV2::LoadBalancer':
+        case 'AWS::ElasticLoadBalancingV2::LoadBalancer': {
             debug(`AWS::ElasticLoadBalancingV2::LoadBalancer props: ${JSON.stringify(props)}`)
             const lb = new aws.lb.LoadBalancer(logicalId, {
                 ipAddressType: props.ipAddressType,
@@ -230,7 +231,8 @@ export function mapToAwsResource(
                 resource: lb,
                 attributes: { "dNSName": lb.dnsName, }
             };
-        case 'AWS::ElasticLoadBalancingV2::TargetGroup':
+        }
+        case 'AWS::ElasticLoadBalancingV2::TargetGroup': {
             debug(`AWS::ElasticLoadBalancingV2::TargetGroup props: ${JSON.stringify(props)}`);
             const tgAttributes = targetGroupAttributesMap(props.targetGroupAttributes);
             debug(`${logicalId} tgAttributes ${JSON.stringify(tgAttributes)}`)
@@ -264,10 +266,12 @@ export function mapToAwsResource(
             return {
                 resource: tg,
                 attributes: {
-                    "targetGroupFullName": tg.name,
+                    "targetGroupFullName": tg.arnSuffix,
+                    "targetGroupName": tg.name,
                 },
             };
-        case 'AWS::AutoScaling::AutoScalingGroup':
+        }
+        case 'AWS::AutoScaling::AutoScalingGroup': {
             debug(`AWS::AutoScaling::AutoScalingGroup props: ${JSON.stringify(props)}`);
             const asg = new aws.autoscaling.Group(logicalId, {
                 availabilityZones: props.availabilityZones,
@@ -306,14 +310,15 @@ export function mapToAwsResource(
                         propagateAtLaunch: m.propagateAtLaunch,
                         value: m.value
                     })),
-                targetGroupArns: props.targetGroupArns,
+                targetGroupArns: props.targetGroupARNs,
                 terminationPolicies: props.terminationPolicies,
-                vpcZoneIdentifiers: props.vpcZoneIdentifier,
+                vpcZoneIdentifiers: props.vPCZoneIdentifier,
             });
             return {
                 resource: asg,
             };
-        case 'AWS::AutoScaling::ScalingPolicy':
+        }
+        case 'AWS::AutoScaling::ScalingPolicy': {
             const scalingPolicy = new aws.autoscaling.Policy(logicalId, {
                 adjustmentType: props.adjustmentType,
                 autoscalingGroupName: props.autoScalingGroupName,
@@ -325,10 +330,13 @@ export function mapToAwsResource(
                 predictiveScalingConfiguration: props.predictiveScalingConfiguration,
                 scalingAdjustment: props.scalingAdjustment,
                 stepAdjustments: props.stepAdjustments,
+                // resourceLabel       : "app/LB8A12904C-50e5ac6/d3db7b962367b31e/LBListenerTargetGroupF04FCF6D"
+                // "arnSuffix": "targetgroup/LBListenerTargetGroupF04FCF6D/927730dc4d990549"
                 targetTrackingConfiguration: props.targetTrackingConfiguration,
             });
             return { resource: scalingPolicy };
-        case 'AWS::EC2::Route':
+        }
+        case 'AWS::EC2::Route': {
             const route = new aws.ec2.Route(logicalId, {
                 routeTableId: props.routeTableId,
                 carrierGatewayId: props.carrierGatewayId,
@@ -347,7 +355,8 @@ export function mapToAwsResource(
             return {
                 resource: route,
             };
-        case 'AWS::EC2::NatGateway':
+        }
+        case 'AWS::EC2::NatGateway': {
             const NatGateway = new aws.ec2.NatGateway(logicalId, {
                 subnetId: props.subnetId,
                 allocationId: props.allocationId,
@@ -355,7 +364,7 @@ export function mapToAwsResource(
                 tags: tags(props.tags)
             });
             return { resource: NatGateway };
-
+        }
         // IAM
         case 'AWS::IAM::Policy': {
             const policy = new aws.iam.Policy(
@@ -552,7 +561,7 @@ function targetGroupAttributesMap(targetGroupAttributes: any) {
 
     const attrsMap: { [name: string]: any } = {};
     const attrs = targetGroupAttributes as Array<any>;
-    for (let attr of attrs) {
+    for (const attr of attrs) {
         attrsMap[attr.key] = attr.value;
     }
     return attrsMap
