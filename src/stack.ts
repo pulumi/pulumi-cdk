@@ -29,6 +29,8 @@ import {
     getPartition,
     getAzs,
     getRegion,
+    getSsmParameterList,
+    getSsmParameterString,
     getUrlSuffix,
 } from '@pulumi/aws-native';
 import { debug } from '@pulumi/pulumi/log';
@@ -38,7 +40,15 @@ import { mapToAwsResource } from './aws-resource-mappings';
 import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
 import { attributePropertyName, mapToCfnResource } from './cfn-resource-mappings';
 import { GraphBuilder } from './graph';
-import { CfnResource, CdkConstruct, JSII_RUNTIME_SYMBOL, ResourceMapping, normalize, firstToLower, getFqn } from './interop';
+import {
+    CfnResource,
+    CdkConstruct,
+    JSII_RUNTIME_SYMBOL,
+    ResourceMapping,
+    normalize,
+    firstToLower,
+    getFqn,
+} from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 import { parseSub } from './sub';
 import { zipDirectory } from './zip';
@@ -155,7 +165,7 @@ class AppConverter {
         for (const construct of this.app.node.findAll()) {
             if (cdk.Stack.isStack(construct)) {
                 const artifact = this.assembly.getStackArtifact(construct.artifactId);
-                const stack = new StackConverter(this, construct, artifact)
+                const stack = new StackConverter(this, construct, artifact);
                 this.stacks.set(construct.artifactId, stack);
                 this.stackTemplates.add(artifact.templateFullPath);
                 debug(`${artifact.templateFullPath} is a stack template`);
@@ -405,7 +415,20 @@ class StackConverter extends ArtifactConverter {
             throw new Error(`unsupported parameter ${logicalId} with no default value`);
         }
 
-        this.parameters.set(logicalId, defaultValue);
+        function parameterValue(parent: pulumi.Resource): any {
+            const key = defaultValue;
+            const paramType = typeName.slice('AWS::SSM::Parameter::'.length);
+            if (paramType.startsWith('Value<')) {
+                const type = paramType.slice('Value<'.length);
+                if (type.startsWith('List<') || type === 'CommaDelimitedList>') {
+                    return getSsmParameterList({ name: key }, { parent }).then((v) => v.value);
+                }
+                return getSsmParameterString({ name: key }, { parent }).then((v) => v.value);
+            }
+            return key;
+        }
+
+        this.parameters.set(logicalId, parameterValue(this.app.host));
     }
 
     private mapResource(
