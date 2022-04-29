@@ -1,3 +1,4 @@
+.DS_Store
 # Build output
 lib/
 
@@ -111,3 +112,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+# IntelliJ
+.idea/
