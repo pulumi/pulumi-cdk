@@ -28,9 +28,6 @@ export function mapToCfnResource(
     const props = normalize(rawProps);
     debug(`mapToCfnResource typeName: ${typeName} props: ${JSON.stringify(props)}`)
     switch (typeName) {
-        case 'AWS::AutoScaling::LaunchConfiguration':
-            debug(`${typeName} props: ${JSON.stringify(props)}`);
-            return {resource: new autoscaling.LaunchConfiguration(logicalId, props, options)};
         case 'AWS::AppRunner::Service':
             return { resource: new apprunner.Service(logicalId, props, options) };
         case 'AWS::ECS::Cluster':
