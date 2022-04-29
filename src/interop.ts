@@ -57,12 +57,12 @@ export function normalize(value: any): any {
     return result;
 }
 
-export interface ResourceMapping {
-    resource?: pulumi.Resource;
-    attributes?: { [name: string]: pulumi.Input<any> };
-    exclude?: boolean,
-    excludeReason?: string,
-};
+export type ResourceMapping =
+    | {
+        resource: pulumi.Resource;
+        attributes: { [name: string]: pulumi.Input<any> };
+    }
+    | pulumi.Resource;
 
 export class CfnResource extends pulumi.CustomResource {
     constructor(
