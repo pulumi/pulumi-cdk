@@ -153,7 +153,7 @@ class AppConverter {
         readonly app: cdk.App,
         readonly assembly: cx.CloudAssembly,
         readonly options: StackOptions,
-    ) {}
+    ) { }
 
     public static convert(host: Stack, app: cdk.App, assembly: cx.CloudAssembly, options: StackOptions) {
         const converter = new AppConverter(host, app, assembly, options);
@@ -237,7 +237,7 @@ class AppConverter {
 }
 
 class ArtifactConverter {
-    constructor(readonly app: AppConverter) {}
+    constructor(readonly app: AppConverter) { }
 }
 
 class AssetManifestConverter extends ArtifactConverter {
@@ -358,10 +358,13 @@ class StackConverter extends ArtifactConverter {
                     debug(`Creating resource for ${logicalId}`);
                     const props = this.processIntrinsics(value.Properties);
                     const options = this.processOptions(value, parent);
-
                     const mapped = this.mapResource(n.construct, logicalId, value.Type, props, options);
-                    const resource = pulumi.Resource.isInstance(mapped) ? mapped : mapped.resource;
-                    const attributes = pulumi.Resource.isInstance(mapped) ? undefined : mapped.attributes;
+                    if (mapped.exclude) {
+                        debug(`Excluding resource for ${logicalId}: ${mapped.excludeReason}`);
+                        continue
+                    }
+                    const resource = mapped.resource!;
+                    const attributes = mapped.attributes;
                     this.resources.set(logicalId, { resource, attributes, resourceType: value.Type });
                     this.constructs.set(n.construct, resource);
 
@@ -459,7 +462,7 @@ class StackConverter extends ArtifactConverter {
         const dependsOn = getDependsOn(resource);
         return {
             parent: parent,
-            dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources.get(id)!.resource) : undefined,
+            dependsOn: dependsOn !== undefined ? dependsOn.filter(id => this.resources.has(id)).map((id) => this.resources.get(id)!.resource) : undefined,
         };
     }
 
