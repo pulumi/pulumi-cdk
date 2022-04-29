@@ -32,7 +32,7 @@ class LambdaStack extends pulumicdk.Stack {
         rule.addTarget(new aws_events_targets.LambdaFunction(lambdaFn));
 
         // Export the Lambda function's ARN as an output.
-        this.lambdaArn = this.asOutput(lambdaArn.functionArn);
+        this.lambdaArn = this.asOutput(lambdaFn.functionArn);
 
         this.synth();
     }
