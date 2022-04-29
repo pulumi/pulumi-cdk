@@ -5,7 +5,6 @@ import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import * as aws from '@pulumi/aws';
 import { Construct } from 'constructs';
-import { CfnOutput } from 'aws-cdk-lib';
 
 class LatestAmazonLinux implements ec2.IMachineImage {
     getImage(scope: Construct): ec2.MachineImageConfig {
@@ -27,9 +26,7 @@ class AlbStack extends Stack {
         const asg = new autoscaling.AutoScalingGroup(this, 'ASG', {
             vpc,
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
-            // See https://github.com/pulumi/pulumi-cdk/issues/32
-            // machineImage: new ec2.AmazonLinuxImage(),
-            machineImage: new LatestAmazonLinux(),
+            machineImage: new ec2.AmazonLinuxImage(),
         });
 
         const lb = new elbv2.ApplicationLoadBalancer(this, 'LB', {
