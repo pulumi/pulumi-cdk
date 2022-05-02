@@ -16,6 +16,7 @@ import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws';
 import { CfnElement } from 'aws-cdk-lib';
 import { ResourceMapping, normalize } from './interop';
+import { debug } from '@pulumi/pulumi/log';
 
 function maybe<T, U>(v: T | undefined, fn: (t: T) => U): U | undefined {
     if (v === undefined) {
@@ -61,7 +62,7 @@ export function mapToAwsResource(
                     requestParameters: rawProps.RequestParameters,
                     requestTemplates: rawProps.RequestTemplates,
                     responseParameters: rawProps.ResponseParameters,
-                    tlsConfig: maybe(props.tlsConfig, (tls) => ({ insecureSkipVerification: true })),
+                    tlsConfig: maybe(props.tlsConfig, (_) => ({ insecureSkipVerification: true })),
                 },
                 options,
             );
@@ -107,6 +108,265 @@ export function mapToAwsResource(
                     publicIpv4Pool: props.publicIpv4Pool,
                     tags: tags(props.tags),
                     vpc: props.domain ? pulumi.output(props.domain).apply((domain) => domain === 'vpc') : undefined,
+                },
+                options,
+            );
+        case 'AWS::EC2::SecurityGroup': {
+            debug(`AWS::EC2::SecurityGroup props: ${JSON.stringify(props)}`);
+            const securityGroup = new aws.ec2.SecurityGroup(
+                logicalId,
+                {
+                    description: props.groupDescription,
+                    egress: (props.securityGroupEgress || []).map((e: any) => {
+                        const egress = {
+                            description: e.description,
+                            protocol: e.ipProtocol,
+                            fromPort: e.fromPort,
+                            toPort: e.toPort,
+                            cidrBlocks: e.cidrIp ? [e.cidrIp] : undefined,
+                            ipv6CidrBlocks: e.cidrIpv6 ? [e.cidrIpv6] : undefined,
+                            prefixListIds: e.destinationPrefixListId ? [e.destinationPrefixListId] : undefined,
+                            securityGroups: e.destinationSecurityGroupId || [],
+                        };
+                        if (egress.fromPort === undefined && egress.toPort === undefined && egress.protocol == "-1") {
+                            egress.fromPort = 0;
+                            egress.toPort = 0;
+                        }
+                        return egress;
+                    }),
+                    ingress: (props.securityGroupIngress || []).map((i: any) => {
+                        return {
+                            description: i.description,
+                            protocol: i.ipProtocol,
+                            fromPort: i.fromPort,
+                            toPort: i.toPort,
+                            cidrBlocks: i.cidrIp ? [i.cidrIp] : undefined,
+                            ipv6CidrBlocks: i.cidrIpv6 ? [i.cidrIpv6] : undefined,
+                            prefixListIds: i.destinationPrefixListId ? [i.destinationPrefixListId] : undefined,
+                            securityGroups: (i.sourceSecurityGroupId || []).concat(...i.sourceSecurityGroupName || []),
+                        };
+                    }),
+                    tags: tags(props.tags),
+                    vpcId: props.vpcId,
+                    revokeRulesOnDelete: true, // FIXME: is this right?
+                },
+                options,
+            );
+            return {
+                resource: securityGroup,
+                attributes: { "groupId": securityGroup.id },
+            };
+        }
+        case 'AWS::EC2::SecurityGroupEgress':
+            debug(`AWS::EC2::SecurityGroupEgress props: ${JSON.stringify(props)}`);
+            return new aws.ec2.SecurityGroupRule(logicalId,
+                {
+                    protocol: props.ipProtocol,
+                    fromPort: props.fromPort,
+                    toPort: props.toPort,
+                    sourceSecurityGroupId: props.destinationSecurityGroupId,
+                    securityGroupId: props.groupId,
+                    prefixListIds: props.destinationPrefixListId,
+                    cidrBlocks: props.cidrIp ? [props.cidrIp] : undefined,
+                    ipv6CidrBlocks: props.cidrIpv6 ? [props.cidrIpv6] : undefined,
+                    type: "egress",
+                },
+                options,
+            );
+        case 'AWS::EC2::SecurityGroupIngress':
+            debug(`AWS::EC2::SecurityGroupIngress props: ${JSON.stringify(props)}: cidr_blocks: ${props.cidrIp}`);
+            return new aws.ec2.SecurityGroupRule(logicalId,
+                {
+                    protocol: props.ipProtocol,
+                    fromPort: props.fromPort,
+                    toPort: props.toPort,
+                    securityGroupId: props.groupId,
+                    prefixListIds: props.sourcePrefixListId,
+                    sourceSecurityGroupId: props.sourceSecurityGroupId,
+                    cidrBlocks: props.cidrIp ? [props.cidrIp] : undefined,
+                    ipv6CidrBlocks: props.cidrIpv6 ? [props.cidrIpv6] : undefined,
+                    type: "ingress",
+                },
+                options,
+            );
+        case 'AWS::EC2::VPCGatewayAttachment':
+            // Create either an internet gateway attachment or a VPC gateway attachment
+            // depending on the payload. 
+            if (props.vpnGatewayId === undefined) {
+                return new aws.ec2.InternetGatewayAttachment(logicalId,
+                    {
+                        internetGatewayId: props.internetGatewayId,
+                        vpcId: props.vpcId,
+                    },
+                    options,
+                );
+            }
+            return new aws.ec2.VpnGatewayAttachment(logicalId, {
+                vpcId: props.vpcId,
+                vpnGatewayId: props.vpnGatewayId,
+            },
+                options,
+            );
+        case 'AWS::ElasticLoadBalancingV2::LoadBalancer': {
+            debug(`AWS::ElasticLoadBalancingV2::LoadBalancer props: ${JSON.stringify(props)}`)
+            const lb = new aws.lb.LoadBalancer(logicalId,
+                {
+                    ipAddressType: props.ipAddressType,
+                    loadBalancerType: props.type,
+                    securityGroups: props.securityGroups,
+                    subnets: props.subnets,
+                    subnetMappings: props.subnetMappings?.map((m: any) => <aws.types.input.lb.LoadBalancerSubnetMapping>{
+                        allocationId: m.allocationId,
+                        ipv6Address: m.iPv6Address,
+                        privateIpv4Address: m.privateIPv4Address,
+                        subnetId: m.subnetId,
+                    }),
+                    tags: tags(props.tags),
+                    internal: props.scheme ? props.scheme == "internal" : false,
+                },
+                options,
+            );
+            return {
+                resource: lb,
+                attributes: { "dNSName": lb.dnsName, }
+            };
+        }
+        case 'AWS::ElasticLoadBalancingV2::TargetGroup': {
+            debug(`AWS::ElasticLoadBalancingV2::TargetGroup props: ${JSON.stringify(props)}`);
+            const tgAttributes = targetGroupAttributesMap(props.targetGroupAttributes);
+            debug(`${logicalId} tgAttributes ${JSON.stringify(tgAttributes)}`)
+            const tg = new aws.lb.TargetGroup(logicalId,
+                {
+                    healthCheck: {
+                        enabled: props.healthCheckEnabled,
+                        interval: props.healthCheckIntervalSeconds,
+                        path: props.healthCheckPath,
+                        port: props.healthCheckPort,
+                        protocol: props.healthCheckProtocol,
+                        timeout: props.healthCheckTimeoutSeconds,
+                        matcher: props.matcher ? (props.matcher.httpCode || props.matcher.grpcCode) : undefined,
+                        healthyThreshold: props.healthyThresholdCount,
+                    },
+                    // logicalId can be too big and cause autonaming to spill beyond 32 char limit for names
+                    name: props.name ?? (logicalId.length > 24 ? logicalId.slice(-32) : undefined),
+                    port: props.port,
+                    protocol: props.protocol,
+                    protocolVersion: props.protocolVersion,
+                    vpcId: props.vpcId,
+                    tags: tags(props.tags),
+                    targetType: props.targetType,
+                    stickiness: stickiness(tgAttributes),
+                    deregistrationDelay: maybeTargetGroupAttribute(tgAttributes, "deregistration_delay.timeout_seconds"),
+                    connectionTermination: maybeTargetGroupAttribute(tgAttributes, "deregistration_delay.connection_termination.enabled"),
+                    proxyProtocolV2: maybeTargetGroupAttribute(tgAttributes, "proxy_protocol_v2.enabled"),
+                    preserveClientIp: maybeTargetGroupAttribute(tgAttributes, "preserve_client_ip.enabled"),
+                    lambdaMultiValueHeadersEnabled: maybeTargetGroupAttribute(tgAttributes, "lambda.multi_value_headers.enabled"),
+                    slowStart: maybeTargetGroupAttribute(tgAttributes, "slow_start.duration_seconds"),
+                    loadBalancingAlgorithmType: maybeTargetGroupAttribute(tgAttributes, "load_balancing.algorithm.type"),
+                },
+                options,
+            );
+            return {
+                resource: tg,
+                attributes: {
+                    "targetGroupFullName": tg.arnSuffix,
+                    "targetGroupName": tg.name,
+                },
+            };
+        }
+        case 'AWS::AutoScaling::AutoScalingGroup': {
+            debug(`AWS::AutoScaling::AutoScalingGroup props: ${JSON.stringify(props)}`);
+            return new aws.autoscaling.Group(logicalId,
+                {
+                    availabilityZones: props.availabilityZones,
+                    maxSize: parseInt(props.maxSize),
+                    minSize: parseInt(props.minSize),
+                    capacityRebalance: props.capacityRebalance ? JSON.parse(props.capacityRebalance) : undefined,
+                    defaultCooldown: props.cooldown ? parseInt(props.cooldown) : undefined,
+                    desiredCapacity: props.desiredCapacity ? parseInt(props.desiredCapacity) : undefined,
+                    healthCheckGracePeriod: props.healthCheckGracePeriod ? parseInt(props.healthCheckGracePeriod) : undefined,
+                    healthCheckType: props.healthCheckType,
+                    launchConfiguration: props.launchConfigurationName,
+                    launchTemplate: props.launchTemplate?.map(
+                        (t: any) => <aws.types.input.autoscaling.GroupLaunchTemplate>{
+                            id: t.launchTemplateId,
+                            name: t.launchTemplateName,
+                            version: t.version,
+                        }),
+                    initialLifecycleHooks: props.lifecycleHookSpecificationList?.map((s: any) => <aws.types.input.autoscaling.GroupInitialLifecycleHook>{
+                        defaultResult: s.defaultReason,
+                        heartbeatTimeout: s.heartbeatTimeout,
+                        lifecycleTransition: s.lifecycleTransition,
+                        notificationMetadata: s.notificationMetadata,
+                        notificationTargetArn: s.notificationTargetArn,
+                        roleArn: s.roleArn,
+                        name: s.lifeCycleHookName,
+                    }),
+                    loadBalancers: props.loadBalancerNames,
+                    maxInstanceLifetime: props.maxInstanceLifetime,
+                    // mixedInstancesPolicy: FIXME!
+                    protectFromScaleIn: props.newInstancesProtectedFromScaleIn,
+                    placementGroup: props.placementGroup,
+                    serviceLinkedRoleArn: props.serviceLinkedRoleArn,
+                    tags: props.tags?.map((
+                        (m: { key: any; propagateAtLaunch: any; value: any; }) => <aws.types.input.autoscaling.GroupTag>{
+                            key: m.key,
+                            propagateAtLaunch: m.propagateAtLaunch,
+                            value: m.value
+                        })),
+                    targetGroupArns: props.targetGroupARNs,
+                    terminationPolicies: props.terminationPolicies,
+                    vpcZoneIdentifiers: props.vPCZoneIdentifier,
+                },
+                options,
+            );
+        }
+        case 'AWS::AutoScaling::ScalingPolicy': {
+            return new aws.autoscaling.Policy(logicalId,
+                {
+                    adjustmentType: props.adjustmentType,
+                    autoscalingGroupName: props.autoScalingGroupName,
+                    cooldown: props.cooldown ? parseInt(props.cooldown) : undefined,
+                    estimatedInstanceWarmup: props.estimatedInstanceWarmup ? parseInt(props.estimatedInstanceWarmup) : undefined,
+                    metricAggregationType: props.metricAggregationType,
+                    minAdjustmentMagnitude: props.minAdjustmentMagnitude,
+                    policyType: props.policyType,
+                    predictiveScalingConfiguration: props.predictiveScalingConfiguration,
+                    scalingAdjustment: props.scalingAdjustment,
+                    stepAdjustments: props.stepAdjustments,
+                    // resourceLabel       : "app/LB8A12904C-50e5ac6/d3db7b962367b31e/LBListenerTargetGroupF04FCF6D"
+                    // "arnSuffix": "targetgroup/LBListenerTargetGroupF04FCF6D/927730dc4d990549"
+                    targetTrackingConfiguration: props.targetTrackingConfiguration,
+                },
+                options,
+            );
+        }
+        case 'AWS::EC2::Route':
+            return new aws.ec2.Route(logicalId,
+                {
+                    routeTableId: props.routeTableId,
+                    carrierGatewayId: props.carrierGatewayId,
+                    destinationCidrBlock: props.destinationCidrBlock,
+                    destinationIpv6CidrBlock: props.destinationIpv6CidrBlock,
+                    egressOnlyGatewayId: props.egressOnlyInternetGatewayId,
+                    gatewayId: props.gatewayId,
+                    instanceId: props.instanceId,
+                    localGatewayId: props.localGatewayId,
+                    natGatewayId: props.natGatewayId,
+                    networkInterfaceId: props.networkInterfaceId,
+                    transitGatewayId: props.transitGatewayId,
+                    vpcEndpointId: props.vpcEndpointId,
+                    vpcPeeringConnectionId: props.vpcPeeringConnectionId,
+                },
+                options,
+            );
+        case 'AWS::EC2::NatGateway':
+            return new aws.ec2.NatGateway(logicalId,
+                {
+                    subnetId: props.subnetId,
+                    allocationId: props.allocationId,
+                    connectivityType: props.connectivityType,
+                    tags: tags(props.tags)
                 },
                 options,
             );
@@ -258,4 +518,54 @@ function mapDynamoDBTable(
         },
         options,
     );
+}
+
+function stickiness(targetGroupAttributes: any): pulumi.Input<aws.types.input.lb.TargetGroupStickiness> | undefined {
+    if (targetGroupAttributes === undefined) {
+        return undefined;
+    }
+
+    const enabled = targetGroupAttributes["stickiness.enabled"] ? JSON.parse(targetGroupAttributes["stickiness.enabled"]) : false;
+    if (!enabled) {
+        return undefined;
+    }
+
+    let cookieDuration = undefined
+    if ("stickiness.app_cookie.duration_seconds" in targetGroupAttributes) {
+        cookieDuration = targetGroupAttributes["stickiness.app_cookie.duration_seconds"]
+    } else if ("stickiness.lb_cookie.duration_seconds" in targetGroupAttributes) {
+        cookieDuration = targetGroupAttributes["stickiness.lb_cookie.duration_seconds"]
+    }
+    return {
+        enabled: enabled,
+        type: maybeTargetGroupAttribute(targetGroupAttributes, "stickiness.type"),
+        cookieName: maybeTargetGroupAttribute(targetGroupAttributes, "stickiness.app_cookie.cookie_name"),
+        cookieDuration: cookieDuration,
+    }
+}
+
+function maybeTargetGroupAttribute(targetGroupAttributes: any, key: string): any {
+    if (targetGroupAttributes === undefined) {
+        return undefined;
+    }
+
+    let val = undefined
+    if (key in targetGroupAttributes) {
+        val = targetGroupAttributes[key]
+    }
+    return val
+}
+
+function targetGroupAttributesMap(targetGroupAttributes: any) {
+    if (targetGroupAttributes === undefined) {
+        return undefined;
+    }
+
+    const attrsMap: { [name: string]: any } = {};
+    const attrs = targetGroupAttributes as Array<any>;
+    for (const attr of attrs) {
+        attrsMap[attr.key] = attr.value;
+    }
+    return attrsMap
+
 }

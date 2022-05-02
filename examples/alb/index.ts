@@ -3,14 +3,15 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
+import * as aws from '@pulumi/aws';
 import { Construct } from 'constructs';
-import { CfnOutput } from 'aws-cdk-lib';
 
 class AlbStack extends pulumicdk.Stack {
-    url: pulumi.Output<string>;
 
-    constructor(id: string) {
-        super(id);
+    url: pulumi.Output<string>;
+    
+    constructor(id: string, options?: pulumicdk.StackOptions) {
+        super(id, options);
 
         const vpc = new ec2.Vpc(this, 'VPC');
 

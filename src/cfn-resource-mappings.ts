@@ -13,9 +13,10 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { ecs, iam, apprunner, lambda, s3, s3objectlambda } from '@pulumi/aws-native';
+import { ecs, iam, apprunner, lambda, s3, s3objectlambda, autoscaling } from '@pulumi/aws-native';
 import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { CfnResource, ResourceMapping, firstToLower, normalize } from './interop';
+import { debug } from '@pulumi/pulumi/log';
 
 export function mapToCfnResource(
     element: CfnElement,
@@ -25,6 +26,7 @@ export function mapToCfnResource(
     options: pulumi.ResourceOptions,
 ): ResourceMapping {
     const props = normalize(rawProps);
+    debug(`mapToCfnResource typeName: ${typeName} props: ${JSON.stringify(props)}`)
     switch (typeName) {
         case 'AWS::AppRunner::Service':
             return new apprunner.Service(logicalId, props, options);

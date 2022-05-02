@@ -2,7 +2,6 @@ import { CfnElement } from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import * as aws from '@pulumi/aws';
-import { Construct } from 'constructs';
 
 interface target {
     arn: pulumi.Input<string>;
@@ -46,15 +45,15 @@ export function remapCloudControlResource(
             return rule;
         case 'AWS::Lambda::Permission':
             return new aws.lambda.Permission(
-                logicalId,
-                {
-                    action: props['action'],
-                    function: props['functionName'],
-                    principal: props['principal'],
-                    sourceArn: props['sourceArn'] ?? undefined,
-                },
-                options,
-            );
+                    logicalId,
+                    {
+                        action: props['action'],
+                        function: props['functionName'],
+                        principal: props['principal'],
+                        sourceArn: props['sourceArn'] ?? undefined,
+                    },
+                    options,
+                );
     }
 
     return undefined;

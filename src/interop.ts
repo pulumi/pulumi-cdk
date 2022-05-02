@@ -59,9 +59,9 @@ export function normalize(value: any): any {
 
 export type ResourceMapping =
     | {
-          resource: pulumi.Resource;
-          attributes: { [name: string]: pulumi.Input<any> };
-      }
+        resource: pulumi.Resource;
+        attributes: { [name: string]: pulumi.Input<any> };
+    }
     | pulumi.Resource;
 
 export class CfnResource extends pulumi.CustomResource {

@@ -233,7 +233,7 @@ class AppConverter {
         readonly app: cdk.App,
         readonly assembly: cx.CloudAssembly,
         readonly options: StackOptions,
-    ) {}
+    ) { }
 
     convert() {
         // Build a lookup table for the app's stacks.
@@ -312,7 +312,7 @@ class AppConverter {
 }
 
 class ArtifactConverter {
-    constructor(readonly app: AppConverter) {}
+    constructor(readonly app: AppConverter) { }
 }
 
 class AssetManifestConverter extends ArtifactConverter {
