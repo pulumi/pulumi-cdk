@@ -6,20 +6,12 @@ import * as pulumicdk from '@pulumi/cdk';
 import * as aws from '@pulumi/aws';
 import { Construct } from 'constructs';
 
-class LatestAmazonLinux implements ec2.IMachineImage {
-    getImage(scope: Construct): ec2.MachineImageConfig {
-        const linuxImage = aws.ssm.Parameter.get("latest-image", "/aws/service/ami-amazon-linux-latest/amzn-ami-hvm-x86_64-gp2");
-        return {
-            imageId: pulumicdk.asString(linuxImage.value),
-            osType: ec2.OperatingSystemType.LINUX,
-            userData: ec2.UserData.forLinux(),
-        };
-    }
-}
+class AlbStack extends pulumicdk.Stack {
 
-class AlbStack extends Stack {
-    constructor(scope: Construct, id: string) {
-        super(scope, id);
+    url: pulumi.Output<string>;
+    
+    constructor(id: string, options?: pulumicdk.StackOptions) {
+        super(id, options);
 
         const vpc = new ec2.Vpc(this, 'VPC');
 

@@ -2,7 +2,6 @@ import { CfnElement } from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import * as aws from '@pulumi/aws';
-import { Construct } from 'constructs';
 
 interface target {
     arn: pulumi.Input<string>;

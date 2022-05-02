@@ -62,17 +62,7 @@ export function mapToCfnResource(
                 {
                     ...props,
                     environment: rawProps.Environment === undefined ? undefined : { variables: rawProps.Environment.Variables },
-                }, options)
-            };
-        case 'AWS::S3::AccessPoint':
-            return new s3.AccessPoint(
-                logicalId,
-                {
-                    ...props,
-                    policy: rawProps.Policy,
-                },
-                options,
-            );
+                }, options);
         case 'AWS::S3::Bucket':
             // Lowercase the bucket name to comply with the Bucket resource's naming constraints, which only allow
             // lowercase letters.
