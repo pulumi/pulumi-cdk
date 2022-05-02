@@ -32,7 +32,7 @@ class AppRunnerStack extends pulumicdk.Stack {
     }
 }
 
-const stack = new pulumicdk.Stack('teststack', AppRunnerStack);
+const stack = new AppRunnerStack('teststack');
 export const url = stack.url;
 ```
 
