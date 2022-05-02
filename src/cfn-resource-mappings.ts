@@ -61,8 +61,10 @@ export function mapToCfnResource(
                 logicalId,
                 {
                     ...props,
-                    environment: rawProps.Environment === undefined ? undefined : { variables: rawProps.Environment.Variables },
-                }, options);
+                    policy: rawProps.Policy,
+                },
+                options,
+            );
         case 'AWS::S3::Bucket':
             // Lowercase the bucket name to comply with the Bucket resource's naming constraints, which only allow
             // lowercase letters.
