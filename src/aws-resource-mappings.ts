@@ -442,7 +442,7 @@ export function mapToAwsResource(
                     policy: rawProps.PolicyDocument,
                 },
                 options,
-            )
+            );
 
         default:
             return undefined;
