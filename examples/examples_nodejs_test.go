@@ -52,7 +52,8 @@ func TestCronLambda(t *testing.T) {
 func TestALB(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
-			Dir: filepath.Join(getCwd(t), "alb"),
+			Dir:        filepath.Join(getCwd(t), "alb"),
+			NoParallel: true, // Resources may collide with TestFargate
 		})
 
 	integration.ProgramTest(t, &test)
@@ -61,7 +62,8 @@ func TestALB(t *testing.T) {
 func TestFargate(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
-			Dir: filepath.Join(getCwd(t), "fargate"),
+			Dir:        filepath.Join(getCwd(t), "fargate"),
+			NoParallel: true,
 		})
 
 	integration.ProgramTest(t, &test)
