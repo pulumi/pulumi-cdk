@@ -45,6 +45,7 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
+    concurrency: build-and-test # Currently integration tests can clash across branches.
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
