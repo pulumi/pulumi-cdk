@@ -78,8 +78,12 @@ jobs:
         run: yarn run test
       - name: yarn link
         run: pushd lib && yarn link && popd
+      - name: Set up gotestfmt
+        uses: haveyoudebuggedit/gotestfmt-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run examples
-        run: yarn run test-examples
+        run: yarn run test-examples-gotestfmt
 name: Run Acceptance Tests from PR
 on:
   repository_dispatch:
