@@ -29,6 +29,7 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
+    concurrency: build-and-test # Currently integration tests can clash across branches.
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
@@ -66,8 +67,14 @@ jobs:
         run: yarn run test
       - name: yarn link
         run: pushd lib && yarn link && popd
+      - name: set script-shell
+        run: yarn config set script-shell /bin/bash
+      - name: Set up gotestfmt
+        uses: haveyoudebuggedit/gotestfmt-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run examples
-        run: yarn run test-examples
+        run: yarn run test-examples-gotestfmt
       - name: Publish Dev Package
         uses: JS-DevTools/npm-publish@v1
         with:
