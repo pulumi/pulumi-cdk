@@ -67,6 +67,8 @@ jobs:
         run: yarn run test
       - name: yarn link
         run: pushd lib && yarn link && popd
+      - name: set script-shell
+        run: yarn config set script-shell /bin/bash
       - name: Set up gotestfmt
         uses: haveyoudebuggedit/gotestfmt-action@v2
         with:
