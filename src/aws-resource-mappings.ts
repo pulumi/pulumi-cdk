@@ -334,8 +334,6 @@ export function mapToAwsResource(
                     predictiveScalingConfiguration: props.predictiveScalingConfiguration,
                     scalingAdjustment: props.scalingAdjustment,
                     stepAdjustments: props.stepAdjustments,
-                    // resourceLabel       : "app/LB8A12904C-50e5ac6/d3db7b962367b31e/LBListenerTargetGroupF04FCF6D"
-                    // "arnSuffix": "targetgroup/LBListenerTargetGroupF04FCF6D/927730dc4d990549"
                     targetTrackingConfiguration: props.targetTrackingConfiguration,
                 },
                 options,
@@ -370,7 +368,34 @@ export function mapToAwsResource(
                 },
                 options,
             );
-
+        case 'AWS::ApplicationAutoScaling::ScalableTarget': {
+            const target = new aws.appautoscaling.Target(logicalId, {
+                maxCapacity: props.maxCapacity,
+                minCapacity: props.minCapacity,
+                resourceId: props.resourceId,
+                roleArn: props.roleArn,
+                scalableDimension: props.scalableDimension,
+                serviceNamespace: props.serviceNamespace,
+            }, options);
+            props.ScheduledActions?.map(
+                (action: any) => new aws.appautoscaling.ScheduledAction(
+                    logicalId + action.scheduledActionName,
+                    {
+                        resourceId: target.resourceId,
+                        scalableDimension: target.scalableDimension,
+                        scalableTargetAction: action.scalableTargetAction,
+                        schedule: action.schedule,
+                        serviceNamespace: target.serviceNamespace,
+                        startTime: action.startTime,
+                        endTime: action.endTime,
+                        timezone: action.timezone,
+                        name: action.scheduledActionName,
+                    },
+                    options,
+                ),
+            );
+            return target;
+        }
         // IAM
         case 'AWS::IAM::Policy': {
             const policy = new aws.iam.Policy(

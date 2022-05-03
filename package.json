@@ -35,8 +35,8 @@
     "lint": "./node_modules/.bin/eslint src --ext .js,.jsx,.ts,.tsx",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\" \"examples/**/*.ts\"",
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts'",
-    "test-examples": "cd lib && yarn link && cd .. && cd examples && go test -timeout 30m -v .",
-    "test-examples-gotestfmt": "cd lib && yarn link && cd .. && cd examples && set -euo pipefail && go test -json  -v -count=1 -cover -timeout 30m -parallel 4 . 2>&1 | tee /tmp/gotest.log | gotestfmt"
+    "test-examples": "cd lib && yarn link && cd .. && cd examples && go test -timeout 2h -v .",
+    "test-examples-gotestfmt": "cd lib && yarn link && cd .. && cd examples && set -euo pipefail && go test -json  -v -count=1 -cover -timeout 2h -parallel 4 . 2>&1 | tee /tmp/gotest.log | gotestfmt"
   },
   "files": [
     "lib/**/*"
