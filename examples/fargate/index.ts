@@ -5,6 +5,7 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
 import { Construct } from 'constructs';
 import { Stack, Duration, CfnOutput } from 'aws-cdk-lib';
+import {remapCloudControlResource } from './adapter';
 
 class FargateStack extends pulumicdk.Stack {
 
@@ -36,6 +37,7 @@ class FargateStack extends pulumicdk.Stack {
 
         this.loadBalancerDNS = this.asOutput(fargateService.loadBalancer.loadBalancerDnsName);
 
+        // Finalize the stack and deploy its resources.
         this.synth();
     }
 };

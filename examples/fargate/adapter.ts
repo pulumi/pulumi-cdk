@@ -11,6 +11,9 @@ export function remapCloudControlResource(
     rawProps: any,
     options: pulumi.ResourceOptions,
 ): pulumi.CustomResource | undefined {
+    // Lower-case the raw cloudformation resource schema property keys.
+    const props = pulumicdk.interop.normalize(rawProps);
+
     switch (typeName) {
         case 'AWS::ApplicationAutoScaling::ScalingPolicy':
             debug(`AWS::ApplicationAutoScaling::ScalingPolicy props: ${JSON.stringify(props)}`);
