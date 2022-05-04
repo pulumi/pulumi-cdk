@@ -73,8 +73,8 @@ jobs:
         uses: haveyoudebuggedit/gotestfmt-action@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run examples
-        run: yarn run test-examples-gotestfmt
+      #- name: Run examples
+      #  run: yarn run test-examples-gotestfmt
       - name: Publish Dev Package
         uses: JS-DevTools/npm-publish@v1
         with:
