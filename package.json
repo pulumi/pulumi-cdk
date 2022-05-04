@@ -39,7 +39,7 @@
     "test-examples-gotestfmt": "cd lib && yarn link && cd .. && cd examples && set -euo pipefail && go test -json  -v -count=1 -cover -timeout 2h -parallel 4 . 2>&1 | tee /tmp/gotest.log | gotestfmt"
   },
   "files": [
-    "lib/**/*"
+    "*"
   ],
   "dependencies": {
     "@pulumi/aws": "^5.1.3",
