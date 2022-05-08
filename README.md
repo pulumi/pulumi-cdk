@@ -2,7 +2,7 @@
 
 The Pulumi CDK Adapter is a library that enables [Pulumi](https://github.com/pulumi/pulumi) programs to use [AWS CDK](https://github.com/aws/aws-cdk) constructs. 
 
-The adpater allows writing AWS CDK code as part of an AWS CDK Stack inside a Pulumi program, and having the resulting AWS resources be deployed and managed via Pulumi.  Outputs of resources defined in a Pulumi program can be passed into AWS CDK constructs, and outputs from AWS CDK stacks can be used as inputs to other Pulumi resources. 
+The adapter allows writing AWS CDK code as part of an AWS CDK Stack inside a Pulumi program, and having the resulting AWS resources be deployed and managed via Pulumi.  Outputs of resources defined in a Pulumi program can be passed into AWS CDK Constructs, and outputs from AWS CDK stacks can be used as inputs to other Pulumi resources. 
 
 > Note: Currently, the Pulumi CDK Adapter preview is available only for TypeScript/JavaScript users.
 
@@ -214,7 +214,7 @@ Returns a CDK token representing a list of values.
 
 ## Building locally
 
-Install dependenices, build library, and link for local usage.
+Install dependencies, build library, and link for local usage.
 
 ```sh
 $ yarn install
