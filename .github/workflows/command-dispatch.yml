@@ -5,13 +5,14 @@ on:
 
 jobs:
   command-dispatch-for-testing:
+    if: ${{ github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Run Build
         uses: peter-evans/slash-command-dispatch@v2
         with:
-          token: ${{ secrets.EVENT_PAT }}
+          token: ${{ secrets.PULUMI_BOT_TOKEN }}
           reaction-token: ${{ secrets.GITHUB_TOKEN }}
           commands: run-acceptance-tests
           permission: write
