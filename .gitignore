@@ -2,6 +2,9 @@
 # Build output
 lib/
 
+# yarn lock file
+yarn.lock
+
 # Pulumi stacks
 Pulumi.*.yaml
 
