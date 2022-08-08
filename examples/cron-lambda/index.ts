@@ -19,7 +19,7 @@ class LambdaStack extends pulumicdk.Stack {
             code: new aws_lambda.InlineCode(fs.readFileSync('lambda-handler.py', { encoding: 'utf-8' })),
             handler: 'index.main',
             timeout: Duration.seconds(300),
-            runtime: aws_lambda.Runtime.PYTHON_3_6,
+            runtime: aws_lambda.Runtime.PYTHON_3_9,
         });
 
         // Use the AWS CDK Rule API directly.
