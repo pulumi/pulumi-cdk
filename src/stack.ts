@@ -58,6 +58,11 @@ import { zipDirectory } from './zip';
  */
 export interface StackOptions extends pulumi.ComponentResourceOptions {
     /**
+     * Specify the CDK Stack properties to asociate with the stack.
+     */
+    props?: cdk.StackProps;
+
+    /**
      * Defines a mapping to override and/or provide an implementation for a CloudFormation resource
      * type that is not (yet) implemented in the AWS Cloud Control API (and thus not yet available in
      * the Pulumi AWS Native provider). Pulumi code can override this method to provide a custom mapping
@@ -165,7 +170,7 @@ export class Stack extends cdk.Stack {
             },
         });
 
-        super(app, name);
+        super(app, name, options?.props);
 
         this.app = app;
         this.options = options;
