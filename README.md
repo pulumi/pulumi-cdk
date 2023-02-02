@@ -1,8 +1,8 @@
 # Pulumi CDK Adapter (preview)
 
-The Pulumi CDK Adapter is a library that enables [Pulumi](https://github.com/pulumi/pulumi) programs to use [AWS CDK](https://github.com/aws/aws-cdk) constructs. 
+The Pulumi CDK Adapter is a library that enables [Pulumi](https://github.com/pulumi/pulumi) programs to use [AWS CDK](https://github.com/aws/aws-cdk) constructs.
 
-The adapter allows writing AWS CDK code as part of an AWS CDK Stack inside a Pulumi program, and having the resulting AWS resources be deployed and managed via Pulumi.  Outputs of resources defined in a Pulumi program can be passed into AWS CDK Constructs, and outputs from AWS CDK stacks can be used as inputs to other Pulumi resources. 
+The adapter allows writing AWS CDK code as part of an AWS CDK Stack inside a Pulumi program, and having the resulting AWS resources be deployed and managed via Pulumi.  Outputs of resources defined in a Pulumi program can be passed into AWS CDK Constructs, and outputs from AWS CDK stacks can be used as inputs to other Pulumi resources.
 
 > Note: Currently, the Pulumi CDK Adapter preview is available only for TypeScript/JavaScript users.
 
@@ -45,12 +45,12 @@ Updating (dev)
 
 View Live: https://app.pulumi.com/lukehoban/pulumi-cdk-apprunner/dev/updates/1
 
-     Type                                   Name                       Status      
- +   pulumi:pulumi:Stack                    pulumi-cdk-apprunner-dev   created     
- +   └─ cdk:index:StackComponent            teststack                  created     
- +      └─ cdk:construct:Service            teststack/adapter/service  created     
- +         └─ aws-native:apprunner:Service  service6D174F83            created     
- 
+     Type                                   Name                       Status
+ +   pulumi:pulumi:Stack                    pulumi-cdk-apprunner-dev   created
+ +   └─ cdk:index:StackComponent            teststack                  created
+ +      └─ cdk:construct:Service            teststack/adapter/service  created
+ +         └─ aws-native:apprunner:Service  service6D174F83            created
+
 Outputs:
     url: "2ez3iazupm.us-west-2.awsapprunner.com"
 
@@ -61,14 +61,14 @@ Resources:
 And curl the endpoint:
 
 ```
-> curl https://$(pulumi stack output url)           
+> curl https://$(pulumi stack output url)
 
    ______                             __        __      __  _                  __
   / ____/___  ____  ____ __________ _/ /___  __/ /___ _/ /_(_)___  ____  _____/ /
- / /   / __ \/ __ \/ __ `/ ___/ __ `/ __/ / / / / __ `/ __/ / __ \/ __ \/ ___/ / 
-/ /___/ /_/ / / / / /_/ / /  / /_/ / /_/ /_/ / / /_/ / /_/ / /_/ / / / (__  )_/  
-\____/\____/_/ /_/\__, /_/   \__,_/\__/\__,_/_/\__,_/\__/_/\____/_/ /_/____(_)   
-                 /____/                                                          
+ / /   / __ \/ __ \/ __ `/ ___/ __ `/ __/ / / / / __ `/ __/ / __ \/ __ \/ ___/ /
+/ /___/ /_/ / / / / /_/ / /  / /_/ / /_/ /_/ / / /_/ / /_/ / /_/ / / / (__  )_/
+\____/\____/_/ /_/\__, /_/   \__,_/\__/\__,_/_/\__,_/\__/_/\____/_/ /_/____(_)
+                 /____/
 
 
         Congratulations, your service has successfully deployed on AWS App Runner.
@@ -81,9 +81,11 @@ Try the workshop at https://apprunnerworkshop.com
 Read the docs at https://docs.aws.amazon.com/apprunner
 ```
 
-## Getting Started 
+## Getting Started
 
-Coming soon!
+### Bootstrapping
+
+AWS CDK requires that your AWS account and target region are "bootstrapped" for use with CDK, so in order to use CDK on Pulumi, you'll need to do that first. We recommend using the latest bootstrap template (v2, as of this writing). [See the AWS documentation](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html) for details. (Note that resources deployed with Pulumi on CDK are deployed and managed with Pulumi, not CloudFormation; the bootstrapping step is required by CDK for additional runtime support.)
 
 ## API
 
@@ -246,5 +248,3 @@ Run Pulumi examples:
 ```
 $ yarn test-examples
 ```
-
-
