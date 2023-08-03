@@ -36,7 +36,7 @@ class ChatAppStack extends pulumicdk.Stack {
         const connectFunc = new Function(this, 'connect-lambda', {
             code: new AssetCode('./onconnect'),
             handler: 'app.handler',
-            runtime: Runtime.NODEJS_12_X,
+            runtime: Runtime.NODEJS_16_X,
             timeout: Duration.seconds(300),
             memorySize: 256,
             environment: {
@@ -49,7 +49,7 @@ class ChatAppStack extends pulumicdk.Stack {
         const disconnectFunc = new Function(this, 'disconnect-lambda', {
             code: new AssetCode('./ondisconnect'),
             handler: 'app.handler',
-            runtime: Runtime.NODEJS_12_X,
+            runtime: Runtime.NODEJS_16_X,
             timeout: Duration.seconds(300),
             memorySize: 256,
             environment: {
@@ -62,7 +62,7 @@ class ChatAppStack extends pulumicdk.Stack {
         const messageFunc = new Function(this, 'message-lambda', {
             code: new AssetCode('./sendmessage'),
             handler: 'app.handler',
-            runtime: Runtime.NODEJS_12_X,
+            runtime: Runtime.NODEJS_16_X,
             timeout: Duration.seconds(300),
             memorySize: 256,
             initialPolicy: [

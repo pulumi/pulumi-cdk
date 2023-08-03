@@ -49,5 +49,6 @@ func getBaseOptions(t *testing.T) integration.ProgramTestOptions {
 		ExpectRefreshChanges: true,
 		SkipRefresh:          true,
 		Quick:                true,
+		Verbose:              true,
 	}
 }
