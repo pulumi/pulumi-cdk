@@ -1,11 +1,12 @@
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
+
+import { Duration } from 'aws-cdk-lib';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
-import { Construct } from 'constructs';
-import { Stack, Duration, CfnOutput } from 'aws-cdk-lib';
-import {remapCloudControlResource } from './adapter';
+
+import { remapCloudControlResource } from './adapter';
 
 class FargateStack extends pulumicdk.Stack {
 
@@ -26,6 +27,13 @@ class FargateStack extends pulumicdk.Stack {
                 image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample")
             },
         });
+
+        // Open port 80 inbound to IPs within VPC to allow network load balancer to connect to the service
+        fargateService.service.connections.securityGroups[0].addIngressRule(
+            ec2.Peer.ipv4(vpc.vpcCidrBlock),
+            ec2.Port.tcp(80),
+            "allow http inbound from vpc",
+        );
 
         // Setup AutoScaling policy
         const scaling = fargateService.service.autoScaleTaskCount({ maxCapacity: 2 });
