@@ -101,7 +101,7 @@ export class CdkConstruct extends pulumi.ComponentResource {
         const constructType = construct.constructor.name || 'Construct';
         const constructName = name || construct.node.path;
 
-        super(`cdk:construct:${constructType}`, constructName, {}, options);
+        super(`cdk:construct:${constructType}`.replace("::", ":"), constructName.replace("::", ":"), {}, options);
     }
 
     public done() {

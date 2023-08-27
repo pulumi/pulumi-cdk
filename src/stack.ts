@@ -360,7 +360,7 @@ class AssetManifestConverter extends ArtifactConverter {
         const objects = Object.entries(asset.destinations).map(
             ([destId, d]) =>
                 new aws.s3.BucketObjectv2(
-                    `${this.app.host.name}/${name}/${destId}`,
+                    `${this.app.host.name}/${name}/${destId}`.replace("::", ":"),
                     {
                         source: outputPath,
                         bucket: this.resolvePlaceholders(d.bucketName),
