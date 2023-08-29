@@ -405,6 +405,7 @@ class StackConverter extends ArtifactConverter {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<IConstruct, pulumi.Resource>();
+    readonly mappings = new Map<string, { [id: string]: { [id: string]: any } }>();
     stackResource!: CdkConstruct;
 
     constructor(app: AppConverter, readonly stack: cdk.Stack, readonly artifact: cx.CloudFormationStackArtifact) {
@@ -446,6 +447,9 @@ class StackConverter extends ArtifactConverter {
                     this.constructs.set(n.construct, resource);
 
                     debug(`Done creating resource for ${logicalId}`);
+                }
+                for (const [mappingName, mappingValue] of Object.entries(cfn.Mappings || {})) {
+                    this.mappings.set(mappingName, mappingValue);
                 }
                 for (const [conditionId, condition] of Object.entries(cfn.Conditions || {})) {
                     // Do something with the condition
@@ -591,6 +595,12 @@ class StackConverter extends ArtifactConverter {
 
     private resolveIntrinsic(fn: string, params: any) {
         switch (fn) {
+            case 'Fn::FindInMap': {
+                return lift(
+                    ([mapName, topLevelKey, secondLevelKey]) => (this.mappings.get(mapName) ?? {})[topLevelKey][secondLevelKey],
+                    this.processIntrinsics(params),
+                );
+            }
             case 'Fn::GetAtt': {
                 debug(`Fn::GetAtt(${params[0]}, ${firstToLower(params[1])})`);
                 return this.resolveAtt(params[0], firstToLower(params[1]));
