@@ -15,6 +15,8 @@
 import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import * as cx from 'aws-cdk-lib/cx-api';
+import { CloudAssembly as CxAppCloudAssembly, StackCollection } from 'aws-cdk/lib/api/cxapp/cloud-assembly';
+import { CloudAssembly as CxApiLibCloudAssembly, CloudFormationStackArtifact } from "@aws-cdk/cx-api/lib";
 import * as cloud_assembly from 'aws-cdk-lib/cloud-assembly-schema';
 import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws';
@@ -94,12 +96,28 @@ class StackComponent extends pulumi.ComponentResource {
     /** @internal */
     converter: AppConverter;
 
-    constructor(private readonly stack: Stack) {
+    constructor(private readonly stack: Stack, strict: boolean) {
         super('cdk:index:Stack', stack.node.id, {}, stack.options);
 
         this.name = stack.node.id;
 
         const assembly = stack.app.synth();
+
+        // Throw an exception if there are any error messages in the stack artifact metadata
+        // If 'strict' is true, warnings will also raise an error
+        const apiLibCloudAssembly = new CxApiLibCloudAssembly(
+            assembly.directory,
+        );
+        const stackCollection = new StackCollection(
+            new CxAppCloudAssembly(apiLibCloudAssembly),
+            apiLibCloudAssembly.artifacts.filter(
+                (e): e is CloudFormationStackArtifact =>
+                    e instanceof CloudFormationStackArtifact,
+            ),
+        );
+        stackCollection.processMetadataMessages({
+            strict: strict,
+        });
 
         debug(JSON.stringify(debugAssembly(assembly)));
 
@@ -189,15 +207,17 @@ export class Stack extends cdk.Stack {
 
     /**
      * Finalize the stack and deploy its resources.
+     * @param strict If true, warnings emitted during the synth are treated as errors and throw exceptions.
      */
-    protected synth() {
+    protected synth(strict: boolean = false) {
         try {
-            const component = new StackComponent(this);
+            const component = new StackComponent(this, strict);
             this.resolveURN(component.urn);
             this.resolveConverter(component.converter.stacks.get(this.artifactId)!);
         } catch (e) {
             this.rejectURN(e);
             this.rejectConverter(e);
+            throw e;
         }
     }
 
