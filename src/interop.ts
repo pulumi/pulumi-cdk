@@ -17,6 +17,10 @@ import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
 import { IConstruct } from 'constructs';
 
+export function urnEncode(str: string): string {
+    return str.replace(/:/g, '%3A');
+}
+
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
         return txt.charAt(0).toLowerCase() + txt.substr(1);
@@ -98,10 +102,10 @@ export function getFqn(construct: IConstruct): string | undefined {
 
 export class CdkConstruct extends pulumi.ComponentResource {
     constructor(name: string | undefined, construct: IConstruct, options?: pulumi.ComponentResourceOptions) {
-        const constructType = construct.constructor.name || 'Construct';
-        const constructName = name || construct.node.path;
+        const constructType = urnEncode(construct.constructor.name || 'Construct');
+        const constructName = urnEncode(name || construct.node.path);
 
-        super(`cdk:construct:${constructType}`.replace("::", ":"), constructName.replace("::", ":"), {}, options);
+        super(`cdk:construct:${constructType}`, constructName, {}, options);
     }
 
     public done() {

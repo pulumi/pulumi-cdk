@@ -47,7 +47,7 @@ import {
     ResourceMapping,
     normalize,
     firstToLower,
-    getFqn,
+    getFqn, urnEncode,
 } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 import { parseSub } from './sub';
@@ -350,7 +350,7 @@ class AssetManifestConverter extends ArtifactConverter {
         }
 
         const s3Asset = this.app.s3Assets.get(inputPath);
-        const name = s3Asset?.node.path || id;
+        const name = urnEncode(s3Asset?.node.path || id);
 
         const outputPath =
             asset.source.packaging === cloud_assembly.FileAssetPackaging.FILE
@@ -360,7 +360,7 @@ class AssetManifestConverter extends ArtifactConverter {
         const objects = Object.entries(asset.destinations).map(
             ([destId, d]) =>
                 new aws.s3.BucketObjectv2(
-                    `${this.app.host.name}/${name}/${destId}`.replace("::", ":"),
+                    `${this.app.host.name}/${name}/${destId}`,
                     {
                         source: outputPath,
                         bucket: this.resolvePlaceholders(d.bucketName),
