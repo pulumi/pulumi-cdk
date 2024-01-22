@@ -63,6 +63,7 @@ func TestALB(t *testing.T) {
 		With(integration.ProgramTestOptions{
 			Dir:        filepath.Join(getCwd(t), "alb"),
 			NoParallel: true, // Resources may collide with TestFargate
+			RetryFailedSteps: true, // Workaround for https://github.com/pulumi/pulumi-aws-native/issues/1186
 		})
 
 	integration.ProgramTest(t, &test)
@@ -73,6 +74,7 @@ func TestFargate(t *testing.T) {
 		With(integration.ProgramTestOptions{
 			Dir:        filepath.Join(getCwd(t), "fargate"),
 			NoParallel: true,
+			RetryFailedSteps: true, // Workaround for https://github.com/pulumi/pulumi-aws-native/issues/1186
 		})
 
 	integration.ProgramTest(t, &test)
