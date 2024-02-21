@@ -1,6 +1,4 @@
 .DS_Store
-# Build output
-lib/
 
 # Pulumi stacks
 Pulumi.*.yaml
