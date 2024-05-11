@@ -82,7 +82,7 @@ jobs:
       - name: set script-shell
         run: yarn config set script-shell /bin/bash
       - name: Set up gotestfmt
-        uses: haveyoudebuggedit/gotestfmt-action@v2
+        uses: GoTestTools/gotestfmt-action@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run examples
