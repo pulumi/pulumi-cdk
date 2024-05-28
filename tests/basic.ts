@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as pulumi from "@pulumi/pulumi";
-import * as cdk from "aws-cdk-lib";
-import * as s3 from "aws-cdk-lib/aws-s3";
-import { Stack } from "../src/stack";
-import { Construct } from "constructs";
-import { expect } from "chai";
-import * as mocks from "./mocks";
-import * as output from "../src/output";
+import * as pulumi from '@pulumi/pulumi';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import { Stack } from '../src/stack';
+import { Construct } from 'constructs';
+import * as mocks from './mocks';
+import * as output from '../src/output';
 
 mocks.setMocks();
 
@@ -39,15 +37,15 @@ function testStack(fn: (scope: Construct) => void, done: any) {
 }
 
 describe('Basic tests', () => {
-    it('Checking single resource registration', done => {
-        testStack(adapter => {
+    test('Checking single resource registration', (done) => {
+        testStack((adapter) => {
             new s3.Bucket(adapter, 'MyFirstBucket', { versioned: true });
-        }, done)
+        }, done);
     });
 
-    it('Supports Output<T>', done => {
-        const o = pulumi.output("the-bucket-name");
-        testStack(adapter => {
+    test('Supports Output<T>', (done) => {
+        const o = pulumi.output('the-bucket-name');
+        testStack((adapter) => {
             new s3.Bucket(adapter, 'MyFirstBucket', { bucketName: output.asString(o) });
         }, done);
     });
