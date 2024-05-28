@@ -113,3 +113,5 @@ dist
 
 # IntelliJ
 .idea/
+
+test-reports/

@@ -17,6 +17,7 @@ import { ecs, iam, apprunner, lambda, s3, s3objectlambda, autoscaling } from '@p
 import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { CfnResource, ResourceMapping, firstToLower, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
+import { toSdkName } from './naming';
 
 export function mapToCfnResource(
     element: CfnElement,
@@ -109,5 +110,5 @@ export function mapToCfnResource(
 }
 
 export function attributePropertyName(attributeName: string): string {
-    return firstToLower(attributeName.split('.')[0]);
+    return toSdkName(attributeName.split('.')[0]);
 }
