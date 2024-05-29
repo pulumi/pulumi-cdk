@@ -16,23 +16,12 @@ import * as cdk from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
 import { IConstruct } from 'constructs';
+import { moduleName, toSdkName, typeToken } from './naming';
 
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
         return txt.charAt(0).toLowerCase() + txt.substr(1);
     });
-}
-
-function moduleName(resourceType: string): string {
-    const resourceTypeComponents = resourceType.split('::');
-    let module = resourceTypeComponents[1];
-
-    // Override the name of the Config module.
-    if (module == 'Config') {
-        module = 'Configuration';
-    }
-
-    return module.toLowerCase();
 }
 
 export function normalize(value: any): any {
@@ -52,16 +41,16 @@ export function normalize(value: any): any {
 
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {
-        result[firstToLower(k)] = normalize(v);
+        result[toSdkName(k)] = normalize(v);
     });
     return result;
 }
 
 export type ResourceMapping =
     | {
-        resource: pulumi.Resource;
-        attributes: { [name: string]: pulumi.Input<any> };
-    }
+          resource: pulumi.Resource;
+          attributes: { [name: string]: pulumi.Input<any> };
+      }
     | pulumi.Resource;
 
 export class CfnResource extends pulumi.CustomResource {
@@ -72,9 +61,7 @@ export class CfnResource extends pulumi.CustomResource {
         attributes: string[],
         opts?: pulumi.CustomResourceOptions,
     ) {
-        const res = type.split('::')[2];
-        const mod = moduleName(type);
-        const resourceName = `aws-native:${mod}:${res}`;
+        const resourceName = typeToken(type);
 
         debug(`CfnResource ${resourceName}: ${JSON.stringify(properties)}, ${JSON.stringify(attributes)}`);
 
