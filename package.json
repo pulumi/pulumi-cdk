@@ -87,7 +87,7 @@
   },
   "dependencies": {
     "@pulumi/aws": "^5.5.0",
-    "@pulumi/aws-native": "^0.18.0",
+    "@pulumi/aws-native": "^0.108.0",
     "@pulumi/docker": "^3.2.0",
     "@pulumi/pulumi": "^3.28.0",
     "archiver": "^5.3.1",
