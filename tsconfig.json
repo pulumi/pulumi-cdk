@@ -15,13 +15,6 @@
         "forceConsistentCasingInFileNames": true
     },
     "files": [
-        "src/aws-resource-mappings.ts",
-        "src/cfn-resource-mappings.ts",
-        "src/cfn.ts",
-        "src/graph.ts",
-        "src/index.ts",
-        "src/interop.ts",
-        "src/stack.ts",
-        "src/sub.ts"
+        "src/**/*.ts"
     ]
 }

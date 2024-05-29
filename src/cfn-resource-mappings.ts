@@ -13,9 +13,9 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { ecs, iam, apprunner, lambda, s3, s3objectlambda, autoscaling } from '@pulumi/aws-native';
+import { ecs, iam, apprunner, lambda, s3, s3objectlambda } from '@pulumi/aws-native';
 import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
-import { CfnResource, ResourceMapping, firstToLower, normalize } from './interop';
+import { CfnResource, ResourceMapping, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
 import { toSdkName } from './naming';
 

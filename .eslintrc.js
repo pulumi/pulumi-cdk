@@ -9,4 +9,8 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
 	'prettier',
   ],
+  rules: {
+    // disabling this since it is used everywhere in this repo
+    "@typescript-eslint/no-explicit-any": "off"
+  }
 };
