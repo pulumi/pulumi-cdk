@@ -19,8 +19,6 @@ import { Construct } from 'constructs';
 import * as mocks from './mocks';
 import * as output from '../src/output';
 
-mocks.setMocks();
-
 function testStack(fn: (scope: Construct) => void, done: any) {
     class TestStack extends Stack {
         constructor(id: string) {
@@ -37,6 +35,9 @@ function testStack(fn: (scope: Construct) => void, done: any) {
 }
 
 describe('Basic tests', () => {
+    beforeEach(() => {
+        mocks.setMocks();
+    });
     test('Checking single resource registration', (done) => {
         testStack((adapter) => {
             new s3.Bucket(adapter, 'MyFirstBucket', { versioned: true });

@@ -35,7 +35,7 @@ function testGraph(fn: (scope: Construct) => void, expected: (string | RegExp)[]
         if (typeof expectedPath === 'string') {
             expect(actualPath).toEqual(expectedPath);
         } else {
-            expect(actualPath).toMatchObject(expectedPath);
+            expect(actualPath).toMatch(expectedPath);
         }
     }
 

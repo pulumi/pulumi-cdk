@@ -35,6 +35,8 @@ export function mapToCfnResource(
         case 'AWS::ECS::TaskDefinition':
             return new ecs.TaskDefinition(logicalId, props, options);
         case 'AWS::IAM::Role': {
+            // policyDocument and assumeRolePolicyDocument are both Json types
+            // so we need the raw names
             return new iam.Role(
                 logicalId,
                 {
@@ -54,6 +56,8 @@ export function mapToCfnResource(
             );
         }
         case 'AWS::Lambda::Function':
+            // The Environment.Variables property is a Json type so we need
+            // the raw names
             return new lambda.Function(
                 logicalId,
                 {
@@ -64,6 +68,7 @@ export function mapToCfnResource(
                 options,
             );
         case 'AWS::S3::AccessPoint':
+            // the policy property is a Json type so we need the raw names
             return new s3.AccessPoint(
                 logicalId,
                 {
@@ -94,6 +99,7 @@ export function mapToCfnResource(
                                       contentTransformation: {
                                           awsLambda: {
                                               functionArn: config.ContentTransformation.AwsLambda.FunctionArn,
+                                              // functionPayload is a Json type so we need the raw value
                                               functionPayload: config.ContentTransformation.AwsLambda.FunctionPayload,
                                           },
                                       },

@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as pulumi from "@pulumi/pulumi";
-import { MockCallArgs, MockResourceArgs } from "@pulumi/pulumi/runtime";
+import * as pulumi from '@pulumi/pulumi';
+import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
 
 function arn(service: string, type: string): string {
-    const [region, account] = service === "s3" ? ["", ""] : ["us-west-2", "123456789012"];
+    const [region, account] = service === 's3' ? ['', ''] : ['us-west-2', '123456789012'];
     return `arn:aws:${service}:${region}:${account}:${type}`;
 }
 
@@ -25,18 +25,22 @@ export function setMocks() {
         call: (args: MockCallArgs) => {
             return {};
         },
-        newResource: (args: MockResourceArgs): {id: string; state: any} => {
+        newResource: (args: MockResourceArgs): { id: string; state: any } => {
             switch (args.type) {
-                case "cdk:index:Stack":
-                    return { id: "", state: {} };
-                case "cdk:index:Component":
-                    return { id: "", state: {} };
-                case "aws-native:s3:Bucket":
+                case 'cdk:index:Stack':
+                    return { id: '', state: {} };
+                case 'cdk:construct:TestStack':
+                    return { id: '', state: {} };
+                case 'cdk:index:Component':
+                    return { id: '', state: {} };
+                case 'cdk:construct:Bucket':
+                    return { id: '', state: {} };
+                case 'aws-native:s3:Bucket':
                     return {
                         id: args.name,
                         state: {
                             ...args.inputs,
-                            arn: arn("s3", args.inputs["bucketName"]),
+                            arn: arn('s3', args.inputs['bucketName']),
                         },
                     };
                 default:
