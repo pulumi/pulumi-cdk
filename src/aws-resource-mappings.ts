@@ -386,7 +386,6 @@ export function mapToAwsResource(
                     destinationIpv6CidrBlock: props.destinationIpv6CidrBlock,
                     egressOnlyGatewayId: props.egressOnlyInternetGatewayId,
                     gatewayId: props.gatewayId,
-                    instanceId: props.instanceId,
                     localGatewayId: props.localGatewayId,
                     natGatewayId: props.natGatewayId,
                     networkInterfaceId: props.networkInterfaceId,
