@@ -1,4 +1,4 @@
-// typescript representation of
+// typescript representation of https://github.com/pulumi/pulumi-aws-native/blob/master/provider/pkg/naming/naming.go
 
 const PACKAGE_NAME = 'aws-native';
 
