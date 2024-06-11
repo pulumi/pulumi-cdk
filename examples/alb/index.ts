@@ -7,21 +7,22 @@ import * as aws from '@pulumi/aws';
 import { Construct } from 'constructs';
 
 class AlbStack extends pulumicdk.Stack {
-
     url: pulumi.Output<string>;
-    
+
     constructor(id: string, options?: pulumicdk.StackOptions) {
         super(id, options);
+        // necessary for local testing
+        const t = this as any;
 
-        const vpc = new ec2.Vpc(this, 'VPC');
+        const vpc = new ec2.Vpc(t, 'VPC');
 
-        const asg = new autoscaling.AutoScalingGroup(this, 'ASG', {
+        const asg = new autoscaling.AutoScalingGroup(t, 'ASG', {
             vpc,
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
             machineImage: new ec2.AmazonLinuxImage(),
         });
 
-        const lb = new elbv2.ApplicationLoadBalancer(this, 'LB', {
+        const lb = new elbv2.ApplicationLoadBalancer(t, 'LB', {
             vpc,
             internetFacing: true,
         });

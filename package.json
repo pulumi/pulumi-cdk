@@ -16,38 +16,91 @@
   },
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
-    "@types/archiver": "^5.3.1",
-    "@types/chai": "^4.3.1",
-    "@types/mocha": "^9.1.0",
-    "@types/node": "^14.17.0",
-    "@typescript-eslint/eslint-plugin": "^5.19.0",
-    "@typescript-eslint/parser": "^5.19.0",
-    "chai": "^4.3.6",
-    "eslint": "^8.13.0",
-    "eslint-config-prettier": "^8.5.0",
-    "mocha": "^9.2.2",
+    "@pulumi/aws": "^6.32.0",
+    "@pulumi/aws-native": "^0.108.0",
+    "@pulumi/docker": "^4.5.0",
+    "@pulumi/pulumi": "^3.117.0",
+    "@types/archiver": "^6.0.2",
+    "@types/jest": "^29.5.2",
+    "@types/node": "^20.12.13",
+    "@typescript-eslint/eslint-plugin": "^7.11.0",
+    "@typescript-eslint/parser": "^7.11.0",
+    "aws-cdk-lib": "^2.20.0",
+    "constructs": "^10.0.111",
+    "eslint": "^8",
+    "eslint-config-prettier": "^9.1.0",
+    "jest": "^29.5.0",
+    "jest-junit": "^15",
     "prettier": "^2.6.2",
-    "ts-node": "^10.7.0",
-    "typescript": "^4.6.3"
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "peerDependencies": {
+    "@pulumi/aws": "^6.32.0",
+    "@pulumi/aws-native": "^0.108.0",
+    "@pulumi/docker": "^4.5.0",
+    "@pulumi/pulumi": "^3.117.0",
+    "aws-cdk-lib": "^2.20.0",
+    "constructs": "^10.0.111"
+  },
+  "dependencies": {
+    "@types/glob": "^8.1.0",
+    "archiver": "^7.0.1"
   },
   "scripts": {
     "build": "tsc && cp package.json README.md LICENSE lib/ && sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" lib/package.json && rm lib/package.json.bak",
-    "lint": "./node_modules/.bin/eslint src --ext .js,.jsx,.ts,.tsx",
+    "lint": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --fix --no-error-on-unmatched-pattern src",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\" \"examples/**/*.ts\"",
-    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts'",
+    "test": "jest --passWithNoTests --updateSnapshot",
     "test-examples": "cd lib && yarn link && cd .. && cd examples && go test -timeout 2h -v .",
     "test-examples-gotestfmt": "cd lib && yarn link && cd .. && cd examples && set -euo pipefail && go test -json  -v -count=1 -cover -timeout 2h -parallel 4 . 2>&1 | tee /tmp/gotest.log | gotestfmt"
   },
   "files": [
     "*"
   ],
-  "dependencies": {
-    "@pulumi/aws": "^5.5.0",
-    "@pulumi/aws-native": "^0.18.0",
-    "@pulumi/docker": "^3.2.0",
-    "@pulumi/pulumi": "^3.28.0",
-    "archiver": "^5.3.1",
-    "aws-cdk-lib": "^2.20.0",
-    "constructs": "^10.0.111"
+  "jest": {
+    "transform": {
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "isolatedModules": true,
+          "tsconfig": "tsconfig.json"
+        }
+      ]
+    },
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.ts?(x)",
+      "<rootDir>/(tests|src)/**/*(*.)@(spec|test).ts?(x)"
+    ],
+    "clearMocks": true,
+    "collectCoverage": true,
+    "coverageReporters": [
+      "json",
+      "lcov",
+      "clover",
+      "cobertura",
+      "text"
+    ],
+    "coverageDirectory": "coverage",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "watchPathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "reporters": [
+      "default",
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "test-reports"
+        }
+      ]
+    ],
+    "preset": "ts-jest"
   }
 }

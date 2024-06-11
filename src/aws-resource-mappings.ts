@@ -128,7 +128,7 @@ export function mapToAwsResource(
                             prefixListIds: e.destinationPrefixListId ? [e.destinationPrefixListId] : undefined,
                             securityGroups: e.destinationSecurityGroupId || [],
                         };
-                        if (egress.fromPort === undefined && egress.toPort === undefined && egress.protocol == "-1") {
+                        if (egress.fromPort === undefined && egress.toPort === undefined && egress.protocol == '-1') {
                             egress.fromPort = 0;
                             egress.toPort = 0;
                         }
@@ -143,7 +143,9 @@ export function mapToAwsResource(
                             cidrBlocks: i.cidrIp ? [i.cidrIp] : undefined,
                             ipv6CidrBlocks: i.cidrIpv6 ? [i.cidrIpv6] : undefined,
                             prefixListIds: i.destinationPrefixListId ? [i.destinationPrefixListId] : undefined,
-                            securityGroups: (i.sourceSecurityGroupId || []).concat(...i.sourceSecurityGroupName || []),
+                            securityGroups: (i.sourceSecurityGroupId || []).concat(
+                                ...(i.sourceSecurityGroupName || []),
+                            ),
                         };
                     }),
                     tags: tags(props.tags),
@@ -154,12 +156,13 @@ export function mapToAwsResource(
             );
             return {
                 resource: securityGroup,
-                attributes: { "groupId": securityGroup.id },
+                attributes: { groupId: securityGroup.id },
             };
         }
         case 'AWS::EC2::SecurityGroupEgress':
             debug(`AWS::EC2::SecurityGroupEgress props: ${JSON.stringify(props)}`);
-            return new aws.ec2.SecurityGroupRule(logicalId,
+            return new aws.ec2.SecurityGroupRule(
+                logicalId,
                 {
                     protocol: props.ipProtocol,
                     fromPort: props.fromPort,
@@ -169,13 +172,14 @@ export function mapToAwsResource(
                     prefixListIds: props.destinationPrefixListId,
                     cidrBlocks: props.cidrIp ? [props.cidrIp] : undefined,
                     ipv6CidrBlocks: props.cidrIpv6 ? [props.cidrIpv6] : undefined,
-                    type: "egress",
+                    type: 'egress',
                 },
                 options,
             );
         case 'AWS::EC2::SecurityGroupIngress':
             debug(`AWS::EC2::SecurityGroupIngress props: ${JSON.stringify(props)}: cidr_blocks: ${props.cidrIp}`);
-            return new aws.ec2.SecurityGroupRule(logicalId,
+            return new aws.ec2.SecurityGroupRule(
+                logicalId,
                 {
                     protocol: props.ipProtocol,
                     fromPort: props.fromPort,
@@ -185,15 +189,16 @@ export function mapToAwsResource(
                     sourceSecurityGroupId: props.sourceSecurityGroupId,
                     cidrBlocks: props.cidrIp ? [props.cidrIp] : undefined,
                     ipv6CidrBlocks: props.cidrIpv6 ? [props.cidrIpv6] : undefined,
-                    type: "ingress",
+                    type: 'ingress',
                 },
                 options,
             );
         case 'AWS::EC2::VPCGatewayAttachment':
             // Create either an internet gateway attachment or a VPC gateway attachment
-            // depending on the payload. 
+            // depending on the payload.
             if (props.vpnGatewayId === undefined) {
-                return new aws.ec2.InternetGatewayAttachment(logicalId,
+                return new aws.ec2.InternetGatewayAttachment(
+                    logicalId,
                     {
                         internetGatewayId: props.internetGatewayId,
                         vpcId: props.vpcId,
@@ -201,41 +206,48 @@ export function mapToAwsResource(
                     options,
                 );
             }
-            return new aws.ec2.VpnGatewayAttachment(logicalId, {
-                vpcId: props.vpcId,
-                vpnGatewayId: props.vpnGatewayId,
-            },
+            return new aws.ec2.VpnGatewayAttachment(
+                logicalId,
+                {
+                    vpcId: props.vpcId,
+                    vpnGatewayId: props.vpnGatewayId,
+                },
                 options,
             );
         case 'AWS::ElasticLoadBalancingV2::LoadBalancer': {
-            debug(`AWS::ElasticLoadBalancingV2::LoadBalancer props: ${JSON.stringify(props)}`)
-            const lb = new aws.lb.LoadBalancer(logicalId,
+            debug(`AWS::ElasticLoadBalancingV2::LoadBalancer props: ${JSON.stringify(props)}`);
+            const lb = new aws.lb.LoadBalancer(
+                logicalId,
                 {
                     ipAddressType: props.ipAddressType,
                     loadBalancerType: props.type,
                     securityGroups: props.securityGroups,
                     subnets: props.subnets,
-                    subnetMappings: props.subnetMappings?.map((m: any) => <aws.types.input.lb.LoadBalancerSubnetMapping>{
-                        allocationId: m.allocationId,
-                        ipv6Address: m.iPv6Address,
-                        privateIpv4Address: m.privateIPv4Address,
-                        subnetId: m.subnetId,
-                    }),
+                    subnetMappings: props.subnetMappings?.map(
+                        (m: any) =>
+                            <aws.types.input.lb.LoadBalancerSubnetMapping>{
+                                allocationId: m.allocationId,
+                                ipv6Address: m.iPv6Address,
+                                privateIpv4Address: m.privateIPv4Address,
+                                subnetId: m.subnetId,
+                            },
+                    ),
                     tags: tags(props.tags),
-                    internal: props.scheme ? props.scheme == "internal" : false,
+                    internal: props.scheme ? props.scheme == 'internal' : false,
                 },
                 options,
             );
             return {
                 resource: lb,
-                attributes: { "dNSName": lb.dnsName, }
+                attributes: { dNSName: lb.dnsName },
             };
         }
         case 'AWS::ElasticLoadBalancingV2::TargetGroup': {
             debug(`AWS::ElasticLoadBalancingV2::TargetGroup props: ${JSON.stringify(props)}`);
             const tgAttributes = targetGroupAttributesMap(props.targetGroupAttributes);
-            debug(`${logicalId} tgAttributes ${JSON.stringify(tgAttributes)}`)
-            const tg = new aws.lb.TargetGroup(logicalId,
+            debug(`${logicalId} tgAttributes ${JSON.stringify(tgAttributes)}`);
+            const tg = new aws.lb.TargetGroup(
+                logicalId,
                 {
                     healthCheck: {
                         enabled: props.healthCheckEnabled,
@@ -244,7 +256,7 @@ export function mapToAwsResource(
                         port: props.healthCheckPort,
                         protocol: props.healthCheckProtocol,
                         timeout: props.healthCheckTimeoutSeconds,
-                        matcher: props.matcher ? (props.matcher.httpCode || props.matcher.grpcCode) : undefined,
+                        matcher: props.matcher ? props.matcher.httpCode || props.matcher.grpcCode : undefined,
                         healthyThreshold: props.healthyThresholdCount,
                     },
                     // logicalId can be too big and cause autonaming to spill beyond 32 char limit for names
@@ -256,27 +268,40 @@ export function mapToAwsResource(
                     tags: tags(props.tags),
                     targetType: props.targetType,
                     stickiness: stickiness(tgAttributes),
-                    deregistrationDelay: maybeTargetGroupAttribute(tgAttributes, "deregistration_delay.timeout_seconds"),
-                    connectionTermination: maybeTargetGroupAttribute(tgAttributes, "deregistration_delay.connection_termination.enabled"),
-                    proxyProtocolV2: maybeTargetGroupAttribute(tgAttributes, "proxy_protocol_v2.enabled"),
-                    preserveClientIp: maybeTargetGroupAttribute(tgAttributes, "preserve_client_ip.enabled"),
-                    lambdaMultiValueHeadersEnabled: maybeTargetGroupAttribute(tgAttributes, "lambda.multi_value_headers.enabled"),
-                    slowStart: maybeTargetGroupAttribute(tgAttributes, "slow_start.duration_seconds"),
-                    loadBalancingAlgorithmType: maybeTargetGroupAttribute(tgAttributes, "load_balancing.algorithm.type"),
+                    deregistrationDelay: maybeTargetGroupAttribute(
+                        tgAttributes,
+                        'deregistration_delay.timeout_seconds',
+                    ),
+                    connectionTermination: maybeTargetGroupAttribute(
+                        tgAttributes,
+                        'deregistration_delay.connection_termination.enabled',
+                    ),
+                    proxyProtocolV2: maybeTargetGroupAttribute(tgAttributes, 'proxy_protocol_v2.enabled'),
+                    preserveClientIp: maybeTargetGroupAttribute(tgAttributes, 'preserve_client_ip.enabled'),
+                    lambdaMultiValueHeadersEnabled: maybeTargetGroupAttribute(
+                        tgAttributes,
+                        'lambda.multi_value_headers.enabled',
+                    ),
+                    slowStart: maybeTargetGroupAttribute(tgAttributes, 'slow_start.duration_seconds'),
+                    loadBalancingAlgorithmType: maybeTargetGroupAttribute(
+                        tgAttributes,
+                        'load_balancing.algorithm.type',
+                    ),
                 },
                 options,
             );
             return {
                 resource: tg,
                 attributes: {
-                    "targetGroupFullName": tg.arnSuffix,
-                    "targetGroupName": tg.name,
+                    targetGroupFullName: tg.arnSuffix,
+                    targetGroupName: tg.name,
                 },
             };
         }
         case 'AWS::AutoScaling::AutoScalingGroup': {
             debug(`AWS::AutoScaling::AutoScalingGroup props: ${JSON.stringify(props)}`);
-            return new aws.autoscaling.Group(logicalId,
+            return new aws.autoscaling.Group(
+                logicalId,
                 {
                     availabilityZones: props.availabilityZones,
                     maxSize: parseInt(props.maxSize),
@@ -284,50 +309,62 @@ export function mapToAwsResource(
                     capacityRebalance: props.capacityRebalance ? JSON.parse(props.capacityRebalance) : undefined,
                     defaultCooldown: props.cooldown ? parseInt(props.cooldown) : undefined,
                     desiredCapacity: props.desiredCapacity ? parseInt(props.desiredCapacity) : undefined,
-                    healthCheckGracePeriod: props.healthCheckGracePeriod ? parseInt(props.healthCheckGracePeriod) : undefined,
+                    healthCheckGracePeriod: props.healthCheckGracePeriod
+                        ? parseInt(props.healthCheckGracePeriod)
+                        : undefined,
                     healthCheckType: props.healthCheckType,
                     launchConfiguration: props.launchConfigurationName,
                     launchTemplate: props.launchTemplate?.map(
-                        (t: any) => <aws.types.input.autoscaling.GroupLaunchTemplate>{
-                            id: t.launchTemplateId,
-                            name: t.launchTemplateName,
-                            version: t.version,
-                        }),
-                    initialLifecycleHooks: props.lifecycleHookSpecificationList?.map((s: any) => <aws.types.input.autoscaling.GroupInitialLifecycleHook>{
-                        defaultResult: s.defaultReason,
-                        heartbeatTimeout: s.heartbeatTimeout,
-                        lifecycleTransition: s.lifecycleTransition,
-                        notificationMetadata: s.notificationMetadata,
-                        notificationTargetArn: s.notificationTargetArn,
-                        roleArn: s.roleArn,
-                        name: s.lifeCycleHookName,
-                    }),
+                        (t: any) =>
+                            <aws.types.input.autoscaling.GroupLaunchTemplate>{
+                                id: t.launchTemplateId,
+                                name: t.launchTemplateName,
+                                version: t.version,
+                            },
+                    ),
+                    initialLifecycleHooks: props.lifecycleHookSpecificationList?.map(
+                        (s: any) =>
+                            <aws.types.input.autoscaling.GroupInitialLifecycleHook>{
+                                defaultResult: s.defaultReason,
+                                heartbeatTimeout: s.heartbeatTimeout,
+                                lifecycleTransition: s.lifecycleTransition,
+                                notificationMetadata: s.notificationMetadata,
+                                notificationTargetArn: s.notificationTargetArn,
+                                roleArn: s.roleArn,
+                                name: s.lifeCycleHookName,
+                            },
+                    ),
                     loadBalancers: props.loadBalancerNames,
                     maxInstanceLifetime: props.maxInstanceLifetime,
                     // mixedInstancesPolicy: FIXME!
                     protectFromScaleIn: props.newInstancesProtectedFromScaleIn,
                     placementGroup: props.placementGroup,
                     serviceLinkedRoleArn: props.serviceLinkedRoleArn,
-                    tags: props.tags?.map((
-                        (m: { key: any; propagateAtLaunch: any; value: any; }) => <aws.types.input.autoscaling.GroupTag>{
-                            key: m.key,
-                            propagateAtLaunch: m.propagateAtLaunch,
-                            value: m.value
-                        })),
-                    targetGroupArns: props.targetGroupARNs,
+                    tags: props.tags?.map(
+                        (m: { key: any; propagateAtLaunch: any; value: any }) =>
+                            <aws.types.input.autoscaling.GroupTag>{
+                                key: m.key,
+                                propagateAtLaunch: m.propagateAtLaunch,
+                                value: m.value,
+                            },
+                    ),
+                    targetGroupArns: props.targetGroupArns,
                     terminationPolicies: props.terminationPolicies,
-                    vpcZoneIdentifiers: props.vPCZoneIdentifier,
+                    vpcZoneIdentifiers: props.vpcZoneIdentifier,
                 },
                 options,
             );
         }
         case 'AWS::AutoScaling::ScalingPolicy': {
-            return new aws.autoscaling.Policy(logicalId,
+            return new aws.autoscaling.Policy(
+                logicalId,
                 {
                     adjustmentType: props.adjustmentType,
                     autoscalingGroupName: props.autoScalingGroupName,
                     cooldown: props.cooldown ? parseInt(props.cooldown) : undefined,
-                    estimatedInstanceWarmup: props.estimatedInstanceWarmup ? parseInt(props.estimatedInstanceWarmup) : undefined,
+                    estimatedInstanceWarmup: props.estimatedInstanceWarmup
+                        ? parseInt(props.estimatedInstanceWarmup)
+                        : undefined,
                     metricAggregationType: props.metricAggregationType,
                     minAdjustmentMagnitude: props.minAdjustmentMagnitude,
                     policyType: props.policyType,
@@ -340,7 +377,8 @@ export function mapToAwsResource(
             );
         }
         case 'AWS::EC2::Route':
-            return new aws.ec2.Route(logicalId,
+            return new aws.ec2.Route(
+                logicalId,
                 {
                     routeTableId: props.routeTableId,
                     carrierGatewayId: props.carrierGatewayId,
@@ -348,7 +386,6 @@ export function mapToAwsResource(
                     destinationIpv6CidrBlock: props.destinationIpv6CidrBlock,
                     egressOnlyGatewayId: props.egressOnlyInternetGatewayId,
                     gatewayId: props.gatewayId,
-                    instanceId: props.instanceId,
                     localGatewayId: props.localGatewayId,
                     natGatewayId: props.natGatewayId,
                     networkInterfaceId: props.networkInterfaceId,
@@ -359,40 +396,46 @@ export function mapToAwsResource(
                 options,
             );
         case 'AWS::EC2::NatGateway':
-            return new aws.ec2.NatGateway(logicalId,
+            return new aws.ec2.NatGateway(
+                logicalId,
                 {
                     subnetId: props.subnetId,
                     allocationId: props.allocationId,
                     connectivityType: props.connectivityType,
-                    tags: tags(props.tags)
+                    tags: tags(props.tags),
                 },
                 options,
             );
         case 'AWS::ApplicationAutoScaling::ScalableTarget': {
-            const target = new aws.appautoscaling.Target(logicalId, {
-                maxCapacity: props.maxCapacity,
-                minCapacity: props.minCapacity,
-                resourceId: props.resourceId,
-                roleArn: props.roleArn,
-                scalableDimension: props.scalableDimension,
-                serviceNamespace: props.serviceNamespace,
-            }, options);
+            const target = new aws.appautoscaling.Target(
+                logicalId,
+                {
+                    maxCapacity: props.maxCapacity,
+                    minCapacity: props.minCapacity,
+                    resourceId: props.resourceId,
+                    roleArn: props.roleArn,
+                    scalableDimension: props.scalableDimension,
+                    serviceNamespace: props.serviceNamespace,
+                },
+                options,
+            );
             props.ScheduledActions?.map(
-                (action: any) => new aws.appautoscaling.ScheduledAction(
-                    logicalId + action.scheduledActionName,
-                    {
-                        resourceId: target.resourceId,
-                        scalableDimension: target.scalableDimension,
-                        scalableTargetAction: action.scalableTargetAction,
-                        schedule: action.schedule,
-                        serviceNamespace: target.serviceNamespace,
-                        startTime: action.startTime,
-                        endTime: action.endTime,
-                        timezone: action.timezone,
-                        name: action.scheduledActionName,
-                    },
-                    options,
-                ),
+                (action: any) =>
+                    new aws.appautoscaling.ScheduledAction(
+                        logicalId + action.scheduledActionName,
+                        {
+                            resourceId: target.resourceId,
+                            scalableDimension: target.scalableDimension,
+                            scalableTargetAction: action.scalableTargetAction,
+                            schedule: action.schedule,
+                            serviceNamespace: target.serviceNamespace,
+                            startTime: action.startTime,
+                            endTime: action.endTime,
+                            timezone: action.timezone,
+                            name: action.scheduledActionName,
+                        },
+                        options,
+                    ),
             );
             return target;
         }
@@ -550,23 +593,25 @@ function stickiness(targetGroupAttributes: any): pulumi.Input<aws.types.input.lb
         return undefined;
     }
 
-    const enabled = targetGroupAttributes["stickiness.enabled"] ? JSON.parse(targetGroupAttributes["stickiness.enabled"]) : false;
+    const enabled = targetGroupAttributes['stickiness.enabled']
+        ? JSON.parse(targetGroupAttributes['stickiness.enabled'])
+        : false;
     if (!enabled) {
         return undefined;
     }
 
-    let cookieDuration = undefined
-    if ("stickiness.app_cookie.duration_seconds" in targetGroupAttributes) {
-        cookieDuration = targetGroupAttributes["stickiness.app_cookie.duration_seconds"]
-    } else if ("stickiness.lb_cookie.duration_seconds" in targetGroupAttributes) {
-        cookieDuration = targetGroupAttributes["stickiness.lb_cookie.duration_seconds"]
+    let cookieDuration = undefined;
+    if ('stickiness.app_cookie.duration_seconds' in targetGroupAttributes) {
+        cookieDuration = targetGroupAttributes['stickiness.app_cookie.duration_seconds'];
+    } else if ('stickiness.lb_cookie.duration_seconds' in targetGroupAttributes) {
+        cookieDuration = targetGroupAttributes['stickiness.lb_cookie.duration_seconds'];
     }
     return {
         enabled: enabled,
-        type: maybeTargetGroupAttribute(targetGroupAttributes, "stickiness.type"),
-        cookieName: maybeTargetGroupAttribute(targetGroupAttributes, "stickiness.app_cookie.cookie_name"),
+        type: maybeTargetGroupAttribute(targetGroupAttributes, 'stickiness.type'),
+        cookieName: maybeTargetGroupAttribute(targetGroupAttributes, 'stickiness.app_cookie.cookie_name'),
         cookieDuration: cookieDuration,
-    }
+    };
 }
 
 function maybeTargetGroupAttribute(targetGroupAttributes: any, key: string): any {
@@ -574,11 +619,11 @@ function maybeTargetGroupAttribute(targetGroupAttributes: any, key: string): any
         return undefined;
     }
 
-    let val = undefined
+    let val = undefined;
     if (key in targetGroupAttributes) {
-        val = targetGroupAttributes[key]
+        val = targetGroupAttributes[key];
     }
-    return val
+    return val;
 }
 
 function targetGroupAttributesMap(targetGroupAttributes: any) {
@@ -591,6 +636,5 @@ function targetGroupAttributesMap(targetGroupAttributes: any) {
     for (const attr of attrs) {
         attrsMap[attr.key] = attr.value;
     }
-    return attrsMap
-
+    return attrsMap;
 }

@@ -20,10 +20,6 @@ import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws';
 import * as docker from '@pulumi/docker';
 import {
-    ecs,
-    iam,
-    apprunner,
-    lambda,
     cidr,
     getAccountId,
     getPartition,
@@ -34,21 +30,13 @@ import {
     getUrlSuffix,
 } from '@pulumi/aws-native';
 import { debug } from '@pulumi/pulumi/log';
-import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
-import { Construct, ConstructOrder, Node, IConstruct } from 'constructs';
+import { CfnElement, Token } from 'aws-cdk-lib';
+import { IConstruct } from 'constructs';
 import { mapToAwsResource } from './aws-resource-mappings';
-import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from './cfn';
+import { CloudFormationResource, getDependsOn } from './cfn';
 import { attributePropertyName, mapToCfnResource } from './cfn-resource-mappings';
 import { GraphBuilder } from './graph';
-import {
-    CfnResource,
-    CdkConstruct,
-    JSII_RUNTIME_SYMBOL,
-    ResourceMapping,
-    normalize,
-    firstToLower,
-    getFqn,
-} from './interop';
+import { CdkConstruct, JSII_RUNTIME_SYMBOL, ResourceMapping, firstToLower, getFqn } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 import { parseSub } from './sub';
 import { zipDirectory } from './zip';
@@ -238,7 +226,7 @@ class AppConverter {
         readonly app: cdk.App,
         readonly assembly: cx.CloudAssembly,
         readonly options: StackOptions,
-    ) { }
+    ) {}
 
     convert() {
         // Build a lookup table for the app's stacks.
@@ -317,7 +305,7 @@ class AppConverter {
 }
 
 class ArtifactConverter {
-    constructor(readonly app: AppConverter) { }
+    constructor(readonly app: AppConverter) {}
 }
 
 class AssetManifestConverter extends ArtifactConverter {
@@ -627,7 +615,7 @@ class StackConverter extends ArtifactConverter {
                     const [template, vars] =
                         typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 
-                    const parts = [];
+                    const parts: string[] = [];
                     for (const part of parseSub(template)) {
                         parts.push(part.str);
 
