@@ -14,6 +14,15 @@
   "engines": {
     "node": ">=8.13.0 || >=10.10.0"
   },
+  "--": {
+    "resolutions-notes": {
+      "see": "https://stackoverflow.com/questions/77406363/error-err-require-esm-require-of-es-module-node-modules-wrap-ansi-index-js"
+    }
+  },
+  "resolutions": {
+   "wrap-ansi": "7.0.0",
+   "string-width": "4.1.0"
+  },
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
     "@pulumi/aws": "^6.32.0",
