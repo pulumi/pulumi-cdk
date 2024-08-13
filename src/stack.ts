@@ -40,6 +40,7 @@ import { CdkConstruct, JSII_RUNTIME_SYMBOL, ResourceMapping, firstToLower, getFq
 import { OutputRepr, OutputMap } from './output-map';
 import { parseSub } from './sub';
 import { zipDirectory } from './zip';
+import { Importer } from './schema';
 
 /**
  * Options specific to the Stack component.
@@ -404,6 +405,7 @@ class StackConverter extends ArtifactConverter {
     }
 
     public convert(dependencies: Set<ArtifactConverter>) {
+        const importer = new Importer();
         const dependencyGraphNodes = GraphBuilder.build(this.stack);
         for (const n of dependencyGraphNodes) {
             if (n.construct === this.stack) {
@@ -424,6 +426,13 @@ class StackConverter extends ArtifactConverter {
                 }
                 for (const [logicalId, value] of Object.entries(cfn.Resources || {})) {
                     debug(`Creating resource for ${logicalId}`);
+                    importer.processResource(
+                        this.stack,
+                        this.app.host.name + '/' + n.construct.node.scope!.node.path!,
+                        logicalId,
+                        value.Type,
+                        value.Properties,
+                    );
                     const props = this.processIntrinsics(value.Properties);
                     const options = this.processOptions(value, parent);
 
@@ -456,6 +465,7 @@ class StackConverter extends ArtifactConverter {
                 (<CdkConstruct>this.constructs.get(n.construct)!).done();
             }
         }
+        importer.writeImportFile();
     }
 
     private stackDependsOn(dependencies: Set<ArtifactConverter>): pulumi.Resource[] {
