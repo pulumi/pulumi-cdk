@@ -2,6 +2,7 @@
   "name": "@pulumi/cdk",
   "version": "${VERSION}",
   "description": "Pulumi/CDK Interop SDK",
+  "main": "lib/index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pulumi/pulumi-cdk.git"
