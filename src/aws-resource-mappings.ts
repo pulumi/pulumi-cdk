@@ -39,6 +39,9 @@ function tags(tags: pulumi.Input<pulumi.Input<CfnTags>[]> | undefined): AwsTags 
     );
 }
 
+/**
+ * Any resource that does not currently exist in CCAPI can be mapped to an aws classic resource.
+ */
 export function mapToAwsResource(
     element: CfnElement,
     logicalId: string,
@@ -92,11 +95,6 @@ export function mapToAwsResource(
                 options,
             );
 
-        // DynamoDB
-        case 'AWS::DynamoDB::Table':
-            return mapDynamoDBTable(element, logicalId, typeName, rawProps, props, options);
-
-        // EC2
         // IAM
         case 'AWS::IAM::Policy': {
             const policy = new aws.iam.Policy(
@@ -145,126 +143,4 @@ export function mapToAwsResource(
         default:
             return undefined;
     }
-}
-
-function mapDynamoDBTable(
-    element: CfnElement,
-    logicalId: string,
-    typeName: string,
-    rawProps: any,
-    props: any,
-    options: pulumi.ResourceOptions,
-): aws.dynamodb.Table {
-    function hashKey(schema: any): string | undefined {
-        return schema.find((k: any) => k.keyType === 'HASH')?.attributeName;
-    }
-
-    function rangeKey(schema: any): string | undefined {
-        return schema.find((k: any) => k.keyType === 'RANGE')?.attributeName;
-    }
-
-    const attributes = props.attributeDefinitions?.map((attr: any) => ({
-        name: attr.attributeName,
-        type: attr.attributeType,
-    }));
-
-    const globalSecondaryIndexes = props.globalSecondaryIndexes?.map((index: any) => ({
-        hashKey: hashKey(index.keySchema),
-        name: index.indexName,
-        nonKeyAttributes: props.projection.nonKeyAttributes,
-        projectionType: props.projection.projectionType,
-        rangeKey: rangeKey(index.keySchema),
-        readCapacity: props.provisionedThroughput?.readCapacityUnits,
-        writeCapacity: props.provisionedThroughput?.writeCapacityUnits,
-    }));
-
-    const localSecondaryIndexes = props.localSecondaryIndexes?.map((index: any) => ({
-        name: index.indexName,
-        nonKeyAttributes: index.projection.nonKeyAttributes,
-        projectionType: index.projection.projectionType,
-        rangeKey: rangeKey(index.keySchema),
-    }));
-
-    const pointInTimeRecovery = maybe(props.pointInTimeRecoverySpecification, (spec) => ({
-        enabled: spec.pointInTimeRecoveryEnabled,
-    }));
-
-    const serverSideEncryption = maybe(props.sSESpecification, (spec) => ({
-        enabled: spec.sSEEnabled,
-        kmsKeyArn: spec.kMSMasterKeyId,
-    }));
-
-    return new aws.dynamodb.Table(
-        logicalId,
-        {
-            attributes: attributes,
-            billingMode: props.billingMode,
-            globalSecondaryIndexes: globalSecondaryIndexes,
-            hashKey: hashKey(props.keySchema),
-            localSecondaryIndexes: localSecondaryIndexes,
-            name: props.tableName,
-            pointInTimeRecovery: pointInTimeRecovery,
-            rangeKey: rangeKey(props.keySchema),
-            readCapacity: props.provisionedThroughput?.readCapacityUnits,
-            serverSideEncryption: serverSideEncryption,
-            streamEnabled: props.streamSpecification !== undefined,
-            streamViewType: props.streamSpecification?.streamViewType,
-            tableClass: props.tableClass,
-            tags: tags(props.tags),
-            ttl: props.timeToLiveSpecification,
-            writeCapacity: props.provisionedThroughput?.writeCapacityUnits,
-        },
-        options,
-    );
-}
-
-function stickiness(targetGroupAttributes: any): pulumi.Input<aws.types.input.lb.TargetGroupStickiness> | undefined {
-    if (targetGroupAttributes === undefined) {
-        return undefined;
-    }
-
-    const enabled = targetGroupAttributes['stickiness.enabled']
-        ? JSON.parse(targetGroupAttributes['stickiness.enabled'])
-        : false;
-    if (!enabled) {
-        return undefined;
-    }
-
-    let cookieDuration = undefined;
-    if ('stickiness.app_cookie.duration_seconds' in targetGroupAttributes) {
-        cookieDuration = targetGroupAttributes['stickiness.app_cookie.duration_seconds'];
-    } else if ('stickiness.lb_cookie.duration_seconds' in targetGroupAttributes) {
-        cookieDuration = targetGroupAttributes['stickiness.lb_cookie.duration_seconds'];
-    }
-    return {
-        enabled: enabled,
-        type: maybeTargetGroupAttribute(targetGroupAttributes, 'stickiness.type'),
-        cookieName: maybeTargetGroupAttribute(targetGroupAttributes, 'stickiness.app_cookie.cookie_name'),
-        cookieDuration: cookieDuration,
-    };
-}
-
-function maybeTargetGroupAttribute(targetGroupAttributes: any, key: string): any {
-    if (targetGroupAttributes === undefined) {
-        return undefined;
-    }
-
-    let val = undefined;
-    if (key in targetGroupAttributes) {
-        val = targetGroupAttributes[key];
-    }
-    return val;
-}
-
-function targetGroupAttributesMap(targetGroupAttributes: any) {
-    if (targetGroupAttributes === undefined) {
-        return undefined;
-    }
-
-    const attrsMap: { [name: string]: any } = {};
-    const attrs = targetGroupAttributes as Array<any>;
-    for (const attr of attrs) {
-        attrsMap[attr.key] = attr.value;
-    }
-    return attrsMap;
 }

@@ -16,7 +16,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
 import { IConstruct } from 'constructs';
-import { moduleName, toSdkName, typeToken } from './naming';
+import { toSdkName, typeToken } from './naming';
 
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {

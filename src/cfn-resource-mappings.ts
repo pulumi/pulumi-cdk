@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { ecs, iam, apprunner, lambda, s3, s3objectlambda } from '@pulumi/aws-native';
+import { iam, lambda, s3, s3objectlambda } from '@pulumi/aws-native';
 import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { CfnResource, ResourceMapping, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
@@ -29,12 +29,6 @@ export function mapToCfnResource(
     const props = normalize(rawProps);
     debug(`mapToCfnResource typeName: ${typeName} props: ${JSON.stringify(props)}`);
     switch (typeName) {
-        case 'AWS::AppRunner::Service':
-            return new apprunner.Service(logicalId, props, options);
-        case 'AWS::ECS::Cluster':
-            return new ecs.Cluster(logicalId, props, options);
-        case 'AWS::ECS::TaskDefinition':
-            return new ecs.TaskDefinition(logicalId, props, options);
         case 'AWS::IAM::Role': {
             // policyDocument and assumeRolePolicyDocument are both Json types
             // so we need the raw names
