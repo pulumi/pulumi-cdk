@@ -52,30 +52,6 @@ export function mapToAwsResource(
     const props = normalize(rawProps);
     switch (typeName) {
         // ApiGatewayV2
-        case 'AWS::ApiGatewayV2::Deployment':
-            return new aws.apigatewayv2.Deployment(logicalId, props, options);
-        case 'AWS::ApiGatewayV2::Integration':
-            return new aws.apigatewayv2.Integration(
-                logicalId,
-                {
-                    ...props,
-                    requestParameters: rawProps.RequestParameters,
-                    requestTemplates: rawProps.RequestTemplates,
-                    responseParameters: rawProps.ResponseParameters,
-                    tlsConfig: maybe(props.tlsConfig, (_) => ({ insecureSkipVerification: true })),
-                },
-                options,
-            );
-        case 'AWS::ApiGatewayV2::Route':
-            return new aws.apigatewayv2.Route(
-                logicalId,
-                {
-                    ...props,
-                    requestModels: rawProps.RequestModels,
-                    requestParameters: rawProps.RequestParameters,
-                },
-                options,
-            );
         case 'AWS::ApiGatewayV2::Stage':
             return new aws.apigatewayv2.Stage(
                 logicalId,
