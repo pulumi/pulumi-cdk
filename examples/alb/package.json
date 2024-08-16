@@ -8,9 +8,7 @@
         "@pulumi/aws-native": "^0.117.0",
         "@pulumi/pulumi": "^3.0.0",
         "aws-cdk-lib": "^2.20.0",
-        "constructs": "^10.0.111"
-    },
-    "peerDependencies": {
-        "@pulumi/cdk": "^0.0.1"
+        "constructs": "^10.0.111", 
+        "@pulumi/cdk": "^0.5.0"
     }
 }

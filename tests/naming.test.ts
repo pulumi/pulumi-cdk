@@ -35,7 +35,7 @@ describe('Naming tests', () => {
         ];
 
         for (const c of cases) {
-            expect(normalize(c.in)).toMatchObject(c.out);
+            expect(normalize('', c.in)).toMatchObject(c.out);
         }
     });
     test('typeToken', () => {
@@ -218,5 +218,21 @@ describe('Naming tests', () => {
             expect(s).toEqual(c.expectedStart);
             expect(e).toEqual(c.expectedEnd);
         }
+    });
+    test('json string', () => {
+        const val = {
+            SomeProp: 'value',
+            SomeOtherProp: '{"SomeKey":"SomeVal"}',
+        };
+        const newVal = Object.entries(val).reduce(
+            (result, [k, v]) => ({
+                ...result,
+                [k]: v,
+            }),
+            {},
+        );
+        expect(typeof newVal['SomeOtherProp']).toEqual('string');
+        const actual = normalize('', '{"SomeKey":"SomeValue"}');
+        expect(actual).toEqual('{"SomeKey":"SomeValue"}');
     });
 });

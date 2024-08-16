@@ -62,8 +62,8 @@
     "lint": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --fix --no-error-on-unmatched-pattern src",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\" \"examples/**/*.ts\"",
     "test": "jest --passWithNoTests --updateSnapshot",
-    "test-examples": "cd lib && yarn link && cd .. && cd examples && go test -timeout 2h -v .",
-    "test-examples-gotestfmt": "cd lib && yarn link && cd .. && cd examples && set -euo pipefail && go test -json  -v -count=1 -cover -timeout 2h -parallel 4 . 2>&1 | tee /tmp/gotest.log | gotestfmt"
+    "test-examples": "yarn link && cd examples && go test -timeout 2h -v .",
+    "test-examples-gotestfmt": "yarn link && cd examples && set -euo pipefail && go test -json  -v -count=1 -cover -timeout 2h -parallel 4 . 2>&1 | tee /tmp/gotest.log | gotestfmt"
   },
   "files": [
     "*"
