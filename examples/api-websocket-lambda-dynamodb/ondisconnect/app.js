@@ -7,20 +7,22 @@
 // $disconnect is a best-effort event. 
 // API Gateway will try its best to deliver the $disconnect event to your integration, but it cannot guarantee delivery.
 
-const AWS = require('aws-sdk');
+const { DeleteCommand, DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 
-const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
+const client = new DynamoDBClient({});
+const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async event => {
-  const deleteParams = {
+  const command = new DeleteCommand({
     TableName: process.env.TABLE_NAME,
     Key: {
       connectionId: event.requestContext.connectionId
     }
-  };
+  });
 
   try {
-    await ddb.delete(deleteParams).promise();
+    await ddb.send(command);
   } catch (err) {
     return { statusCode: 500, body: 'Failed to disconnect: ' + JSON.stringify(err) };
   }
