@@ -147,6 +147,9 @@ func websocketValidation(t *testing.T, url, table string) {
 	err = c.WriteMessage(websocket.TextMessage, []byte(`{"action":"sendmessage","data":"hello world"}`))
 	assert.NoError(t, err)
 
+	// need time for the lambda to process the request
+	time.Sleep(time.Second * 5)
+
 	res, err := client.Scan(ctx, &dynamodb.ScanInput{
 		TableName: &table,
 	})
