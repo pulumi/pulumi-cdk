@@ -3,8 +3,6 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
-import * as aws from '@pulumi/aws';
-import { Construct } from 'constructs';
 
 class AlbStack extends pulumicdk.Stack {
     url: pulumi.Output<string>;
