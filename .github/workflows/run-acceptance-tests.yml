@@ -50,6 +50,9 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+      # Needed for pulumictl to calculate version
+      - name: Unshallow clone for tags
+        run: git fetch --prune --unshallow --tags
       - name: Install pulumictl
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
