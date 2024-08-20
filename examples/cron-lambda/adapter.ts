@@ -15,7 +15,7 @@ export function remapCloudControlResource(
     rawProps: any,
     options: pulumi.ResourceOptions,
 ): pulumi.CustomResource | undefined {
-    const props = pulumicdk.interop.normalize(rawProps);
+    const props = pulumicdk.interop.normalize(typeName, rawProps);
     switch (typeName) {
         case 'AWS::Events::Rule':
             const resources: { [key: string]: pulumi.CustomResource } = {};
@@ -45,15 +45,15 @@ export function remapCloudControlResource(
             return rule;
         case 'AWS::Lambda::Permission':
             return new aws.lambda.Permission(
-                    logicalId,
-                    {
-                        action: props['action'],
-                        function: props['functionName'],
-                        principal: props['principal'],
-                        sourceArn: props['sourceArn'] ?? undefined,
-                    },
-                    options,
-                );
+                logicalId,
+                {
+                    action: props['action'],
+                    function: props['functionName'],
+                    principal: props['principal'],
+                    sourceArn: props['sourceArn'] ?? undefined,
+                },
+                options,
+            );
     }
 
     return undefined;
