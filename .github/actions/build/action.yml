@@ -4,8 +4,6 @@ description: Runs build
 runs:
   using: "composite"
   steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
       - name: Install pulumictl
         uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:

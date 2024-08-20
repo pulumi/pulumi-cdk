@@ -11,6 +11,8 @@ jobs:
     name: Run lint
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
       - name: lint
         uses: ./.github/actions/lint
 
@@ -18,6 +20,8 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
       - name: build
         uses: ./.github/actions/build
 
