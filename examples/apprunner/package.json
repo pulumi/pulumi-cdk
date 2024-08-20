@@ -8,7 +8,7 @@
         "@pulumi/awsx": "^0.32.0",
         "@pulumi/aws-native": "^0.117.0",
         "@pulumi/pulumi": "^3.0.0",
-        "aws-cdk-lib": "^2.20.0",
+        "aws-cdk-lib": "2.149.0",
         "constructs": "^10.0.111",
         "@pulumi/cdk": "^0.5.0", 
         "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0"

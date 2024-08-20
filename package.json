@@ -33,7 +33,7 @@
     "@types/archiver": "^6.0.2",
     "@types/jest": "^29.5.2",
     "@types/node": "^20.12.13",
-    "aws-cdk-lib": "^2.20.0",
+    "aws-cdk-lib": "2.149.0",
     "constructs": "^10.0.111",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
@@ -58,7 +58,7 @@
     "archiver": "^7.0.1"
   },
   "scripts": {
-    "prepare": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",
+    "set-version": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",
     "build": "tsc --build",
     "watch": "tsc --build --watch",
     "lint": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --fix --no-error-on-unmatched-pattern src",
