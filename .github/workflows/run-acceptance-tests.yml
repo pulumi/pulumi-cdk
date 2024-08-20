@@ -54,7 +54,7 @@ jobs:
       - name: Unshallow clone for tags
         run: git fetch --prune --unshallow --tags
       - name: Install pulumictl
-        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        uses: jaxxstorm/action-install-gh-release@v1.11.0
         with:
           repo: pulumi/pulumictl
       - name: Configure AWS Credentials
@@ -69,7 +69,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18.19.x
+          node-version: 18.x
           registry-url: https://registry.npmjs.org
       - name: Install Go
         uses: actions/setup-go@v5
