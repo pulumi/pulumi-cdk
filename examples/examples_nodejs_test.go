@@ -25,6 +25,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAppSvc(t *testing.T) {
@@ -111,6 +112,7 @@ func TestAPIWebsocketLambdaDynamoDB(t *testing.T) {
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "api-websocket-lambda-dynamodb"),
 			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				t.Helper()
 				t.Logf("Outputs: %v", stack.Outputs)
 				url := stack.Outputs["url"].(string)
 				table := stack.Outputs["table"].(string)
@@ -141,11 +143,12 @@ func websocketValidation(t *testing.T, url, table string) {
 	client := dynamodb.NewFromConfig(cfg)
 
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+
 	defer c.Close()
 
 	err = c.WriteMessage(websocket.TextMessage, []byte(`{"action":"sendmessage","data":"hello world"}`))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// need time for the lambda to process the request
 	time.Sleep(time.Second * 5)
@@ -153,13 +156,13 @@ func websocketValidation(t *testing.T, url, table string) {
 	res, err := client.Scan(ctx, &dynamodb.ScanInput{
 		TableName: &table,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// When you `sendmessage` the `onconnect` & `sendmessage` lambdas are triggered which writes
 	// an item to the table
 	assert.Equal(t, int32(1), res.Count)
 
 	err = c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// need time for the lambda to process the request
 	time.Sleep(time.Second * 5)
@@ -167,7 +170,7 @@ func websocketValidation(t *testing.T, url, table string) {
 	res, err = client.Scan(ctx, &dynamodb.ScanInput{
 		TableName: &table,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// When the connection is closed the `ondisconnect` lambda is triggered which removes the item
 	// from the table
 	assert.Equal(t, int32(0), res.Count)
