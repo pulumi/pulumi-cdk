@@ -115,7 +115,7 @@ jobs:
       - name: Install gotestsum
         run: go install gotest.tools/gotestsum@latest
       - name: Go mod download
-        run: go mod download
+        run: cd examples && go mod download
       - name: Generate go test Slice
         id: test_split
         uses: hashicorp-forge/go-test-split-action@v2.0.0
