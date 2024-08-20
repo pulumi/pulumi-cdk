@@ -7,6 +7,7 @@
     "url": "git+https://github.com/pulumi/pulumi-cdk.git"
   },
   "license": "Apache-2.0",
+  "main": "lib/index.js",
   "bugs": {
     "url": "https://github.com/pulumi/pulumi-cdk/issues"
   },
@@ -57,16 +58,15 @@
     "archiver": "^7.0.1"
   },
   "scripts": {
-    "build": "tsc && cp package.json README.md LICENSE lib/ && sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" lib/package.json && rm lib/package.json.bak",
+    "prepare": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",
+    "build": "tsc --build",
+    "watch": "tsc --build --watch",
     "lint": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --fix --no-error-on-unmatched-pattern src",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\" \"examples/**/*.ts\"",
     "test": "jest --passWithNoTests --updateSnapshot",
-    "test-examples": "cd lib && yarn link && cd .. && cd examples && go test -timeout 2h -v .",
-    "test-examples-gotestfmt": "cd lib && yarn link && cd .. && cd examples && set -euo pipefail && go test -json  -v -count=1 -cover -timeout 2h -parallel 4 . 2>&1 | tee /tmp/gotest.log | gotestfmt"
+    "test:watch": "jest --watch",
+    "test-examples": "yarn link && cd examples && go test -timeout 2h -v ."
   },
-  "files": [
-    "*"
-  ],
   "jest": {
     "transform": {
       "^.+\\.ts$": [

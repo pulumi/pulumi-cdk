@@ -1,0 +1,14 @@
+/examples/
+/tests/
+/src/
+/coverage/
+/.github/
+/.eslintignore
+/.eslintrc.js
+/test-reports/
+/.prettierrc
+tsconfig.json
+!/lib/
+!/lib/**/*.js
+!/lib/**/*.d.ts
+
