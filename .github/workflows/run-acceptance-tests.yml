@@ -67,8 +67,10 @@ jobs:
         run: yarn run test
   test:
     name: acceptance-test
+    concurrency:
+      group: acceptance-test-${{ matrix.index }} # TODO: concurrent tests across PRs can cause problems
+      cancel-in-progress: true
     runs-on: ubuntu-latest
-    concurrency: acceptance-test # TODO: Currently integration tests can clash across branches.
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
