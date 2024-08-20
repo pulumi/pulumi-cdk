@@ -45,7 +45,6 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
-    concurrency: build-and-test # Currently integration tests can clash across branches.
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -68,6 +67,8 @@ jobs:
         run: yarn run test
   test:
     name: acceptance-test
+    runs-on: ubuntu-latest
+    concurrency: acceptance-test # TODO: Currently integration tests can clash across branches.
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -119,7 +120,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        parallel: 3
+        parallel: [3]
         index: [0, 1, 2]
     
 name: Run Acceptance Tests from PR
