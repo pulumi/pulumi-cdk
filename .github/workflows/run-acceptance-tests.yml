@@ -121,7 +121,6 @@ jobs:
         uses: hashicorp-forge/go-test-split-action@v2.0.0
         with:
           working-directory: examples
-          flags: "-timeout 30m"
           total: ${{ matrix.parallel }}
           index: ${{ matrix.index }}
       - name: Run examples
