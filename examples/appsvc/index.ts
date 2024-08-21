@@ -1,52 +1,25 @@
 import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as elasticloadbalancingv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
-import { Construct } from 'constructs';
 import * as aws from '@pulumi/aws';
-import { CfnOutput } from 'aws-cdk-lib';
 
 const defaultVpc = pulumi.output(aws.ec2.getVpc({ default: true }));
 const defaultVpcSubnets = defaultVpc.id.apply((id) => aws.ec2.getSubnetIds({ vpcId: id }));
-
-const group = new aws.ec2.SecurityGroup('web-secgrp', {
-    vpcId: defaultVpc.id,
-    description: 'Enable HTTP access',
-    ingress: [
-        {
-            protocol: 'tcp',
-            fromPort: 80,
-            toPort: 80,
-            cidrBlocks: ['0.0.0.0/0'],
-        },
-    ],
-    egress: [
-        {
-            protocol: '-1',
-            fromPort: 0,
-            toPort: 0,
-            cidrBlocks: ['0.0.0.0/0'],
-        },
-    ],
-});
-
-const alb = new aws.lb.LoadBalancer('app-lb', {
-    securityGroups: [group.id],
-    subnets: defaultVpcSubnets.ids,
-});
-
-const atg = new aws.lb.TargetGroup('app-tg', {
-    port: 80,
-    protocol: 'HTTP',
-    targetType: 'ip',
-    vpcId: defaultVpc.id,
-});
-
-// const rpa = new aws.iam.RolePolicyAttachment("task-exec-policy", {
-// 	role: role.name,
-// 	policyArn: "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-// });
+const azs = pulumi.output(
+    aws
+        .getAvailabilityZones({
+            filters: [
+                {
+                    name: 'opt-in-status',
+                    values: ['opt-in-not-required'],
+                },
+            ],
+        })
+        .then((az) => az.names),
+);
 
 class ClusterStack extends pulumicdk.Stack {
     serviceName: pulumi.Output<string>;
@@ -54,72 +27,66 @@ class ClusterStack extends pulumicdk.Stack {
     constructor(name: string) {
         super(name);
 
-        const cluster = new ecs.CfnCluster(this, 'clusterstack');
+        const vpc = ec2.Vpc.fromVpcAttributes(this, 'Vpc', {
+            vpcId: pulumicdk.asString(defaultVpc.id),
+            availabilityZones: pulumicdk.asList(azs),
+            publicSubnetIds: pulumicdk.asList(defaultVpcSubnets.ids),
+        });
+
+        const cluster = new ecs.Cluster(this, 'clusterstack', {
+            vpc,
+        });
 
         const role = new iam.Role(this, 'taskexecrole', {
             assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
         });
 
-        const listener = new elasticloadbalancingv2.CfnListener(this, 'web', {
-            loadBalancerArn: pulumicdk.asString(alb.arn),
+        const alb = new elbv2.ApplicationLoadBalancer(this, 'alb', {
+            vpc,
+        });
+
+        const webListener = alb.addListener('web', {
+            protocol: elbv2.ApplicationProtocol.HTTP,
             port: 80,
-            protocol: 'HTTP',
-            defaultActions: [
-                {
-                    type: 'forward',
-                    targetGroupArn: pulumicdk.asString(atg.arn),
-                },
-            ],
         });
 
-        const taskDefinition = new ecs.CfnTaskDefinition(this, 'apptask', {
+        const taskDefinition = new ecs.FargateTaskDefinition(this, 'apptask', {
             family: 'fargate-task-definition',
-            cpu: '256',
-            memory: '512',
-            networkMode: 'awsvpc',
-            requiresCompatibilities: ['FARGATE'],
-            executionRoleArn: role.roleArn,
-            containerDefinitions: [
+            cpu: 256,
+            memoryLimitMiB: 512,
+            executionRole: role,
+        });
+
+        taskDefinition.addContainer('my-app', {
+            image: ecs.ContainerImage.fromRegistry('nginx'),
+            portMappings: [
                 {
-                    name: 'my-app',
-                    image: 'nginx',
-                    portMappings: [
-                        {
-                            containerPort: 80,
-                            hostPort: 80,
-                            protocol: 'tcp',
-                        },
-                    ],
+                    containerPort: 80,
+                    hostPort: 80,
+                    protocol: ecs.Protocol.TCP,
                 },
             ],
         });
 
-        const service = new ecs.CfnService(this, 'appsvc', {
-            serviceName: 'app-svc-cloud-api',
-            cluster: cluster.attrArn,
+        const service = new ecs.FargateService(this, 'appsvc', {
+            cluster,
             desiredCount: 1,
-            launchType: 'FARGATE',
-            taskDefinition: taskDefinition.attrTaskDefinitionArn,
-            networkConfiguration: {
-                awsvpcConfiguration: {
-                    assignPublicIp: 'ENABLED',
-                    subnets: pulumicdk.asList(defaultVpcSubnets.ids),
-                    securityGroups: [pulumicdk.asString(group.id)],
-                },
-            },
-            loadBalancers: [
-                {
-                    targetGroupArn: pulumicdk.asString(atg.arn),
+            taskDefinition,
+            assignPublicIp: true,
+        });
+
+        webListener.addTargets('web', {
+            port: 80,
+            targets: [
+                service.loadBalancerTarget({
                     containerName: 'my-app',
-                    containerPort: 80,
-                },
+                }),
             ],
         });
-        service.addDependsOn(listener);
 
         this.synth();
 
-        this.serviceName = this.asOutput(service.attrName);
+        this.serviceName = this.asOutput(service.serviceName);
     }
 }
 

@@ -8,6 +8,7 @@ const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async event => {
+  console.log(`event: ${JSON.stringify(event)}`);
   const command = new PutCommand({
     TableName: process.env.TABLE_NAME,
     Item: {
@@ -21,5 +22,6 @@ exports.handler = async event => {
     return { statusCode: 500, body: 'Failed to connect: ' + JSON.stringify(err) };
   }
 
+  console.log("Successfully connected");
   return { statusCode: 200, body: 'Connected.' };
 };

@@ -5,6 +5,7 @@ import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { WebSocketLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Output } from '@pulumi/pulumi';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 
 class ChatAppStack extends pulumicdk.Stack {
     public readonly url: Output<string>;
@@ -27,7 +28,12 @@ class ChatAppStack extends pulumicdk.Stack {
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
+        const logs = new LogGroup(this, 'websocket-lambda-logs', {
+            removalPolicy: RemovalPolicy.DESTROY,
+            retention: RetentionDays.ONE_DAY,
+        });
         const connectFunc = new Function(this, 'connect-lambda', {
+            logGroup: logs,
             code: new AssetCode('./onconnect'),
             handler: 'app.handler',
             runtime: Runtime.NODEJS_LATEST,
@@ -41,6 +47,7 @@ class ChatAppStack extends pulumicdk.Stack {
         table.grantReadWriteData(connectFunc);
 
         const disconnectFunc = new Function(this, 'disconnect-lambda', {
+            logGroup: logs,
             code: new AssetCode('./ondisconnect'),
             handler: 'app.handler',
             runtime: Runtime.NODEJS_LATEST,
@@ -54,6 +61,7 @@ class ChatAppStack extends pulumicdk.Stack {
         table.grantReadWriteData(disconnectFunc);
 
         const messageFunc = new Function(this, 'message-lambda', {
+            logGroup: logs,
             code: new AssetCode('./sendmessage'),
             handler: 'app.handler',
             runtime: Runtime.NODEJS_LATEST,

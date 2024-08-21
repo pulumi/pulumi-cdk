@@ -14,6 +14,7 @@ const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async event => {
+  console.log(`event: ${JSON.stringify(event)}`);
   const command = new DeleteCommand({
     TableName: process.env.TABLE_NAME,
     Key: {
@@ -27,5 +28,6 @@ exports.handler = async event => {
     return { statusCode: 500, body: 'Failed to disconnect: ' + JSON.stringify(err) };
   }
 
+  console.log("Successfully disconnected");
   return { statusCode: 200, body: 'Disconnected.' };
 };

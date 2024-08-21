@@ -12,6 +12,7 @@ let apigwManagementApi;
 const { TABLE_NAME } = process.env;
 
 exports.handler = async event => {
+  console.log(`event: ${JSON.stringify(event)}`);
   let connectionData;
   const command = new ScanCommand({
     TableName: TABLE_NAME,
@@ -35,6 +36,7 @@ exports.handler = async event => {
   const postData = JSON.parse(event.body).data;
   
   const postCalls = connectionData.Items.map(async ({ connectionId }) => {
+    console.log(`Found connection ${connectionId}`);
     try {
       await apigwManagementApi.send(new PostToConnectionCommand({ ConnectionId: connectionId, Data: postData }));
     } catch (e) {
@@ -53,5 +55,6 @@ exports.handler = async event => {
     return { statusCode: 500, body: e.stack };
   }
 
+  console.log("Successfully sent message");
   return { statusCode: 200, body: 'Data sent.' };
 };
