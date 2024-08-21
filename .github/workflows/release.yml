@@ -65,7 +65,7 @@ jobs:
       - name: Install packages
         run: yarn install --frozen-lockfile
       - name: Run build
-        run: yarn run prepare && yarn run build
+        run: yarn run set-version && yarn run build
       - name: yarn link
         run: yarn link
       - name: set script-shell
