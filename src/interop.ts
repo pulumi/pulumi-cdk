@@ -23,7 +23,7 @@ const glob = global as any;
 
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
-        return txt.charAt(0).toLowerCase() + txt.substr(1);
+        return txt.charAt(0).toLowerCase() + txt.substring(1);
     });
 }
 
@@ -42,7 +42,7 @@ export class Metadata {
     }
     private readonly pulumiMetadata: PulumiMetadata;
     constructor() {
-        this.pulumiMetadata = readMetadata();
+        this.pulumiMetadata = this.readMetadata();
     }
 
     /**
@@ -64,6 +64,19 @@ export class Metadata {
 
     public types(): { [key: string]: PulumiType } {
         return this.pulumiMetadata.types;
+    }
+
+    /**
+     * Read the aws-native metadata.json file
+     *
+     * @returns the PulumiMetadata
+     */
+    private readMetadata(): PulumiMetadata {
+        const contents = fs.readFileSync(path.join(__dirname, '../schemas/aws-native-metadata.json'), {
+            encoding: 'utf-8',
+        });
+        const metadata: PulumiMetadata = JSON.parse(contents);
+        return metadata;
     }
 }
 
@@ -136,17 +149,6 @@ interface PulumiProperty extends PulumiPropertyItems {
 
 interface PulumiResource {
     inputs: { [key: string]: PulumiProperty };
-}
-
-/**
- * Read the aws-native metadata.json file
- *
- * @returns the PulumiMetadata
- */
-function readMetadata(): PulumiMetadata {
-    const contents = fs.readFileSync(path.join(__dirname, '../schemas/metadata.json'), { encoding: 'utf-8' });
-    const metadata: PulumiMetadata = JSON.parse(contents);
-    return metadata;
 }
 
 /**
@@ -265,6 +267,14 @@ function normalizeObject(cfnType: string, key: string[], value: any): any {
     }
 }
 
+/**
+ * normalize will take the resource properties for a specific CloudFormation resource and
+ * will covert those properties to be compatible with Pulumi properties.
+ *
+ * @param cfnType - The CloudFormation type to normalize properties for, e.g. AWS::S3::Bucket
+ * @param value - The resource properties
+ * @returns The normalized resource properties
+ */
 export function normalize(cfnType: string, value: any): any {
     if (!value) return value;
 
