@@ -8,18 +8,14 @@ import * as aws from '@pulumi/aws';
 
 const defaultVpc = pulumi.output(aws.ec2.getVpc({ default: true }));
 const defaultVpcSubnets = defaultVpc.id.apply((id) => aws.ec2.getSubnetIds({ vpcId: id }));
-const azs = pulumi.output(
-    aws
-        .getAvailabilityZones({
-            filters: [
-                {
-                    name: 'opt-in-status',
-                    values: ['opt-in-not-required'],
-                },
-            ],
-        })
-        .then((az) => az.names),
-);
+const azs = aws.getAvailabilityZonesOutput({
+    filters: [
+        {
+            name: 'opt-in-status',
+            values: ['opt-in-not-required'],
+        },
+    ],
+}).names;
 
 class ClusterStack extends pulumicdk.Stack {
     serviceName: pulumi.Output<string>;
