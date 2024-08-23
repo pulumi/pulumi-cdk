@@ -1,23 +1,27 @@
 // Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-const AWS = require('aws-sdk');
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 
-const ddb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
+const client = new DynamoDBClient({});
+const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async event => {
-  const putParams = {
+  console.log(`event: ${JSON.stringify(event)}`);
+  const command = new PutCommand({
     TableName: process.env.TABLE_NAME,
     Item: {
       connectionId: event.requestContext.connectionId
     }
-  };
+  });
 
   try {
-    await ddb.put(putParams).promise();
+    await ddb.send(command)
   } catch (err) {
     return { statusCode: 500, body: 'Failed to connect: ' + JSON.stringify(err) };
   }
 
+  console.log("Successfully connected");
   return { statusCode: 200, body: 'Connected.' };
 };
