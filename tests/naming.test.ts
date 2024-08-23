@@ -35,7 +35,7 @@ describe('Naming tests', () => {
         ];
 
         for (const c of cases) {
-            expect(normalize('', c.in)).toMatchObject(c.out);
+            expect(normalize(c.in)).toMatchObject(c.out);
         }
     });
     test('typeToken', () => {

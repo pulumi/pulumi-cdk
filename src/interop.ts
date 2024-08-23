@@ -34,15 +34,19 @@ class UnknownCfnType extends Error {
 }
 
 export class Metadata {
-    public static instance(): Metadata {
+    public static instance(provider: PulumiProvider): Metadata {
         if (glob.__pulumiMetadata == undefined) {
-            glob.__pulumiMetadata = new Metadata();
+            glob.__pulumiMetadata = new Metadata(provider);
         }
         return glob.__pulumiMetadata;
     }
     private readonly pulumiMetadata: PulumiMetadata;
-    constructor() {
-        this.pulumiMetadata = this.readMetadata();
+    constructor(provider: PulumiProvider) {
+        if (provider === PulumiProvider.AWS_NATIVE) {
+            this.pulumiMetadata = this.readMetadata();
+        } else {
+            throw new Error('AWS_NATIVE is the only supported pulumi provider');
+        }
     }
 
     /**
@@ -226,19 +230,30 @@ function isJsonType(
 }
 
 /**
+ * The pulumi provider to read the schema from
+ */
+export enum PulumiProvider {
+    // We currently only support aws-native provider resources
+    AWS_NATIVE = 'AWS_NATIVE',
+}
+
+/**
  * Recursively normalizes object types, with special handling for JSON types (which should not be normalized)
  *
- * @param cfnType The CloudFormation resource type being normalized (e.g. AWS::S3::Bucket)
  * @param key the property key as a list (including parent property names for nested properties)
  * @param value the value to normalize
+ * @param cfnType The CloudFormation resource type being normalized (e.g. AWS::S3::Bucket). If no value
+ * is provided then property conversion will be done without schema knowledge
+ * @param pulumiProvider The pulumi provider to read the schema from. If `cfnType` is provided then this defaults
+ * to PulumiProvider.AWS_NATIVE
  * @returns the normalized property value
  */
-function normalizeObject(cfnType: string, key: string[], value: any): any {
+function normalizeObject(key: string[], value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
     if (!value) return value;
     if (Array.isArray(value)) {
         const result: any[] = [];
         for (let i = 0; i < value.length; i++) {
-            result[i] = normalizeObject(cfnType, key, value[i]);
+            result[i] = normalizeObject(key, value[i], cfnType);
         }
         return result;
     }
@@ -248,40 +263,53 @@ function normalizeObject(cfnType: string, key: string[], value: any): any {
     }
 
     const result: any = {};
-    try {
-        const resource = Metadata.instance().findResource(cfnType);
-        if (isJsonType(key, resource.inputs, Metadata.instance().types())) {
-            return value;
-        }
+    if (cfnType) {
+        try {
+            const metadata = Metadata.instance(pulumiProvider ?? PulumiProvider.AWS_NATIVE);
+            const resource = metadata.findResource(cfnType);
+            if (isJsonType(key, resource.inputs, metadata.types())) {
+                return value;
+            }
 
-        Object.entries(value).forEach(([k, v]) => {
-            result[toSdkName(k)] = normalizeObject(cfnType, [...key, k], v);
-        });
-        return result;
-    } catch (e) {
-        // if there is an error just fall back to original processing
-        Object.entries(value).forEach(([k, v]) => {
-            result[toSdkName(k)] = normalizeObject(cfnType, [...key, k], v);
-        });
-        return result;
+            Object.entries(value).forEach(([k, v]) => {
+                result[toSdkName(k)] = normalizeObject([...key, k], v, cfnType);
+            });
+            return result;
+        } catch (e) {
+            debug(`error reading pulumi schema: ${e}`);
+            // fallback to processing without the schema
+            return normalizeGenericResourceObject(key, value);
+        }
     }
+    return normalizeGenericResourceObject(key, value);
+}
+
+function normalizeGenericResourceObject(key: string[], value: any): any {
+    const result: any = {};
+    Object.entries(value).forEach(([k, v]) => {
+        result[toSdkName(k)] = normalizeObject([...key, k], v);
+    });
+    return result;
 }
 
 /**
  * normalize will take the resource properties for a specific CloudFormation resource and
  * will covert those properties to be compatible with Pulumi properties.
  *
- * @param cfnType - The CloudFormation type to normalize properties for, e.g. AWS::S3::Bucket
- * @param value - The resource properties
+ * @param value - The resource properties to be normalized
+ * @param cfnType The CloudFormation resource type being normalized (e.g. AWS::S3::Bucket). If no value
+ * is provided then property conversion will be done without schema knowledge
+ * @param pulumiProvider The pulumi provider to read the schema from. If `cfnType` is provided then this defaults
+ * to PulumiProvider.AWS_NATIVE
  * @returns The normalized resource properties
  */
-export function normalize(cfnType: string, value: any): any {
+export function normalize(value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
     if (!value) return value;
 
     if (Array.isArray(value)) {
         const result: any[] = [];
         for (let i = 0; i < value.length; i++) {
-            result[i] = normalize(cfnType, value[i]);
+            result[i] = normalize(value[i], cfnType);
         }
         return result;
     }
@@ -292,7 +320,7 @@ export function normalize(cfnType: string, value: any): any {
 
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {
-        result[toSdkName(k)] = normalizeObject(cfnType, [k], v);
+        result[toSdkName(k)] = normalizeObject([k], v, cfnType, pulumiProvider);
     });
     return result;
 }

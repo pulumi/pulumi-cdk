@@ -26,7 +26,7 @@ export function mapToCfnResource(
     rawProps: any,
     options: pulumi.ResourceOptions,
 ): ResourceMapping {
-    const props = normalize(typeName, rawProps);
+    const props = normalize(rawProps, typeName);
     debug(`mapToCfnResource typeName: ${typeName} props: ${JSON.stringify(props)}`);
     switch (typeName) {
         case 'AWS::S3::Bucket':

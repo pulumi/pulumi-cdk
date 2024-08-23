@@ -47,7 +47,7 @@ export function mapToAwsResource(
     rawProps: any,
     options: pulumi.ResourceOptions,
 ): ResourceMapping | undefined {
-    const props = normalize(typeName, rawProps);
+    const props = normalize(rawProps);
     switch (typeName) {
         // ApiGatewayV2
         case 'AWS::ApiGatewayV2::Api':
