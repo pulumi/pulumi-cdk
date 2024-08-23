@@ -444,7 +444,6 @@ export function mapToAwsResource(
             const policy = new aws.iam.Policy(
                 logicalId,
                 {
-                    name: rawProps.PolicyName,
                     policy: rawProps.PolicyDocument,
                 },
                 options,

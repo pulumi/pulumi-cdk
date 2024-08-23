@@ -2,10 +2,8 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as path from 'path';
-// import { KeyPair } from 'cdk-ec2-key-pair';
 import * as pulumicdk from '@pulumi/cdk';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
-import { Construct } from 'constructs';
 
 export class Ec2CdkStack extends pulumicdk.Stack {
     constructor(id: string) {
@@ -47,7 +45,7 @@ export class Ec2CdkStack extends pulumicdk.Stack {
 
         // Use Latest Amazon Linux Image - CPU Type ARM64
         const ami = new ec2.AmazonLinuxImage({
-            generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
+            generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2023,
             cpuType: ec2.AmazonLinuxCpuType.ARM_64,
         });
 
@@ -57,7 +55,6 @@ export class Ec2CdkStack extends pulumicdk.Stack {
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
             machineImage: ami,
             securityGroup: securityGroup,
-            // keyName: key.keyPairName,
             role: role,
         });
 

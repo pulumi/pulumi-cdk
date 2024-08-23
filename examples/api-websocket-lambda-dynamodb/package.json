@@ -4,6 +4,7 @@
         "@types/node": "^10.0.0"
     },
     "dependencies": {
+        "@aws-sdk/client-apigatewaymanagementapi": "^3.632.0",
         "@aws-sdk/client-dynamodb": "^3.632.0",
         "@aws-sdk/lib-dynamodb": "^3.632.0",
         "@pulumi/aws": "^4.6.0",
