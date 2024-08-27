@@ -27,7 +27,6 @@
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
     "@pulumi/aws": "^6.32.0",
-    "@pulumi/aws-native": "^0.108.0",
     "@pulumi/docker": "^4.5.0",
     "@pulumi/pulumi": "^3.117.0",
     "@types/archiver": "^6.0.2",
@@ -47,13 +46,13 @@
   },
   "peerDependencies": {
     "@pulumi/aws": "^6.32.0",
-    "@pulumi/aws-native": "^0.108.0",
     "@pulumi/docker": "^4.5.0",
     "@pulumi/pulumi": "^3.117.0",
     "aws-cdk-lib": "^2.20.0",
     "constructs": "^10.0.111"
   },
   "dependencies": {
+    "@pulumi/aws-native": "0.121.0",
     "@types/glob": "^8.1.0",
     "archiver": "^7.0.1"
   },

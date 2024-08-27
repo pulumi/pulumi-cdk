@@ -82,9 +82,7 @@ describe('Cfn Resource Mappings', () => {
                         ContentTransformation: {
                             AwsLambda: {
                                 FunctionArn: 'arn',
-                                FunctionPayload: {
-                                    Key: 'value',
-                                },
+                                FunctionPayload: '{ "Key": "value" }',
                             },
                         },
                     },
@@ -103,23 +101,18 @@ describe('Cfn Resource Mappings', () => {
             {},
         );
         // THEN
-        expect(aws.s3objectlambda.AccessPoint).toHaveBeenCalledWith(
+        expect(CustomResource).toHaveBeenCalledWith(
+            'aws-native:s3objectlambda:AccessPoint',
             logicalId,
             {
-                name: undefined,
                 objectLambdaConfiguration: {
-                    allowedFeatures: undefined,
-                    cloudWatchMetricsEnabled: undefined,
-                    supportingAccessPoint: undefined,
                     transformationConfigurations: [
                         {
                             actions: ['abc'],
                             contentTransformation: {
                                 awsLambda: {
                                     functionArn: 'arn',
-                                    functionPayload: {
-                                        Key: 'value',
-                                    },
+                                    functionPayload: '{ "Key": "value" }',
                                 },
                             },
                         },
@@ -153,7 +146,8 @@ describe('Cfn Resource Mappings', () => {
             {},
         );
         // THEN
-        expect(aws.lambda.Function).toHaveBeenCalledWith(
+        expect(CustomResource).toHaveBeenCalledWith(
+            'aws-native:lambda:Function',
             logicalId,
             {
                 environment: {
@@ -214,7 +208,8 @@ describe('Cfn Resource Mappings', () => {
             {},
         );
         // THEN
-        expect(aws.iam.Role).toHaveBeenCalledWith(
+        expect(CustomResource).toHaveBeenCalledWith(
+            'aws-native:iam:Role',
             logicalId,
             {
                 description: 'desc',
@@ -283,7 +278,8 @@ describe('Cfn Resource Mappings', () => {
             {},
         );
         // THEN
-        expect(aws.s3.AccessPoint).toHaveBeenCalledWith(
+        expect(CustomResource).toHaveBeenCalledWith(
+            'aws-native:s3:AccessPoint',
             logicalId,
             {
                 policy: {
@@ -332,6 +328,32 @@ describe('Cfn Resource Mappings', () => {
             {},
         );
     });
+
+    test.each([
+        ['AWS::AppRunner::Service', 'aws-native:apprunner:Service'],
+        ['AWS::ECS::Cluster', 'aws-native:ecs:Cluster'],
+        ['AWS::ECS::TaskDefinition', 'aws-native:ecs:TaskDefinition'],
+    ])('successfully maps %p to %p', (cfnType, pulumiType) => {
+        // GIVEN
+        const logicalId = 'my-resource';
+        const cfnProps = {};
+
+        // WHEN
+        mapToCfnResource(
+            new CfnResource(new Stack(), logicalId, {
+                type: cfnType,
+                properties: cfnProps,
+            }),
+            logicalId,
+            cfnType,
+            cfnProps,
+            {},
+        );
+
+        // THEN
+        expect(CustomResource).toHaveBeenCalledWith(pulumiType, logicalId, {}, {});
+    });
+
     test('successfully maps ECS Service resource', () => {
         // GIVEN
         const cfnType = 'AWS::ECS::Service';

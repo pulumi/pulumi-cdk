@@ -12,25 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as cdk from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
 import { IConstruct } from 'constructs';
-import { moduleName, toSdkName, typeToken } from './naming';
+import { normalizeObject } from './pulumi-metadata';
+import { toSdkName, typeToken } from './naming';
+import { PulumiProvider } from './types';
 
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
-        return txt.charAt(0).toLowerCase() + txt.substr(1);
+        return txt.charAt(0).toLowerCase() + txt.substring(1);
     });
 }
 
-export function normalize(value: any): any {
+/**
+ * normalize will take the resource properties for a specific CloudFormation resource and
+ * will covert those properties to be compatible with Pulumi properties.
+ *
+ * @param value - The resource properties to be normalized
+ * @param cfnType The CloudFormation resource type being normalized (e.g. AWS::S3::Bucket). If no value
+ * is provided then property conversion will be done without schema knowledge
+ * @param pulumiProvider The pulumi provider to read the schema from. If `cfnType` is provided then this defaults
+ * to PulumiProvider.AWS_NATIVE
+ * @returns The normalized resource properties
+ */
+export function normalize(value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
     if (!value) return value;
 
     if (Array.isArray(value)) {
         const result: any[] = [];
         for (let i = 0; i < value.length; i++) {
-            result[i] = normalize(value[i]);
+            result[i] = normalize(value[i], cfnType);
         }
         return result;
     }
@@ -41,7 +53,7 @@ export function normalize(value: any): any {
 
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {
-        result[toSdkName(k)] = normalize(v);
+        result[toSdkName(k)] = normalizeObject([k], v, cfnType, pulumiProvider);
     });
     return result;
 }
@@ -93,28 +105,5 @@ export class CdkConstruct extends pulumi.ComponentResource {
 
     public done() {
         this.registerOutputs({});
-    }
-}
-
-export class CdkComponent extends pulumi.ComponentResource {
-    constructor(name: string, args: (stack: cdk.Stack) => void, opts?: pulumi.CustomResourceOptions) {
-        super('cdk:index:Component', name, args, opts);
-
-        const app = new cdk.App();
-        const stack = new cdk.Stack(app);
-        args(stack);
-
-        //debugger;
-        const template = app.synth().getStackByName(stack.stackName).template;
-        console.debug(`template: ${JSON.stringify(template)}`);
-        const resources = template.Resources;
-
-        Object.entries(resources).forEach(([key, value]) => {
-            const typeName = (value as any).Type;
-            const sourceProps = (value as any).Properties;
-            console.debug(`resource[${key}] Type:${typeName} props: ${sourceProps}`);
-            opts = opts || { parent: this };
-            new CfnResource(key, typeName, normalize(sourceProps), [], opts);
-        });
     }
 }

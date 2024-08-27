@@ -17,11 +17,12 @@ export function remapCloudControlResource(
     switch (typeName) {
         case 'AWS::ApplicationAutoScaling::ScalingPolicy':
             debug(`AWS::ApplicationAutoScaling::ScalingPolicy props: ${JSON.stringify(props)}`);
-            return new aws.appautoscaling.Policy(logicalId,
+            return new aws.appautoscaling.Policy(
+                logicalId,
                 {
                     resourceId: props.resourceId ?? props.scalingTargetId,
-                    scalableDimension: props.scalableDimension ?? "ecs:service:DesiredCount",
-                    serviceNamespace: props.serviceNamespace ?? "ecs",
+                    scalableDimension: props.scalableDimension ?? 'ecs:service:DesiredCount',
+                    serviceNamespace: props.serviceNamespace ?? 'ecs',
                     policyType: props.policyType,
                     stepScalingPolicyConfiguration: props.stepScalingPolicyConfiguration,
                     name: props.policyName,

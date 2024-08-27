@@ -9,7 +9,7 @@ interface target {
 }
 
 export function remapCloudControlResource(
-    element: CfnElement,
+    _element: CfnElement,
     logicalId: string,
     typeName: string,
     rawProps: any,
@@ -17,8 +17,7 @@ export function remapCloudControlResource(
 ): pulumi.CustomResource | undefined {
     const props = pulumicdk.interop.normalize(rawProps);
     switch (typeName) {
-        case 'AWS::Events::Rule':
-            const resources: { [key: string]: pulumi.CustomResource } = {};
+        case 'AWS::Events::Rule': {
             const rule = new aws.cloudwatch.EventRule(
                 logicalId,
                 {
@@ -43,17 +42,18 @@ export function remapCloudControlResource(
                 );
             }
             return rule;
+        }
         case 'AWS::Lambda::Permission':
             return new aws.lambda.Permission(
-                    logicalId,
-                    {
-                        action: props['action'],
-                        function: props['functionName'],
-                        principal: props['principal'],
-                        sourceArn: props['sourceArn'] ?? undefined,
-                    },
-                    options,
-                );
+                logicalId,
+                {
+                    action: props['action'],
+                    function: props['functionName'],
+                    principal: props['principal'],
+                    sourceArn: props['sourceArn'] ?? undefined,
+                },
+                options,
+            );
     }
 
     return undefined;

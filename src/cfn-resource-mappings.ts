@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { ecs, iam, apprunner, lambda, s3, s3objectlambda } from '@pulumi/aws-native';
+import { s3 } from '@pulumi/aws-native';
 import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { CfnResource, ResourceMapping, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
@@ -26,90 +26,13 @@ export function mapToCfnResource(
     rawProps: any,
     options: pulumi.ResourceOptions,
 ): ResourceMapping {
-    const props = normalize(rawProps);
+    const props = normalize(rawProps, typeName);
     debug(`mapToCfnResource typeName: ${typeName} props: ${JSON.stringify(props)}`);
     switch (typeName) {
-        case 'AWS::AppRunner::Service':
-            return new apprunner.Service(logicalId, props, options);
-        case 'AWS::ECS::Cluster':
-            return new ecs.Cluster(logicalId, props, options);
-        case 'AWS::ECS::TaskDefinition':
-            return new ecs.TaskDefinition(logicalId, props, options);
-        case 'AWS::IAM::Role': {
-            // policyDocument and assumeRolePolicyDocument are both Json types
-            // so we need the raw names
-            return new iam.Role(
-                logicalId,
-                {
-                    ...props,
-                    policies:
-                        rawProps.Policies === undefined
-                            ? undefined
-                            : rawProps.Policies.flatMap((policy: any) => {
-                                  return {
-                                      policyName: policy.PolicyName,
-                                      policyDocument: policy.PolicyDocument,
-                                  };
-                              }),
-                    assumeRolePolicyDocument: rawProps.AssumeRolePolicyDocument,
-                },
-                options,
-            );
-        }
-        case 'AWS::Lambda::Function':
-            // The Environment.Variables property is a Json type so we need
-            // the raw names
-            return new lambda.Function(
-                logicalId,
-                {
-                    ...props,
-                    environment:
-                        rawProps.Environment === undefined ? undefined : { variables: rawProps.Environment.Variables },
-                },
-                options,
-            );
-        case 'AWS::S3::AccessPoint':
-            // the policy property is a Json type so we need the raw names
-            return new s3.AccessPoint(
-                logicalId,
-                {
-                    ...props,
-                    policy: rawProps.Policy,
-                },
-                options,
-            );
         case 'AWS::S3::Bucket':
             // Lowercase the bucket name to comply with the Bucket resource's naming constraints, which only allow
             // lowercase letters.
             return new s3.Bucket(logicalId.toLowerCase(), props, options);
-        case 'AWS::S3ObjectLambda::AccessPoint': {
-            const transformations = rawProps.ObjectLambdaConfiguration.TransformationConfigurations;
-            return new s3objectlambda.AccessPoint(
-                logicalId,
-                {
-                    name: props.name,
-                    objectLambdaConfiguration: {
-                        allowedFeatures: props.objectLambdaConfiguration.allowedFeatures,
-                        cloudWatchMetricsEnabled: props.objectLambdaConfiguration.cloudWatchMetricsEnabled,
-                        supportingAccessPoint: props.objectLambdaConfiguration.supportingAccessPoint,
-                        transformationConfigurations:
-                            transformations === undefined
-                                ? undefined
-                                : transformations.map((config: any) => ({
-                                      actions: config.Actions,
-                                      contentTransformation: {
-                                          awsLambda: {
-                                              functionArn: config.ContentTransformation.AwsLambda.FunctionArn,
-                                              // functionPayload is a Json type so we need the raw value
-                                              functionPayload: config.ContentTransformation.AwsLambda.FunctionPayload,
-                                          },
-                                      },
-                                  })),
-                    },
-                },
-                options,
-            );
-        }
         default: {
             // Scrape the attributes off of the construct.
             //

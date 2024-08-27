@@ -62,7 +62,7 @@ export function mapToAwsResource(
                     requestParameters: rawProps.RequestParameters,
                     requestTemplates: rawProps.RequestTemplates,
                     responseParameters: rawProps.ResponseParameters,
-                    tlsConfig: maybe(props.tlsConfig, (_) => ({ insecureSkipVerification: true })),
+                    tlsConfig: maybe(props.tlsConfig, () => ({ insecureSkipVerification: true })),
                 },
                 options,
             );
@@ -450,7 +450,7 @@ export function mapToAwsResource(
             );
 
             for (let i = 0; i < (props.groups || []).length; i++) {
-                const attachment = new aws.iam.GroupPolicyAttachment(
+                new aws.iam.GroupPolicyAttachment(
                     `${logicalId}-${i}`,
                     {
                         group: props.groups[i],
@@ -460,7 +460,7 @@ export function mapToAwsResource(
                 );
             }
             for (let i = 0; i < (props.roles || []).length; i++) {
-                const attachment = new aws.iam.RolePolicyAttachment(
+                new aws.iam.RolePolicyAttachment(
                     `${logicalId}-${i}`,
                     {
                         role: props.roles[i],
@@ -470,7 +470,7 @@ export function mapToAwsResource(
                 );
             }
             for (let i = 0; i < (props.users || []).length; i++) {
-                const attachment = new aws.iam.UserPolicyAttachment(
+                new aws.iam.UserPolicyAttachment(
                     `${logicalId}-${i}`,
                     {
                         user: props.users[i],
@@ -517,10 +517,10 @@ export function mapToAwsResource(
 }
 
 function mapDynamoDBTable(
-    element: CfnElement,
+    _element: CfnElement,
     logicalId: string,
-    typeName: string,
-    rawProps: any,
+    _typeName: string,
+    _rawProps: any,
     props: any,
     options: pulumi.ResourceOptions,
 ): aws.dynamodb.Table {
