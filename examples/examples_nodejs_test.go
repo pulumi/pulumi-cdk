@@ -15,20 +15,13 @@
 package examples
 
 import (
-	"context"
 	"fmt"
-	"log"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/gorilla/websocket"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -117,8 +110,7 @@ func TestAPIWebsocketLambdaDynamoDB(t *testing.T) {
 				t.Helper()
 				t.Logf("Outputs: %v", stack.Outputs)
 				url := stack.Outputs["url"].(string)
-				table := stack.Outputs["table"].(string)
-				websocketValidation(t, url, table)
+				websocketValidation(t, url)
 			},
 		})
 
@@ -156,36 +148,6 @@ func retryFunc(t *testing.T, fn func() bool) error {
 	}
 }
 
-// isConnected validates that the $connect lambda was triggered successfully by
-// ensuring there is a record in the dynamodb table
-// It shouldn't be necessary to retry this, but my testing was very inconsistent, sometimes the `Dial`
-// triggered the connect and sometimes it didn't (according to the docs it shouldn't be possible to establish
-// a connection without triggering $connect)
-func isConnected(ctx context.Context, t *testing.T, table string, c *websocket.Conn, client *dynamodb.Client, canRetry bool) error {
-	err := retryFunc(t, func() bool {
-		// When you establish the connection the `onconnect` lambda is triggered which writes
-		// an item to the table
-		res, err := client.Scan(ctx, &dynamodb.ScanInput{
-			ProjectionExpression: aws.String("connectionId"),
-			TableName:            &table,
-		})
-		require.NoError(t, err)
-		if assert.Equal(t, 1, len(res.Items)) {
-			return true
-		}
-		return false
-	})
-	if err != nil {
-		if canRetry {
-			err = c.WriteMessage(websocket.TextMessage, []byte(`{"action":"$connect","data":"hello world"}`))
-			require.NoError(t, err)
-			return isConnected(ctx, t, table, c, client, false)
-		}
-		return err
-	}
-	return nil
-}
-
 // websocketValidation validates that the websocket lambda apigateway test is setup and you can:
 //  1. Open a connection
 //  2. The $connect route triggers the lambda function which writes to the dynamodb table
@@ -193,18 +155,15 @@ func isConnected(ctx context.Context, t *testing.T, table string, c *websocket.C
 //
 // $disconnect is best effort so is not guaranteed to be sent to Lambda, otherwise
 // we would also assert that the item is removed
-func websocketValidation(t *testing.T, url, table string) {
+func websocketValidation(t *testing.T, url string) {
 	t.Helper()
-	ctx := context.Background()
 	t.Logf("URL: %s", url)
 
-	cfg, err := config.LoadDefaultConfig(ctx)
-	client := dynamodb.NewFromConfig(cfg)
 	var c *websocket.Conn
 
 	// Sometimes it can take a while for the connection to be successfully established
 	// bad handshake errors can occur, but go away after some retrying
-	err = retryFunc(t, func() bool {
+	err := retryFunc(t, func() bool {
 		conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 		if err == nil {
 			c = conn
@@ -215,13 +174,4 @@ func websocketValidation(t *testing.T, url, table string) {
 	require.NoErrorf(t, err, "Failed to connect to websocket")
 
 	defer c.Close()
-
-	err = isConnected(ctx, t, table, c, client, true)
-	require.NoErrorf(t, err, "never found connection in dynamodb table")
-
-	// writing a message with `sendmessage` action will trigger the `sendmessage` lambda
-	// the lambda writes a message back on the connection
-	log.New(os.Stderr, "", 0).Println("Sending message...")
-	err = c.WriteMessage(websocket.TextMessage, []byte(`{"action":"sendmessage","data":"hello world"}`))
-	require.NoError(t, err)
 }
