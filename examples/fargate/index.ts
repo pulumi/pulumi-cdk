@@ -6,14 +6,11 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
 
-import { remapCloudControlResource } from './adapter';
-
 class FargateStack extends pulumicdk.Stack {
-
     loadBalancerDNS: pulumi.Output<string>;
 
     constructor(id: string, options?: pulumicdk.StackOptions) {
-        super(id, { ...options, remapCloudControlResource });
+        super(id, options);
 
         // Create VPC and Fargate Cluster
         // NOTE: Limit AZs to avoid reaching resource quotas
@@ -24,7 +21,7 @@ class FargateStack extends pulumicdk.Stack {
         const fargateService = new ecs_patterns.NetworkLoadBalancedFargateService(this, 'sample-app', {
             cluster,
             taskImageOptions: {
-                image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample")
+                image: ecs.ContainerImage.fromRegistry('amazon/amazon-ecs-sample'),
             },
         });
 
@@ -32,7 +29,7 @@ class FargateStack extends pulumicdk.Stack {
         fargateService.service.connections.securityGroups[0].addIngressRule(
             ec2.Peer.ipv4(vpc.vpcCidrBlock),
             ec2.Port.tcp(80),
-            "allow http inbound from vpc",
+            'allow http inbound from vpc',
         );
 
         // Setup AutoScaling policy
@@ -40,7 +37,7 @@ class FargateStack extends pulumicdk.Stack {
         scaling.scaleOnCpuUtilization('CpuScaling', {
             targetUtilizationPercent: 50,
             scaleInCooldown: Duration.seconds(60),
-            scaleOutCooldown: Duration.seconds(60)
+            scaleOutCooldown: Duration.seconds(60),
         });
 
         this.loadBalancerDNS = this.asOutput(fargateService.loadBalancer.loadBalancerDnsName);
@@ -48,8 +45,7 @@ class FargateStack extends pulumicdk.Stack {
         // Finalize the stack and deploy its resources.
         this.synth();
     }
-};
+}
 
 const stack = new FargateStack('fargatestack');
 export const loadBalancerURL = stack.loadBalancerDNS;
-

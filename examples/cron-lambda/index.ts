@@ -5,13 +5,12 @@ import * as aws_lambda from 'aws-cdk-lib/aws-lambda';
 import { Duration } from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
-import { remapCloudControlResource } from './adapter';
 
 class LambdaStack extends pulumicdk.Stack {
     lambdaArn: pulumi.Output<string>;
 
     constructor(id: string, options?: pulumicdk.StackOptions) {
-        super(id, { ...options, remapCloudControlResource });
+        super(id, options);
 
         // Use the AWS CDK Lambda Function API directly.
         const lambdaFn = new aws_lambda.Function(this, 'lambda', {
