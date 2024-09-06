@@ -46,6 +46,7 @@ func getBaseOptions(t *testing.T) integration.ProgramTestOptions {
 			"aws:region":        envRegion,
 			"aws-native:region": envRegion,
 		},
+		RetryFailedSteps:     true,
 		ExpectRefreshChanges: true,
 		SkipRefresh:          true,
 		Quick:                true,
