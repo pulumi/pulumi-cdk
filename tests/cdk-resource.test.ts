@@ -5,26 +5,50 @@ import { Stack } from '../src/stack';
 import { Construct } from 'constructs';
 import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Key } from 'aws-cdk-lib/aws-kms';
+import { ApplicationLoadBalancer } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import { Vpc } from 'aws-cdk-lib/aws-ec2';
+import { aws_ssm } from 'aws-cdk-lib';
 
 function setMocks(assertFn: (args: MockResourceArgs) => void) {
-    pulumi.runtime.setMocks({
-        call: (_args: MockCallArgs) => {
-            return {};
+    pulumi.runtime.setMocks(
+        {
+            call: (_args: MockCallArgs) => {
+                return {};
+            },
+            newResource: (args: MockResourceArgs): { id: string; state: any } => {
+                switch (args.type) {
+                    case 'cdk:index:Stack':
+                        return { id: '', state: {} };
+                    case 'cdk:construct:TestStack':
+                        return { id: '', state: {} };
+                    case 'cdk:index:Component':
+                        return { id: '', state: {} };
+                    default:
+                        assertFn(args);
+                        return {
+                            id: args.name + '_id',
+                            state: args.inputs,
+                        };
+                }
+            },
         },
-        newResource: (args: MockResourceArgs): { id: string; state: any } => {
-            assertFn(args);
-            return {
-                id: args.name + '_id',
-                state: args.inputs,
-            };
-        },
-    });
+        'project',
+        'stack',
+        false,
+    );
 }
 
-function testStack(fn: (scope: Construct) => void) {
+function testStack(fn: (scope: Construct) => void, done: any) {
     class TestStack extends Stack {
         constructor(id: string) {
-            super(id);
+            super(id, {
+                props: {
+                    env: {
+                        region: 'us-east-1',
+                        account: '12345678912',
+                    },
+                },
+            });
 
             fn(this);
 
@@ -32,14 +56,15 @@ function testStack(fn: (scope: Construct) => void) {
         }
     }
 
-    new TestStack('teststack');
+    const s = new TestStack('teststack');
+    s.urn.apply(() => done());
 }
 
 describe('CDK Construct tests', () => {
     // DynamoDB table was previously mapped to the `aws` provider
     // otherwise this level of testing wouldn't be necessary.
     // We also don't need to do this type of testing for _every_ resource
-    test('dynamodb table', () => {
+    test('dynamodb table', (done) => {
         setMocks((args) => {
             if (args.type === 'aws-native:dynamodb:Table') {
                 expect(args.inputs).toEqual({
@@ -116,6 +141,23 @@ describe('CDK Construct tests', () => {
                     type: dynamodb.AttributeType.STRING,
                 },
             });
-        });
+        }, done);
+    });
+
+    test('LoadBalancer dnsName attribute does not throw', (done) => {
+        setMocks((_args) => {});
+        testStack((scope) => {
+            const vpc = new Vpc(scope, 'vpc');
+            const alb = new ApplicationLoadBalancer(scope, 'alb', {
+                vpc,
+            });
+
+            new aws_ssm.StringParameter(scope, 'param', {
+                // Referencing the `dnsName` attribute of the LoadBalancer resource.
+                // This tests that the reference is correctly mapped, otherwise this test
+                // throws an error
+                stringValue: alb.loadBalancerDnsName,
+            });
+        }, done);
     });
 });

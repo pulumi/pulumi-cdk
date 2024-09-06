@@ -16,7 +16,6 @@ import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws';
 import { CfnElement } from 'aws-cdk-lib';
 import { ResourceMapping, normalize } from './interop';
-import { debug } from '@pulumi/pulumi/log';
 
 function maybe<T, U>(v: T | undefined, fn: (t: T) => U): U | undefined {
     if (v === undefined) {
