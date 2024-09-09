@@ -29,10 +29,14 @@ class AlbStack extends pulumicdk.Stack {
             port: 80,
         });
 
-        listener.addTargets('Target', {
+        const tg = listener.addTargets('Target', {
             port: 80,
             targets: [asg],
         });
+
+        // workaround for https://github.com/pulumi/pulumi-cdk/issues/62
+        const cfnTargetGroup = tg.node.defaultChild as elbv2.CfnTargetGroup;
+        cfnTargetGroup.overrideLogicalId('LBListenerTG');
 
         listener.connections.allowDefaultPortFromAnyIpv4('Open to the world');
 

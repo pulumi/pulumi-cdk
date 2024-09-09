@@ -36,7 +36,7 @@ import { mapToAwsResource } from './aws-resource-mappings';
 import { CloudFormationResource, getDependsOn } from './cfn';
 import { attributePropertyName, mapToCfnResource } from './cfn-resource-mappings';
 import { GraphBuilder } from './graph';
-import { CdkConstruct, JSII_RUNTIME_SYMBOL, ResourceMapping, firstToLower, getFqn } from './interop';
+import { CdkConstruct, JSII_RUNTIME_SYMBOL, ResourceMapping, getFqn } from './interop';
 import { OutputRepr, OutputMap } from './output-map';
 import { parseSub } from './sub';
 import { zipDirectory } from './zip';
@@ -580,8 +580,8 @@ class StackConverter extends ArtifactConverter {
     private resolveIntrinsic(fn: string, params: any) {
         switch (fn) {
             case 'Fn::GetAtt': {
-                debug(`Fn::GetAtt(${params[0]}, ${firstToLower(params[1])})`);
-                return this.resolveAtt(params[0], firstToLower(params[1]));
+                debug(`Fn::GetAtt(${params[0]}, ${params[1]})`);
+                return this.resolveAtt(params[0], params[1]);
             }
 
             case 'Fn::Join':
