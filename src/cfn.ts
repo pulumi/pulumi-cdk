@@ -29,6 +29,7 @@ export interface CloudFormationTemplate {
     Resources?: { [id: string]: CloudFormationResource };
     Conditions?: { [id: string]: any };
     Outputs?: { [id: string]: any };
+    Mappings?: { [id: string]: { [id: string]: { [id: string]: any } } }
 }
 
 export function getDependsOn(resource: CloudFormationResource): string[] | undefined {
