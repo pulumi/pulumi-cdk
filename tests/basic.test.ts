@@ -16,8 +16,46 @@ import * as pulumi from '@pulumi/pulumi';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Stack } from '../src/stack';
 import { Construct } from 'constructs';
-import * as mocks from './mocks';
 import * as output from '../src/output';
+import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
+
+function arn(service: string, type: string): string {
+    const [region, account] = service === 's3' ? ['', ''] : ['us-west-2', '123456789012'];
+    return `arn:aws:${service}:${region}:${account}:${type}`;
+}
+
+function setMocks() {
+    pulumi.runtime.setMocks({
+        call: (args: MockCallArgs) => {
+            return {};
+        },
+        newResource: (args: MockResourceArgs): { id: string; state: any } => {
+            console.error(args.type);
+            switch (args.type) {
+                case 'cdk:index:Stack':
+                    return { id: '', state: {} };
+                case 'cdk:construct:TestStack':
+                    return { id: '', state: {} };
+                case 'cdk:construct:teststack':
+                    return { id: '', state: {} };
+                case 'cdk:index:Component':
+                    return { id: '', state: {} };
+                case 'cdk:construct:Bucket':
+                    return { id: '', state: {} };
+                case 'aws-native:s3:Bucket':
+                    return {
+                        id: args.name,
+                        state: {
+                            ...args.inputs,
+                            arn: arn('s3', args.inputs['bucketName']),
+                        },
+                    };
+                default:
+                    throw new Error(`unrecognized resource type ${args.type}`);
+            }
+        },
+    });
+}
 
 function testStack(fn: (scope: Construct) => void, done: any) {
     class TestStack extends Stack {
@@ -36,7 +74,7 @@ function testStack(fn: (scope: Construct) => void, done: any) {
 
 describe('Basic tests', () => {
     beforeEach(() => {
-        mocks.setMocks();
+        setMocks();
     });
     test('Checking single resource registration', (done) => {
         testStack((adapter) => {

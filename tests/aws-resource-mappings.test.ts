@@ -1,6 +1,5 @@
 import { CfnResource, Stack } from 'aws-cdk-lib/core';
 import { mapToAwsResource } from '../src/aws-resource-mappings';
-import { setMocks } from './mocks';
 import * as aws from '@pulumi/aws';
 
 jest.mock('@pulumi/aws', () => {
@@ -31,9 +30,7 @@ afterEach(() => {
     jest.resetAllMocks();
 });
 
-beforeAll(() => {
-    setMocks();
-});
+beforeAll(() => {});
 
 describe('AWS Resource Mappings', () => {
     test('maps iam.Policy', () => {
@@ -56,16 +53,7 @@ describe('AWS Resource Mappings', () => {
             Users: ['my-user'],
         };
         // WHEN
-        mapToAwsResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToAwsResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(aws.iam.Policy).toHaveBeenCalledWith(
             logicalId,
@@ -131,16 +119,7 @@ describe('AWS Resource Mappings', () => {
             TlsConfig: { ServerNameToVerify: 'example.com' },
         };
         // WHEN
-        mapToAwsResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToAwsResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(aws.apigatewayv2.Integration).toHaveBeenCalledWith(
             logicalId,

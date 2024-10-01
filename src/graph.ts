@@ -87,6 +87,11 @@ function typeFromCfn(cfnType: string): string {
     return typeParts[2];
 }
 
+function typeFromFqn(fqn: string): string {
+    const fqnParts = fqn.split('.');
+    return fqnParts[fqnParts.length - 1];
+}
+
 export class GraphBuilder {
     // Allows for easy access to the GraphNode of a specific Construct
     constructNodes: Map<ConstructInfo, GraphNode>;
@@ -117,7 +122,7 @@ export class GraphBuilder {
             parent,
             id: tree.id,
             path: tree.path,
-            type: tree.id,
+            type: tree.constructInfo ? typeFromFqn(tree.constructInfo.fqn) : tree.id,
             attributes: tree.attributes,
         };
         const node: GraphNode = {

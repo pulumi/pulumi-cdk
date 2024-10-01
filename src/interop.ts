@@ -97,9 +97,9 @@ export function getFqn(construct: IConstruct): string | undefined {
 }
 
 export class CdkConstruct extends pulumi.ComponentResource {
-    constructor(name: string | undefined, construct: ConstructInfo, options?: pulumi.ComponentResourceOptions) {
-        const constructType = construct.type || 'Construct';
-        const constructName = name || construct.path;
+    constructor(name: string, type?: string, options?: pulumi.ComponentResourceOptions) {
+        const constructType = type ?? 'Construct';
+        const constructName = name;
 
         super(`cdk:construct:${constructType}`, constructName, {}, options);
     }

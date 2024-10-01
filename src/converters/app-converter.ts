@@ -76,9 +76,15 @@ export class StackConverter extends ArtifactConverter {
 
     public convert(dependencies: Set<ArtifactConverter>) {
         const dependencyGraphNodes = GraphBuilder.build(this.stack);
+
+        // process parameters first because resources will reference them
+        for (const [logicalId, value] of Object.entries(this.stack.parameters ?? {})) {
+            this.mapParameter(logicalId, value.Type, value.Default);
+        }
+
         for (const n of dependencyGraphNodes) {
             if (n.construct.id === this.stack.id) {
-                this.stackResource = new CdkConstruct(`${this.host.name}/${n.construct.path}`, n.construct, {
+                this.stackResource = new CdkConstruct(`${this.host.name}/${n.construct.path}`, n.construct.id, {
                     parent: this.host,
                     // TODO: we could do better here. Currently the stack depends on all assets, but really
                     // only individual resources should depend on individual assets
@@ -108,16 +114,13 @@ export class StackConverter extends ArtifactConverter {
                 //     // Do something with the condition
                 // }
             } else {
-                const r = new CdkConstruct(`${this.host.name}/${n.construct.path}`, n.construct, {
+                const r = new CdkConstruct(`${this.host.name}/${n.construct.path}`, n.construct.type, {
                     parent,
                 });
                 this.constructs.set(n.construct, r);
             }
         }
 
-        for (const [logicalId, value] of Object.entries(this.stack.parameters ?? {})) {
-            this.mapParameter(logicalId, value.Type, value.Default);
-        }
         // Register the outputs as outputs of the component resource.
         for (const [outputId, args] of Object.entries(this.stack.outputs ?? {})) {
             this.host.registerOutput(outputId, this.processIntrinsics(args.Value));

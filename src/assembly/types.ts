@@ -1,3 +1,4 @@
+import { ConstructInfo } from 'aws-cdk-lib/core/lib/private/runtime-info';
 import { DockerImageManifestEntry, FileManifestEntry } from 'cdk-assets';
 
 export type StackAsset = FileManifestEntry | DockerImageManifestEntry;
@@ -39,4 +40,6 @@ export interface ConstructTree {
      * Attributes of the construct
      */
     readonly attributes?: { [key: string]: any };
+
+    readonly constructInfo?: ConstructInfo;
 }

@@ -38,6 +38,7 @@ class StackComponent extends pulumi.ComponentResource implements IStackComponent
 
         const assembly = stack.app.synth();
         this.assemblyDir = assembly.directory;
+        debug(`ASSEMBLY_DIR: ${this.assemblyDir}`);
 
         debug(JSON.stringify(debugAssembly(assembly)));
 
