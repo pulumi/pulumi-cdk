@@ -21,8 +21,8 @@
     }
   },
   "resolutions": {
-   "wrap-ansi": "7.0.0",
-   "string-width": "4.1.0"
+    "wrap-ansi": "7.0.0",
+    "string-width": "4.1.0"
   },
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
@@ -30,19 +30,20 @@
     "@pulumi/docker": "^4.5.0",
     "@pulumi/pulumi": "^3.117.0",
     "@types/archiver": "^6.0.2",
+    "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.2",
     "@types/node": "^20.12.13",
     "aws-cdk-lib": "2.149.0",
     "constructs": "^10.0.111",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
-    "typescript-eslint": "^7.16.1",
     "jest": "^29.5.0",
     "jest-junit": "^15",
     "prettier": "^2.6.2",
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.16.1"
   },
   "peerDependencies": {
     "@pulumi/aws": "^6.32.0",
@@ -54,7 +55,9 @@
   "dependencies": {
     "@pulumi/aws-native": "0.121.0",
     "@types/glob": "^8.1.0",
-    "archiver": "^7.0.1"
+    "archiver": "^7.0.1",
+    "cdk-assets": "^2.154.8",
+    "fs-extra": "^11.2.0"
   },
   "scripts": {
     "set-version": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",

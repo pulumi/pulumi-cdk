@@ -18,6 +18,7 @@ import { IConstruct } from 'constructs';
 import { normalizeObject } from './pulumi-metadata';
 import { toSdkName, typeToken } from './naming';
 import { PulumiProvider } from './types';
+import { ConstructInfo } from './graph';
 
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
@@ -96,9 +97,9 @@ export function getFqn(construct: IConstruct): string | undefined {
 }
 
 export class CdkConstruct extends pulumi.ComponentResource {
-    constructor(name: string | undefined, construct: IConstruct, options?: pulumi.ComponentResourceOptions) {
-        const constructType = construct.constructor.name || 'Construct';
-        const constructName = name || construct.node.path;
+    constructor(name: string | undefined, construct: ConstructInfo, options?: pulumi.ComponentResourceOptions) {
+        const constructType = construct.type || 'Construct';
+        const constructName = name || construct.path;
 
         super(`cdk:construct:${constructType}`, constructName, {}, options);
     }
