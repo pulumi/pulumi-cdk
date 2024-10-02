@@ -30,7 +30,6 @@ function setMocks() {
             return {};
         },
         newResource: (args: MockResourceArgs): { id: string; state: any } => {
-            console.error(args.type);
             switch (args.type) {
                 case 'cdk:index:Stack':
                     return { id: '', state: {} };
