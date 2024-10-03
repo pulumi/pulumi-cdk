@@ -41,9 +41,18 @@ export abstract class ArtifactConverter {
  */
 export class FileAssetManifestConverter extends ArtifactConverter {
     private _file?: aws.s3.BucketObjectv2;
+    public _id?: string;
+    public resourceType: string = 'aws:s3:BucketObjectv2';
 
     constructor(host: IStackComponent, readonly manifest: FileAssetManifest) {
         super(host);
+    }
+
+    public get id(): string {
+        if (!this._id) {
+            throw new Error('must call convert before accessing file');
+        }
+        return this._id;
     }
 
     /**
@@ -62,6 +71,7 @@ export class FileAssetManifestConverter extends ArtifactConverter {
     public convert(): void {
         const name = this.manifest.id.assetId;
         const id = this.manifest.id.destinationId;
+        this._id = `${this.host.name}/${name}/${id}`;
 
         const outputPath =
             this.manifest.packaging === FileAssetPackaging.FILE
@@ -69,7 +79,7 @@ export class FileAssetManifestConverter extends ArtifactConverter {
                 : zipDirectory(this.manifest.path, this.manifest.path + '.zip');
 
         this._file = new aws.s3.BucketObjectv2(
-            `${this.host.name}/${name}/${id}`,
+            this._id,
             {
                 source: outputPath,
                 bucket: this.resolvePlaceholders(this.manifest.destination.bucketName),

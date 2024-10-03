@@ -35,7 +35,7 @@ export class AppConverter {
 
     convert() {
         for (const stackManifest of this.manifestReader.stackManifests) {
-            const stackConverter = new StackConverter(this, stackManifest);
+            const stackConverter = new StackConverter(this.host, stackManifest);
             this.stacks.set(stackManifest.id, stackConverter);
             this.convertStackManifest(stackManifest);
         }
@@ -70,8 +70,8 @@ export class StackConverter extends ArtifactConverter {
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
     stackResource!: CdkConstruct;
 
-    constructor(app: AppConverter, readonly stack: StackManifest) {
-        super(app.host);
+    constructor(host: IStackComponent, readonly stack: StackManifest) {
+        super(host);
     }
 
     public convert(dependencies: Set<ArtifactConverter>) {
@@ -138,6 +138,7 @@ export class StackConverter extends ArtifactConverter {
         const dependsOn: pulumi.Resource[] = [];
         for (const d of dependencies) {
             if (d instanceof FileAssetManifestConverter) {
+                this.resources.set(d.id, { resource: d.file, resourceType: d.resourceType });
                 dependsOn.push(d.file);
             }
             // TODO: handle docker images
@@ -262,7 +263,7 @@ export class StackConverter extends ArtifactConverter {
                 return lift(([delim, str]) => str.split(delim), this.processIntrinsics(params));
 
             case 'Fn::Base64':
-                return lift(([str]) => Buffer.from(str).toString('base64'), this.processIntrinsics(params));
+                return lift((str) => Buffer.from(str).toString('base64'), this.processIntrinsics(params));
 
             case 'Fn::Cidr':
                 return lift(
