@@ -113,43 +113,25 @@ describe('cloud assembly manifest reader', () => {
         mockfs.restore();
     });
 
-    test('can read manifest from file', () => {
-        expect(() => {
-            AssemblyManifestReader.fromFile(manifestFile);
-        }).not.toThrow();
-    });
-
-    test('throws if manifest not found', () => {
-        expect(() => {
-            AssemblyManifestReader.fromFile('some-other-file');
-        }).toThrow(/Cannot read manifest 'some-other-file':/);
-    });
-
     test('throws if manifest file not found', () => {
         expect(() => {
-            AssemblyManifestReader.fromPath('some-other-file');
-        }).toThrow(/Cannot read manifest at 'some-other-file':/);
-    });
-
-    test('can read manifest file from path', () => {
-        expect(() => {
-            AssemblyManifestReader.fromPath(manifestFile);
-        }).not.toThrow();
+            AssemblyManifestReader.fromDirectory('some-other-file');
+        }).toThrow(/Cannot read manifest at 'some-other-file\/manifest.json'/);
     });
 
     test('can read manifest from path', () => {
         expect(() => {
-            AssemblyManifestReader.fromPath(path.dirname(manifestFile));
+            AssemblyManifestReader.fromDirectory(path.dirname(manifestFile));
         }).not.toThrow();
     });
 
     test('fromPath sets directory correctly', () => {
-        const manifest = AssemblyManifestReader.fromPath(path.dirname(manifestFile));
+        const manifest = AssemblyManifestReader.fromDirectory(path.dirname(manifestFile));
         expect(manifest.directory).toEqual('/tmp/foo/bar/does/not/exist');
     });
 
     test('can get stacks from manifest', () => {
-        const manifest = AssemblyManifestReader.fromFile(manifestFile);
+        const manifest = AssemblyManifestReader.fromDirectory(path.dirname(manifestFile));
 
         expect(manifest.stackManifests[0]).toEqual({
             assets: expect.anything(),

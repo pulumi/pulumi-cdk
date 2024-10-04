@@ -1,6 +1,6 @@
 import { AppConverter, StackConverter } from '../../src/converters/app-converter';
 import { Stack } from 'aws-cdk-lib/core';
-import { IStackComponent, StackOptions } from '../../src/types';
+import { StackComponentResource, StackOptions } from '../../src/types';
 import * as path from 'path';
 import * as mockfs from 'mock-fs';
 import * as pulumi from '@pulumi/pulumi';
@@ -54,7 +54,7 @@ function setMocks() {
     );
 }
 
-class MockStackComponent extends IStackComponent {
+class MockStackComponent extends StackComponentResource {
     public readonly name = 'stack';
     public readonly assemblyDir: string;
     public stack: Stack;

@@ -1,6 +1,6 @@
 import { FileAssetPackaging, Stack } from 'aws-cdk-lib/core';
 import { FileAssetManifestConverter } from '../../src/converters/artifact-converter';
-import { IStackComponent, StackOptions } from '../../src/types';
+import { StackComponentResource, StackOptions } from '../../src/types';
 import { FileAssetManifest } from '../../src/assembly';
 import * as pulumi from '@pulumi/pulumi';
 import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
@@ -45,7 +45,7 @@ function setMocks(assertFn: (args: MockResourceArgs) => void) {
     );
 }
 
-class MockStackComponent extends IStackComponent {
+class MockStackComponent extends StackComponentResource {
     public readonly name = 'stack';
     public readonly assemblyDir: string = 'dir';
     public stack: Stack;

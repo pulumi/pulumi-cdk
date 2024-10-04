@@ -1,7 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import { AssemblyManifestReader, StackManifest } from '../assembly';
 import { ConstructInfo, GraphBuilder } from '../graph';
-import { IStackComponent, lift, Mapping } from '../types';
+import { StackComponentResource, lift, Mapping } from '../types';
 import { ArtifactConverter, FileAssetManifestConverter } from './artifact-converter';
 import { CdkConstruct, ResourceMapping } from '../interop';
 import { debug } from '@pulumi/pulumi/log';
@@ -19,6 +19,7 @@ import { attributePropertyName, mapToCfnResource } from '../cfn-resource-mapping
 import { CloudFormationResource, getDependsOn } from '../cfn';
 import { OutputMap, OutputRepr } from '../output-map';
 import { parseSub } from '../sub';
+import { getPartition } from '@pulumi/aws-native/getPartition';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -29,8 +30,8 @@ export class AppConverter {
 
     public readonly manifestReader: AssemblyManifestReader;
 
-    constructor(readonly host: IStackComponent) {
-        this.manifestReader = AssemblyManifestReader.fromPath(host.assemblyDir);
+    constructor(readonly host: StackComponentResource) {
+        this.manifestReader = AssemblyManifestReader.fromDirectory(host.assemblyDir);
     }
 
     convert() {
@@ -70,7 +71,7 @@ export class StackConverter extends ArtifactConverter {
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
     stackResource!: CdkConstruct;
 
-    constructor(host: IStackComponent, readonly stack: StackManifest) {
+    constructor(host: StackComponentResource, readonly stack: StackManifest) {
         super(host);
     }
 
@@ -84,17 +85,24 @@ export class StackConverter extends ArtifactConverter {
 
         for (const n of dependencyGraphNodes) {
             if (n.construct.id === this.stack.id) {
-                this.stackResource = new CdkConstruct(`${this.host.name}/${n.construct.path}`, n.construct.id, {
-                    parent: this.host,
-                    // TODO: we could do better here. Currently the stack depends on all assets, but really
-                    // only individual resources should depend on individual assets
-                    dependsOn: this.stackDependsOn(dependencies),
-                });
+                this.stackResource = new CdkConstruct(
+                    `${this.stackComponent.name}/${n.construct.path}`,
+                    n.construct.id,
+                    {
+                        parent: this.stackComponent,
+                        // TODO: we could do better here. Currently the stack depends on all assets, but really
+                        // only individual resources should depend on individual assets
+                        dependsOn: this.stackDependsOn(dependencies),
+                    },
+                );
                 this.constructs.set(n.construct, this.stackResource);
                 continue;
             }
 
-            const parent = this.constructs.get(n.construct.parent!)!;
+            if (!n.construct.parent || !this.constructs.has(n.construct.parent)) {
+                throw new Error(`Construct at path ${n.construct.path} should be created in the scope of a Stack`);
+            }
+            const parent = this.constructs.get(n.construct.parent)!;
             if (n.resource && n.logicalId) {
                 const cfn = n.resource;
                 debug(`Processing node with template: ${JSON.stringify(cfn)}`);
@@ -114,7 +122,7 @@ export class StackConverter extends ArtifactConverter {
                 //     // Do something with the condition
                 // }
             } else {
-                const r = new CdkConstruct(`${this.host.name}/${n.construct.path}`, n.construct.type, {
+                const r = new CdkConstruct(`${this.stackComponent.name}/${n.construct.path}`, n.construct.type, {
                     parent,
                 });
                 this.constructs.set(n.construct, r);
@@ -123,7 +131,7 @@ export class StackConverter extends ArtifactConverter {
 
         // Register the outputs as outputs of the component resource.
         for (const [outputId, args] of Object.entries(this.stack.outputs ?? {})) {
-            this.host.registerOutput(outputId, this.processIntrinsics(args.Value));
+            this.stackComponent.registerOutput(outputId, this.processIntrinsics(args.Value));
         }
 
         for (let i = dependencyGraphNodes.length - 1; i >= 0; i--) {
@@ -169,7 +177,7 @@ export class StackConverter extends ArtifactConverter {
             return key;
         }
 
-        this.parameters.set(logicalId, parameterValue(this.host));
+        this.parameters.set(logicalId, parameterValue(this.stackComponent));
     }
 
     private mapResource(
@@ -178,8 +186,8 @@ export class StackConverter extends ArtifactConverter {
         props: any,
         options: pulumi.ResourceOptions,
     ): ResourceMapping {
-        if (this.host.options?.remapCloudControlResource !== undefined) {
-            const res = this.host.options.remapCloudControlResource(logicalId, typeName, props, options);
+        if (this.stackComponent.options?.remapCloudControlResource !== undefined) {
+            const res = this.stackComponent.options.remapCloudControlResource(logicalId, typeName, props, options);
             if (res !== undefined) {
                 debug(`remapped ${logicalId}`);
                 return res;
@@ -192,7 +200,9 @@ export class StackConverter extends ArtifactConverter {
             return awsMapping;
         }
 
-        return mapToCfnResource(logicalId, typeName, props, options);
+        const cfnMapping = mapToCfnResource(logicalId, typeName, props, options);
+        debug(`mapped ${logicalId} to native AWS resource(s)`);
+        return cfnMapping;
     }
 
     private processOptions(resource: CloudFormationResource, parent: pulumi.Resource): pulumi.ResourceOptions {
@@ -205,12 +215,16 @@ export class StackConverter extends ArtifactConverter {
 
     /** @internal */
     asOutputValue<T>(v: T): T {
-        const value = this.host.stack.resolve(v);
+        const value = this.stackComponent.stack.resolve(v);
         return this.processIntrinsics(value) as T;
     }
 
     private processIntrinsics(obj: any): any {
-        debug(`Processing intrinsics for ${JSON.stringify(obj)}`);
+        try {
+            debug(`Processing intrinsics for ${JSON.stringify(obj)}`);
+        } catch {
+            // just don't log
+        }
         if (typeof obj === 'string') {
             return obj;
         }
@@ -324,22 +338,15 @@ export class StackConverter extends ArtifactConverter {
 
         switch (target) {
             case 'AWS::AccountId':
-                return getAccountId({ parent: this.host }).then((r) => r.accountId);
+                return getAccountId({ parent: this.stackComponent }).then((r) => r.accountId);
             case 'AWS::NoValue':
                 return undefined;
             case 'AWS::Partition':
-                // TODO: this is tricky b/c it seems to be context-dependent. From the docs:
-                //
-                //     Returns the partition that the resource is in. For standard AWS Regions, the partition is aws.
-                //     For resources in other partitions, the partition is aws-partitionname.
-                //
-                // For now, just return 'aws'. In the future, we may need to keep track of the type of the resource
-                // we're walking and then ask the provider via an invoke.
-                return 'aws';
+                return getPartition({ parent: this.stackComponent }).then((p) => p.partition);
             case 'AWS::Region':
-                return getRegion({ parent: this.host }).then((r) => r.region);
+                return getRegion({ parent: this.stackComponent }).then((r) => r.region);
             case 'AWS::URLSuffix':
-                return getUrlSuffix({ parent: this.host }).then((r) => r.urlSuffix);
+                return getUrlSuffix({ parent: this.stackComponent }).then((r) => r.urlSuffix);
             case 'AWS::NotificationARNs':
             case 'AWS::StackId':
             case 'AWS::StackName':

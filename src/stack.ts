@@ -15,10 +15,10 @@ import * as cdk from 'aws-cdk-lib';
 import * as cx from 'aws-cdk-lib/cx-api';
 import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
-import { IStackComponent, StackOptions } from './types';
+import { StackComponentResource, StackOptions } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 
-class StackComponent extends pulumi.ComponentResource implements IStackComponent {
+class StackComponent extends pulumi.ComponentResource implements StackComponentResource {
     /** @internal */
     name: string;
 

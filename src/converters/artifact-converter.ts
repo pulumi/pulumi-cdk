@@ -4,13 +4,13 @@ import { getAccountId, getPartition, getRegion } from '@pulumi/aws-native';
 import { FileAssetManifest } from '../assembly';
 import { FileAssetPackaging } from 'aws-cdk-lib/cloud-assembly-schema';
 import { zipDirectory } from '../zip';
-import { IStackComponent } from '../types';
+import { StackComponentResource } from '../types';
 
 /**
  * ArtifactConverter
  */
 export abstract class ArtifactConverter {
-    constructor(protected readonly host: IStackComponent) {}
+    constructor(protected readonly stackComponent: StackComponentResource) {}
 
     /**
      * Takes a string and resolves any CDK environment placeholders (e.g. accountId, region, partition)
@@ -19,7 +19,7 @@ export abstract class ArtifactConverter {
      * @returns The string with the placeholders fully resolved
      */
     protected resolvePlaceholders(s: string): Promise<string> {
-        const host = this.host;
+        const host = this.stackComponent;
         return cx.EnvironmentPlaceholders.replaceAsync(s, {
             async region(): Promise<string> {
                 return getRegion({ parent: host }).then((r) => r.region);
@@ -44,7 +44,7 @@ export class FileAssetManifestConverter extends ArtifactConverter {
     public _id?: string;
     public resourceType: string = 'aws:s3:BucketObjectv2';
 
-    constructor(host: IStackComponent, readonly manifest: FileAssetManifest) {
+    constructor(host: StackComponentResource, readonly manifest: FileAssetManifest) {
         super(host);
     }
 
@@ -71,7 +71,7 @@ export class FileAssetManifestConverter extends ArtifactConverter {
     public convert(): void {
         const name = this.manifest.id.assetId;
         const id = this.manifest.id.destinationId;
-        this._id = `${this.host.name}/${name}/${id}`;
+        this._id = `${this.stackComponent.name}/${name}/${id}`;
 
         const outputPath =
             this.manifest.packaging === FileAssetPackaging.FILE
@@ -85,7 +85,7 @@ export class FileAssetManifestConverter extends ArtifactConverter {
                 bucket: this.resolvePlaceholders(this.manifest.destination.bucketName),
                 key: this.resolvePlaceholders(this.manifest.destination.objectKey),
             },
-            { parent: this.host },
+            { parent: this.stackComponent },
         );
     }
 }

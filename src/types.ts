@@ -41,11 +41,34 @@ export enum PulumiProvider {
     AWS_NATIVE = 'aws-native',
 }
 
-export abstract class IStackComponent extends pulumi.ComponentResource {
+/**
+ * StackComponentResource is the underlying pulumi ComponentResource for each pulumicdk.Stack
+ * This exists because pulumicdk.Stack needs to extend cdk.Stack, but we also want it to represent a
+ * pulumi ComponentResource so we create this `StackComponentResource` to hold the pulumi logic
+ */
+export abstract class StackComponentResource extends pulumi.ComponentResource {
     public abstract name: string;
+
+    /**
+     * The directory to which cdk synthesizes the CloudAssembly
+     */
     public abstract assemblyDir: string;
+
+    /**
+     * The Stack that creates this component
+     */
     public abstract stack: Stack;
+
+    /**
+     * Any stack options that are supplied by the user
+     * @internal
+     */
     public abstract options?: StackOptions;
+
+    /**
+     * Register pulumi outputs to the stack
+     * @internal
+     */
     abstract registerOutput(outputId: string, output: any): void;
 
     constructor(id: string, options?: pulumi.ComponentResourceOptions) {

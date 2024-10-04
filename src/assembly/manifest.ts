@@ -1,53 +1,33 @@
 import * as path from 'path';
-import {
-    AssemblyManifest,
-    Manifest,
-    ArtifactType,
-    AwsCloudFormationStackProperties,
-    ArtifactMetadataEntryType,
-} from '@aws-cdk/cloud-assembly-schema';
+import { AssemblyManifest, Manifest, ArtifactType, ArtifactMetadataEntryType } from '@aws-cdk/cloud-assembly-schema';
 import * as fs from 'fs-extra';
 import { CloudFormationTemplate } from '../cfn';
 import { ArtifactManifest, AssetManifestProperties, LogicalIdMetadataEntry } from 'aws-cdk-lib/cloud-assembly-schema';
-import { CloudAssembly, CloudFormationStackArtifact } from 'aws-cdk-lib/cx-api';
 import { AssetManifest, DockerImageManifestEntry, FileManifestEntry } from 'cdk-assets';
 import { StackManifest } from './stack';
 import { ConstructTree, StackAsset, StackMetadata } from './types';
+import { warn } from '@pulumi/pulumi/log';
 
 /**
  * Reads a Cloud Assembly manifest
  */
 export class AssemblyManifestReader {
-    public static readonly DEFAULT_FILENAME = 'manifest.json';
-
-    /**
-     * Reads a Cloud Assembly manifest from a file
-     */
-    public static fromFile(fileName: string): AssemblyManifestReader {
-        try {
-            const obj = Manifest.loadAssemblyManifest(fileName);
-            return new AssemblyManifestReader(path.dirname(fileName), obj);
-        } catch (e: any) {
-            throw new Error(`Cannot read manifest '${fileName}': ${e.message}`);
-        }
-    }
+    private static readonly DEFAULT_FILENAME = 'manifest.json';
 
     /**
      * Reads a Cloud Assembly manifest from a file or a directory
      * If the given filePath is a directory then it will look for
      * a file within the directory with the DEFAULT_FILENAME
      */
-    public static fromPath(filePath: string): AssemblyManifestReader {
-        let st;
+    public static fromDirectory(dir: string): AssemblyManifestReader {
+        const filePath = path.join(dir, AssemblyManifestReader.DEFAULT_FILENAME);
         try {
-            st = fs.statSync(filePath);
+            fs.statSync(dir);
+            const obj = Manifest.loadAssemblyManifest(filePath);
+            return new AssemblyManifestReader(dir, obj);
         } catch (e: any) {
-            throw new Error(`Cannot read manifest at '${filePath}': ${e.message}`);
+            throw new Error(`Cannot read manifest at '${filePath}': ${e}`);
         }
-        if (st.isDirectory()) {
-            return AssemblyManifestReader.fromFile(path.join(filePath, AssemblyManifestReader.DEFAULT_FILENAME));
-        }
-        return AssemblyManifestReader.fromFile(filePath);
     }
 
     /**
@@ -55,35 +35,46 @@ export class AssemblyManifestReader {
      */
     public readonly directory: string;
 
-    private readonly assembly: CloudAssembly;
-    private readonly stacks = new Map<string, CloudFormationStackArtifact>();
     private readonly _stackManifests = new Map<string, StackManifest>();
     private readonly tree: ConstructTree;
 
     constructor(directory: string, private readonly manifest: AssemblyManifest) {
         this.directory = directory;
-        this.assembly = new CloudAssembly(directory, {
-            // we don't need version checking / version checking would mean we would have to
-            // publish a new version of the library everytime the cdk version increases
-            skipVersionCheck: true,
-        });
-        this.tree = fs.readJsonSync(path.resolve(this.directory, 'tree.json')).tree;
-        if (!this.tree.children) {
-            throw new Error('Invalid tree.json found');
+        try {
+            const fullTree = fs.readJsonSync(path.resolve(this.directory, 'tree.json'));
+            if (!fullTree.tree || !fullTree.tree.children) {
+                throw new Error(`Invalid tree.json found ${JSON.stringify(fullTree)}`);
+            }
+            this.tree = fullTree.tree;
+            this.renderStackManifests();
+        } catch (e) {
+            throw new Error(`Could not process CDK Cloud Assembly directory: ${e}`);
         }
-        this.renderStackManifest();
     }
 
-    private renderStackManifest() {
+    /**
+     * Renders the StackManifests for all the stacks in the CloudAssembly
+     * - Finds all CloudFormation stacks in the assembly
+     * - Reads the stack template files
+     * - Creates a metadata map of constructPath to logicalId for all resources in the stack
+     * - Finds all assets that the stack depends on
+     */
+    private renderStackManifests() {
         for (const [artifactId, artifact] of Object.entries(this.manifest.artifacts ?? {})) {
             if (artifact.type === ArtifactType.AWS_CLOUDFORMATION_STACK) {
-                const stackArtifact = this.assembly.getStackArtifact(artifactId);
-                this.stacks.set(artifactId, stackArtifact);
                 const metadata: StackMetadata = {};
-                const props = artifact.properties as AwsCloudFormationStackProperties;
-                const template: CloudFormationTemplate = fs.readJSONSync(
-                    path.resolve(this.directory, props.templateFile),
-                );
+                if (!artifact.properties || !('templateFile' in artifact.properties)) {
+                    throw new Error('Invalid CloudFormation artifact. Cannot find the template file');
+                }
+                const templateFile = artifact.properties.templateFile;
+
+                let template: CloudFormationTemplate;
+                try {
+                    template = fs.readJSONSync(path.resolve(this.directory, templateFile));
+                } catch (e) {
+                    throw new Error(`Failed to read CloudFormation template at path: ${templateFile}: ${e}`);
+                }
+
                 for (const [metadataId, metadataEntry] of Object.entries(artifact.metadata ?? {})) {
                     metadataEntry.forEach((meta) => {
                         if (meta.type === ArtifactMetadataEntryType.LOGICAL_ID) {
@@ -94,11 +85,14 @@ export class AssemblyManifestReader {
                     });
                 }
                 const assets = this.getAssetsForStack(artifactId);
-                const stackTree = this.tree.children![artifactId];
+                if (!this.tree.children) {
+                    throw new Error('Invalid tree.json found');
+                }
+                const stackTree = this.tree.children[artifactId];
                 const stackManifest = new StackManifest(
                     this.directory,
                     artifactId,
-                    props.templateFile,
+                    templateFile,
                     metadata,
                     stackTree,
                     template,
@@ -159,6 +153,8 @@ export class AssemblyManifestReader {
                 if (source.directory && source.directory.startsWith('asset.')) {
                     assets.push(entry as DockerImageManifestEntry);
                 }
+            } else {
+                warn(`found unexpected asset type: ${entry.type}`);
             }
         });
         return assets;
