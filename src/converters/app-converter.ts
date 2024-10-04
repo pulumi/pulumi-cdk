@@ -90,8 +90,10 @@ export class StackConverter extends ArtifactConverter {
                     n.construct.id,
                     {
                         parent: this.stackComponent,
-                        // TODO: we could do better here. Currently the stack depends on all assets, but really
-                        // only individual resources should depend on individual assets
+                        // NOTE: Currently we make the stack depend on all the assets and then all resources
+                        // have the parent as the stack. This means we deploy all assets before we deploy any resources
+                        // we might be able better and have individual resources depend on individual assets, but CDK
+                        // doesn't track asset dependencies at that level
                         dependsOn: this.stackDependsOn(dependencies),
                     },
                 );
