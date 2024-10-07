@@ -1,6 +1,55 @@
 import * as pulumi from '@pulumi/pulumi';
 import { Stack, StackProps } from 'aws-cdk-lib/core';
 import { CdkConstruct, ResourceMapping } from './interop';
+import { Stack, StackProps, AppProps, App } from 'aws-cdk-lib/core';
+import { ResourceMapping } from './interop';
+
+export abstract class PulumiStack extends Stack {
+    /**
+     * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
+     * Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs.
+     */
+    public readonly outputs: { [outputId: string]: pulumi.Output<any> } = {};
+
+    constructor(app: App, name: string, options?: StackProps) {
+        super(app, name, options);
+    }
+    /** @internal */
+    registerOutput(outputId: string, output: any) {
+        this.outputs[outputId] = pulumi.output(output);
+    }
+}
+/**
+ * Options specific to the Stack component.
+ */
+export interface AppOptions extends pulumi.ComponentResourceOptions {
+    /**
+     * Specify the CDK Stack properties to asociate with the stack.
+     */
+    props?: AppProps;
+
+    /**
+     * Defines a mapping to override and/or provide an implementation for a CloudFormation resource
+     * type that is not (yet) implemented in the AWS Cloud Control API (and thus not yet available in
+     * the Pulumi AWS Native provider). Pulumi code can override this method to provide a custom mapping
+     * of CloudFormation elements and their properties into Pulumi CustomResources, commonly by using the
+     * AWS Classic provider to implement the missing resource.
+     *
+     * @param logicalId The logical ID of the resource being mapped.
+     * @param typeName The CloudFormation type name of the resource being mapped.
+     * @param props The bag of input properties to the CloudFormation resource being mapped.
+     * @param options The set of Pulumi ResourceOptions to apply to the resource being mapped.
+     * @returns An object containing one or more logical IDs mapped to Pulumi resources that must be
+     * created to implement the mapped CloudFormation resource, or else undefined if no mapping is
+     * implemented.
+     */
+    remapCloudControlResource?(
+        logicalId: string,
+        typeName: string,
+        props: any,
+        options: pulumi.ResourceOptions,
+    ): ResourceMapping | undefined;
+}
 /**
  * Options specific to the Stack component.
  */
@@ -59,12 +108,8 @@ export enum PulumiProvider {
  * This exists because pulumicdk.Stack needs to extend cdk.Stack, but we also want it to represent a
  * pulumi ComponentResource so we create this `StackComponentResource` to hold the pulumi logic
  */
-export interface StackComponentResource {
-    /**
-     * The name of the component resource
-     * @internal
-     */
-    name: string;
+export abstract class AppComponent<TData = any> extends pulumi.ComponentResource<TData> {
+    public abstract name: string;
 
     /**
      * The directory to which cdk synthesizes the CloudAssembly
@@ -75,31 +120,16 @@ export interface StackComponentResource {
     /**
      * The CDK stack associated with the component resource
      */
-    readonly stack: Stack;
-
-    /**
-     * Any stack options that are supplied by the user
-     * @internal
-     */
-    options?: StackOptions;
-
-    /**
-     * The Resources that the component resource depends on
-     * This will typically be the staging resources
-     *
-     * @internal
-     */
-    readonly dependencies: CdkConstruct[];
+    public readonly stacks: { [artifactId: string]: PulumiStack } = {};
 
     /**
      * @internal
      */
-    readonly component: pulumi.ComponentResource;
+    public abstract appOptions?: AppOptions;
 
-    /**
-     * @internal
-     */
-    registerOutput(outputId: string, outupt: any): void;
+    constructor(id: string, options?: AppOptions) {
+        super('cdk:index:App', id, options?.props, options);
+    }
 }
 
 export type Mapping<T extends pulumi.Resource> = {

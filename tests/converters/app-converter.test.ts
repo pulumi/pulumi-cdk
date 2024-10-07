@@ -1,28 +1,24 @@
 import { AppConverter, StackConverter } from '../../src/converters/app-converter';
 import { Stack } from 'aws-cdk-lib/core';
-import { StackComponentResource, StackOptions } from '../../src/types';
+import { AppComponent, AppOptions } from '../../src/types';
 import * as path from 'path';
 import * as mockfs from 'mock-fs';
 import * as pulumi from '@pulumi/pulumi';
 import { BucketPolicy } from '@pulumi/aws-native/s3';
 import { createStackManifest } from '../utils';
 import { promiseOf, setMocks } from '../mocks';
-import { CdkConstruct } from '../../src/interop';
 
-class MockStackComponent extends pulumi.ComponentResource implements StackComponentResource {
+class MockStackComponent extends AppComponent {
     public readonly name = 'stack';
     public readonly assemblyDir: string;
     component: pulumi.ComponentResource;
     public stack: Stack;
-    public options?: StackOptions | undefined;
-    public dependencies: CdkConstruct[] = [];
+    public appOptions?: AppOptions | undefined;
     constructor(dir: string) {
-        super('cdk:index:Stack', 'stack', {}, {});
+        super('stack');
         this.assemblyDir = dir;
         this.registerOutputs();
     }
-
-    registerOutput(outputId: string, output: any): void {}
 }
 
 beforeAll(() => {
@@ -37,7 +33,13 @@ describe('App Converter', () => {
     beforeEach(() => {
         mockfs({
             // Recursively loads all node_modules
-            node_modules: mockfs.load(path.resolve(__dirname, '../../node_modules')),
+            node_modules: {
+                'aws-cdk-lib': mockfs.load(path.resolve(__dirname, '../../node_modules/aws-cdk-lib')),
+                '@pulumi': {
+                    aws: mockfs.load(path.resolve(__dirname, '../../node_modules/@pulumi/aws')),
+                    'aws-native': mockfs.load(path.resolve(__dirname, '../../node_modules/@pulumi/aws-native')),
+                },
+            },
             [manifestAssets]: JSON.stringify({
                 version: '36.0.0',
                 files: {

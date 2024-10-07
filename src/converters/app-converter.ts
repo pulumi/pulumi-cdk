@@ -1,8 +1,8 @@
 import * as pulumi from '@pulumi/pulumi';
 import { AssemblyManifestReader, StackManifest } from '../assembly';
 import { ConstructInfo, GraphBuilder } from '../graph';
-import { StackComponentResource, lift, Mapping } from '../types';
 import { ArtifactConverter } from './artifact-converter';
+import { lift, Mapping, AppComponent, PulumiStack } from '../types';
 import { CdkConstruct, ResourceMapping } from '../interop';
 import { debug } from '@pulumi/pulumi/log';
 import {
@@ -30,7 +30,7 @@ export class AppConverter {
 
     public readonly manifestReader: AssemblyManifestReader;
 
-    constructor(readonly host: StackComponentResource) {
+    constructor(readonly host: AppComponent) {
         this.manifestReader = AssemblyManifestReader.fromDirectory(host.assemblyDir);
     }
 
@@ -90,6 +90,7 @@ export class StackConverter extends ArtifactConverter {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
+    private readonly cdkStack: PulumiStack;
 
     private _stackResource?: CdkConstruct;
 
@@ -100,8 +101,9 @@ export class StackConverter extends ArtifactConverter {
         return this._stackResource;
     }
 
-    constructor(private readonly host: StackComponentResource, readonly stack: StackManifest) {
+    constructor(host: AppComponent, readonly stack: StackManifest) {
         super(host);
+        this.cdkStack = host.stacks[stack.id];
     }
 
     public convert(dependencies: Set<ArtifactConverter>) {
@@ -114,18 +116,14 @@ export class StackConverter extends ArtifactConverter {
 
         for (const n of dependencyGraphNodes) {
             if (n.construct.id === this.stack.id) {
-                this._stackResource = new CdkConstruct(
-                    `${this.stackComponent.name}/${n.construct.path}`,
-                    n.construct.id,
-                    {
-                        parent: this.stackComponent.component,
-                        // NOTE: Currently we make the stack depend on all the assets and then all resources
-                        // have the parent as the stack. This means we deploy all assets before we deploy any resources
-                        // we might be able better and have individual resources depend on individual assets, but CDK
-                        // doesn't track asset dependencies at that level
-                        dependsOn: this.stackDependsOn(dependencies),
-                    },
-                );
+                this._stackResource = new CdkConstruct(`${this.app.name}/${n.construct.path}`, n.construct.id, {
+                    parent: this.app,
+                    // NOTE: Currently we make the stack depend on all the assets and then all resources
+                    // have the parent as the stack. This means we deploy all assets before we deploy any resources
+                    // we might be able better and have individual resources depend on individual assets, but CDK
+                    // doesn't track asset dependencies at that level
+                    dependsOn: this.stackDependsOn(dependencies),
+                });
                 this.constructs.set(n.construct, this._stackResource);
                 continue;
             }
@@ -155,16 +153,11 @@ export class StackConverter extends ArtifactConverter {
                 //     // Do something with the condition
                 // }
             } else {
-                const r = new CdkConstruct(`${this.stackComponent.name}/${n.construct.path}`, n.construct.type, {
+                const r = new CdkConstruct(`${this.app.name}/${n.construct.path}`, n.construct.type, {
                     parent,
                 });
                 this.constructs.set(n.construct, r);
             }
-        }
-
-        // Register the outputs as outputs of the component resource.
-        for (const [outputId, args] of Object.entries(this.stack.outputs ?? {})) {
-            this.stackComponent.registerOutput(outputId, this.processIntrinsics(args.Value));
         }
 
         for (let i = dependencyGraphNodes.length - 1; i >= 0; i--) {
@@ -209,7 +202,7 @@ export class StackConverter extends ArtifactConverter {
             return key;
         }
 
-        this.parameters.set(logicalId, parameterValue(this.stackComponent.component));
+        this.parameters.set(logicalId, parameterValue(this.app));
     }
 
     private mapResource(
@@ -218,8 +211,8 @@ export class StackConverter extends ArtifactConverter {
         props: any,
         options: pulumi.ResourceOptions,
     ): ResourceMapping[] {
-        if (this.stackComponent.options?.remapCloudControlResource !== undefined) {
-            const res = this.stackComponent.options.remapCloudControlResource(logicalId, typeName, props, options);
+        if (this.app.appOptions?.remapCloudControlResource !== undefined) {
+            const res = this.app.appOptions.remapCloudControlResource(logicalId, typeName, props, options);
             if (res !== undefined) {
                 debug(`remapped ${logicalId}`);
                 return res;
@@ -247,11 +240,11 @@ export class StackConverter extends ArtifactConverter {
 
     /** @internal */
     asOutputValue<T>(v: T): T {
-        const value = this.stackComponent.stack.resolve(v);
+        const value = this.cdkStack.resolve(v);
         return this.processIntrinsics(value) as T;
     }
 
-    private processIntrinsics(obj: any): any {
+    public processIntrinsics(obj: any): any {
         try {
             debug(`Processing intrinsics for ${JSON.stringify(obj)}`);
         } catch {
@@ -370,15 +363,15 @@ export class StackConverter extends ArtifactConverter {
 
         switch (target) {
             case 'AWS::AccountId':
-                return getAccountId({ parent: this.stackComponent.component }).then((r) => r.accountId);
+                return getAccountId({ parent: this.app }).then((r) => r.accountId);
             case 'AWS::NoValue':
                 return undefined;
             case 'AWS::Partition':
-                return getPartition({ parent: this.stackComponent.component }).then((p) => p.partition);
+                return getPartition({ parent: this.app }).then((p) => p.partition);
             case 'AWS::Region':
-                return getRegion({ parent: this.stackComponent.component }).then((r) => r.region);
+                return getRegion({ parent: this.app }).then((r) => r.region);
             case 'AWS::URLSuffix':
-                return getUrlSuffix({ parent: this.stackComponent.component }).then((r) => r.urlSuffix);
+                return getUrlSuffix({ parent: this.app }).then((r) => r.urlSuffix);
             case 'AWS::NotificationARNs':
             case 'AWS::StackId':
             case 'AWS::StackName':

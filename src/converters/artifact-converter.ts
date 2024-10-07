@@ -6,7 +6,7 @@ import { StackComponentResource } from '../types';
  * ArtifactConverter
  */
 export abstract class ArtifactConverter {
-    constructor(protected readonly stackComponent: StackComponentResource) {}
+    constructor(protected readonly app: AppComponent) {}
 
     /**
      * Takes a string and resolves any CDK environment placeholders (e.g. accountId, region, partition)
@@ -15,7 +15,7 @@ export abstract class ArtifactConverter {
      * @returns The string with the placeholders fully resolved
      */
     protected resolvePlaceholders(s: string): Promise<string> {
-        const host = this.stackComponent;
+        const host = this.app;
         return cx.EnvironmentPlaceholders.replaceAsync(s, {
             async region(): Promise<string> {
                 return getRegion({ parent: host.component }).then((r) => r.region);

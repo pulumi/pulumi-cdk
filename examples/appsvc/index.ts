@@ -22,8 +22,8 @@ const azs = aws.getAvailabilityZonesOutput({
 class ClusterStack extends pulumicdk.Stack {
     serviceName: pulumi.Output<string>;
 
-    constructor(name: string) {
-        super(name);
+    constructor(app: pulumicdk.App, name: string) {
+        super(app, name);
 
         const vpc = ec2.Vpc.fromVpcAttributes(this, 'Vpc', {
             vpcId: pulumicdk.asString(defaultVpc.id),
@@ -82,11 +82,18 @@ class ClusterStack extends pulumicdk.Stack {
             ],
         });
 
-        this.synth();
-
         this.serviceName = this.asOutput(service.serviceName);
     }
 }
 
-const stack = new ClusterStack('teststack');
-export const serviceName = stack.serviceName;
+class MyApp extends pulumicdk.App {
+    constructor() {
+        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+            const stack = new ClusterStack(scope, 'teststack');
+            return { serviceName: stack.serviceName };
+        });
+    }
+}
+
+const app = new MyApp();
+export const serviceName = app.outputs['serviceName'];

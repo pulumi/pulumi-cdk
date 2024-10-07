@@ -1,3 +1,0 @@
-name: pulumi-cdk-ecscluster
-runtime: nodejs
-description: ECS Cluster
