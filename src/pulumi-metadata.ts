@@ -97,6 +97,7 @@ export interface PulumiProperty extends PulumiPropertyItems {
 
 export interface PulumiResource {
     inputs: { [key: string]: PulumiProperty };
+    outputs: { [key: string]: PulumiProperty };
 }
 
 /**

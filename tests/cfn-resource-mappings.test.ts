@@ -1,7 +1,5 @@
-import { CfnResource, Stack } from 'aws-cdk-lib/core';
 import { CustomResource } from '@pulumi/pulumi';
 import { mapToCfnResource } from '../src/cfn-resource-mappings';
-import { setMocks } from './mocks';
 import * as aws from '@pulumi/aws-native';
 
 jest.mock('@pulumi/pulumi', () => {
@@ -45,9 +43,7 @@ afterEach(() => {
     jest.resetAllMocks();
 });
 
-beforeAll(() => {
-    setMocks();
-});
+beforeAll(() => {});
 
 describe('Cfn Resource Mappings', () => {
     test('lowercase s3.Bucket name', () => {
@@ -56,16 +52,7 @@ describe('Cfn Resource Mappings', () => {
         const logicalId = 'My-resource';
         const cfnProps = {};
         // WHEN
-        mapToCfnResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(aws.s3.Bucket).toHaveBeenCalledWith('my-resource', {}, {});
     });
@@ -90,16 +77,7 @@ describe('Cfn Resource Mappings', () => {
             },
         };
         // WHEN
-        mapToCfnResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(CustomResource).toHaveBeenCalledWith(
             'aws-native:s3objectlambda:AccessPoint',
@@ -135,16 +113,7 @@ describe('Cfn Resource Mappings', () => {
             },
         };
         // WHEN
-        mapToCfnResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(CustomResource).toHaveBeenCalledWith(
             'aws-native:lambda:Function',
@@ -197,16 +166,7 @@ describe('Cfn Resource Mappings', () => {
             ],
         };
         // WHEN
-        mapToCfnResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(CustomResource).toHaveBeenCalledWith(
             'aws-native:iam:Role',
@@ -267,16 +227,7 @@ describe('Cfn Resource Mappings', () => {
             },
         };
         // WHEN
-        mapToCfnResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(CustomResource).toHaveBeenCalledWith(
             'aws-native:s3:AccessPoint',
@@ -308,16 +259,7 @@ describe('Cfn Resource Mappings', () => {
             CidrBlock: '10.0.0.0/16',
         };
         // WHEN
-        mapToCfnResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(CustomResource).toHaveBeenCalledWith(
             'aws-native:ec2:Vpc',
@@ -339,16 +281,7 @@ describe('Cfn Resource Mappings', () => {
         const cfnProps = {};
 
         // WHEN
-        mapToCfnResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToCfnResource(logicalId, cfnType, cfnProps, {});
 
         // THEN
         expect(CustomResource).toHaveBeenCalledWith(pulumiType, logicalId, {}, {});
@@ -374,16 +307,7 @@ describe('Cfn Resource Mappings', () => {
             EnableECSManagedTags: true,
         };
         // WHEN
-        mapToCfnResource(
-            new CfnResource(new Stack(), logicalId, {
-                type: cfnType,
-                properties: cfnProps,
-            }),
-            logicalId,
-            cfnType,
-            cfnProps,
-            {},
-        );
+        mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(CustomResource).toHaveBeenCalledWith(
             'aws-native:ecs:Service',

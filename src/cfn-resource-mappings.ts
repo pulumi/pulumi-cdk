@@ -14,13 +14,13 @@
 
 import * as pulumi from '@pulumi/pulumi';
 import { s3 } from '@pulumi/aws-native';
-import { CfnElement, Token, Reference, Tokenization } from 'aws-cdk-lib';
 import { CfnResource, ResourceMapping, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
 import { toSdkName } from './naming';
+import { Metadata } from './pulumi-metadata';
+import { PulumiProvider } from './types';
 
 export function mapToCfnResource(
-    element: CfnElement,
     logicalId: string,
     typeName: string,
     rawProps: any,
@@ -34,20 +34,12 @@ export function mapToCfnResource(
             // lowercase letters.
             return new s3.Bucket(logicalId.toLowerCase(), props, options);
         default: {
-            // Scrape the attributes off of the construct.
-            //
-            // NOTE: this relies on CfnReference setting the reference's display name to the literal attribute name.
-            const attributes = Object.values(element)
-                .filter(Token.isUnresolved)
-                .flatMap((v) => {
-                    if (typeof v === 'string') {
-                        return Tokenization.reverseString(v).tokens;
-                    }
-                    return [Tokenization.reverse(v)];
-                })
-                .filter(Reference.isReference)
-                .filter((ref) => ref.target === element)
-                .map((ref) => attributePropertyName(ref.displayName));
+            // When creating a generic `CfnResource` we don't have any information on the
+            // attributes attached to the resource. We need to populate them by looking up the
+            // `output` in the metadata
+            const metadata = new Metadata(PulumiProvider.AWS_NATIVE);
+            const resource = metadata.findResource(typeName);
+            const attributes = Object.keys(resource.outputs);
 
             return new CfnResource(logicalId, typeName, props, attributes, options);
         }

@@ -11,8 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-import { Token, IResolvable } from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 
 const glob = global as any;

@@ -14,7 +14,6 @@
 
 import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws';
-import { CfnElement } from 'aws-cdk-lib';
 import { ResourceMapping, normalize } from './interop';
 
 function maybe<T, U>(v: T | undefined, fn: (t: T) => U): U | undefined {
@@ -43,7 +42,6 @@ function tags(tags: pulumi.Input<pulumi.Input<CfnTags>[]> | undefined): AwsTags 
  * Any resource that does not currently exist in CCAPI can be mapped to an aws classic resource.
  */
 export function mapToAwsResource(
-    element: CfnElement,
     logicalId: string,
     typeName: string,
     rawProps: any,

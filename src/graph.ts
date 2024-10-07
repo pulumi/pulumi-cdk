@@ -11,33 +11,146 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 import { debug } from '@pulumi/pulumi/log';
-import { Stack, CfnElement, Token } from 'aws-cdk-lib';
-import { Construct, ConstructOrder } from 'constructs';
-import { CloudFormationTemplate } from './cfn';
+import { CloudFormationResource } from './cfn';
 import { parseSub } from './sub';
+import { ConstructTree, StackManifest } from './assembly';
+
+/**
+ * Represents a CDK Construct
+ */
+export interface ConstructInfo {
+    /**
+     * The construct path
+     */
+    path: string;
+
+    /**
+     * The node id of the construct
+     */
+    id: string;
+
+    /**
+     * The CloudFormation resource type
+     *
+     * This will only be set if this is the construct for cfn resource
+     */
+    type?: string;
+
+    /**
+     * The attributes of the construct
+     */
+    attributes?: { [key: string]: any };
+
+    /**
+     * The parent construct (i.e. scope)
+     * Will be undefined for the construct representing the `Stack`
+     */
+    parent?: ConstructInfo;
+}
 
 export interface GraphNode {
     incomingEdges: Set<GraphNode>;
     outgoingEdges: Set<GraphNode>;
-    construct: Construct;
-    template?: CloudFormationTemplate;
+    /**
+     * The CFN LogicalID.
+     *
+     * This will only be set if this node represents a CloudFormation resource.
+     * It will not be set for wrapper constructs
+     */
+    logicalId?: string;
+
+    /**
+     * The info on the Construct this node represents
+     */
+    construct: ConstructInfo;
+
+    /**
+     * The CloudFormation resource data for the resource represented by this node.
+     * This will only be set if this node represents a cfn resource (not a wrapper construct)
+     */
+    resource?: CloudFormationResource;
+}
+
+/**
+ * Get the 'type' from the CFN Type
+ * `AWS::S3::Bucket` => `Bucket`
+ *
+ * @param cfnType - The CloudFormation type (i.e. AWS::S3::Bucket)
+ * @returns The resource type (i.e. Bucket)
+ */
+function typeFromCfn(cfnType: string): string {
+    const typeParts = cfnType.split('::');
+    if (typeParts.length !== 3) {
+        throw new Error(`Expected cfn type in format 'AWS::Service::Resource', got ${cfnType}`);
+    }
+    return typeParts[2];
+}
+
+function typeFromFqn(fqn: string): string {
+    const fqnParts = fqn.split('.');
+    return fqnParts[fqnParts.length - 1];
 }
 
 export class GraphBuilder {
-    constructNodes: Map<Construct, GraphNode>;
+    // Allows for easy access to the GraphNode of a specific Construct
+    constructNodes: Map<ConstructInfo, GraphNode>;
+    // Map of resource logicalId to GraphNode. Allows for easy lookup by logicalId
     cfnElementNodes: Map<string, GraphNode>;
 
-    constructor(private readonly stack: Stack) {
-        this.constructNodes = new Map<Construct, GraphNode>();
+    constructor(private readonly stack: StackManifest) {
+        this.constructNodes = new Map<ConstructInfo, GraphNode>();
         this.cfnElementNodes = new Map<string, GraphNode>();
     }
 
     // build constructs a dependency graph from the adapter and returns its nodes sorted in topological order.
-    public static build(stack: Stack): GraphNode[] {
+    public static build(stack: StackManifest): GraphNode[] {
         const b = new GraphBuilder(stack);
         return b._build();
+    }
+
+    /**
+     * Recursively parses the construct tree to create:
+     * - constructNodes
+     * - cfnElementNodes
+     *
+     * @param tree - The construct tree of the current construct being parsed
+     * @param parent - The parent construct of the construct currently being parsed
+     */
+    private parseTree(tree: ConstructTree, parent?: ConstructInfo) {
+        const construct: ConstructInfo = {
+            parent,
+            id: tree.id,
+            path: tree.path,
+            type: tree.constructInfo ? typeFromFqn(tree.constructInfo.fqn) : tree.id,
+            attributes: tree.attributes,
+        };
+        const node: GraphNode = {
+            incomingEdges: new Set<GraphNode>(),
+            outgoingEdges: new Set<GraphNode>(),
+            construct,
+        };
+        if (tree.attributes && 'aws:cdk:cloudformation:type' in tree.attributes) {
+            const cfnType = tree.attributes['aws:cdk:cloudformation:type'] as string;
+            const logicalId = this.stack.logicalIdForPath(tree.path);
+            const resource = this.stack.resourceWithLogicalId(logicalId);
+            const typ = typeFromCfn(cfnType);
+            node.construct.type = typ;
+            construct.type = typ;
+            if (resource.Type === cfnType) {
+                node.resource = resource;
+                node.logicalId = logicalId;
+                this.cfnElementNodes.set(logicalId, node);
+            } else {
+                throw new Error(
+                    `Something went wrong: resourceType ${resource.Type} does not equal CfnType ${cfnType}`,
+                );
+            }
+        }
+        this.constructNodes.set(construct, node);
+        if (tree.children) {
+            Object.values(tree.children).forEach((child) => this.parseTree(child, construct));
+        }
     }
 
     private _build(): GraphNode[] {
@@ -49,41 +162,28 @@ export class GraphBuilder {
         // Create graph nodes and associate them with constructs and CFN logical IDs.
         //
         // NOTE: this doesn't handle cross-stack references. We'll likely need to do so, at least for nested stacks.
-        for (const construct of this.stack.node.findAll(ConstructOrder.POSTORDER)) {
-            const template = CfnElement.isCfnElement(construct)
-                ? (this.stack.resolve((construct as any)._toCloudFormation()) as CloudFormationTemplate)
-                : undefined;
+        this.parseTree(this.stack.constructTree);
 
-            const node = {
-                incomingEdges: new Set<GraphNode>(),
-                outgoingEdges: new Set<GraphNode>(),
-                construct,
-                template,
-            };
-
-            this.constructNodes.set(construct, node);
-            if (CfnElement.isCfnElement(construct)) {
-                const logicalId = this.stack.resolve(construct.logicalId);
-                debug(`adding node for ${logicalId}`);
-                this.cfnElementNodes.set(logicalId, node);
-
-                for (const [logicalId, r] of Object.entries(template!.Resources || {})) {
-                    debug(`adding node for ${logicalId}`);
-                    this.cfnElementNodes.set(logicalId, node);
-                }
-            }
-        }
-
-        // Add dependency edges.
         for (const [construct, node] of this.constructNodes) {
-            if (construct.node.scope !== undefined && !Stack.isStack(construct)) {
-                const parentNode = this.constructNodes.get(construct.node.scope)!;
+            // No parent means this is the construct that represents the `Stack`
+            if (construct.parent !== undefined) {
+                const parentNode = this.constructNodes.get(construct.parent)!;
                 node.outgoingEdges.add(parentNode);
                 parentNode.incomingEdges.add(node);
             }
 
-            if (node.template !== undefined) {
-                this.addEdgesForTemplate(node.template);
+            // Then this is the construct representing the CFN resource (i.e. not a wrapper construct)
+            if (node.resource && node.logicalId) {
+                const source = this.cfnElementNodes.get(node.logicalId!)!;
+                this.addEdgesForCfnResource(node.resource, source);
+
+                const dependsOn =
+                    typeof node.resource.DependsOn === 'string' ? [node.resource.DependsOn] : node.resource.DependsOn;
+                if (dependsOn !== undefined) {
+                    for (const target of dependsOn) {
+                        this.addEdgeForRef(target, source);
+                    }
+                }
             }
         }
 
@@ -97,7 +197,7 @@ export class GraphBuilder {
             visited.add(node);
 
             // If this is a non-CFN construct with no incoming edges, ignore it.
-            if (!CfnElement.isCfnElement(node.construct) && node.incomingEdges.size == 0) {
+            if (!node.resource && node.incomingEdges.size == 0) {
                 return;
             }
 
@@ -114,27 +214,11 @@ export class GraphBuilder {
         return sorted;
     }
 
-    private addEdgesForTemplate(template: CloudFormationTemplate) {
-        for (const [logicalId, value] of Object.entries(template.Resources || {})) {
-            const source = this.cfnElementNodes.get(logicalId)!;
-            this.addEdgesForFragment(value, source);
-
-            const dependsOn = typeof value.DependsOn === 'string' ? [value.DependsOn] : value.DependsOn;
-            if (dependsOn !== undefined) {
-                for (const target of dependsOn) {
-                    this.addEdgeForRef(target, source);
-                }
-            }
-        }
-    }
-
-    private addEdgesForFragment(obj: any, source: GraphNode): void {
+    private addEdgesForCfnResource(obj: any, source: GraphNode): void {
+        // Since we are processing the final CloudFormation template, strings will always
+        // be the fully resolved value
         if (typeof obj === 'string') {
-            if (!Token.isUnresolved(obj)) {
-                return;
-            }
-            console.warn(`unresolved token ${obj}`);
-            obj = this.stack.resolve(obj);
+            return;
         }
 
         if (typeof obj !== 'object') {
@@ -142,7 +226,7 @@ export class GraphBuilder {
         }
 
         if (Array.isArray(obj)) {
-            obj.map((x) => this.addEdgesForFragment(x, source));
+            obj.map((x) => this.addEdgesForCfnResource(x, source));
             return;
         }
 
@@ -159,7 +243,7 @@ export class GraphBuilder {
         }
 
         for (const v of Object.values(obj)) {
-            this.addEdgesForFragment(v, source);
+            this.addEdgesForCfnResource(v, source);
         }
     }
 
@@ -192,7 +276,7 @@ export class GraphBuilder {
                     const [template, vars] =
                         typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 
-                    this.addEdgesForFragment(vars, source);
+                    this.addEdgesForCfnResource(vars, source);
 
                     for (const part of parseSub(template).filter((p) => p.ref !== undefined)) {
                         this.addEdgeForRef(part.ref!.id, source);
@@ -200,7 +284,7 @@ export class GraphBuilder {
                 }
                 break;
             default:
-                this.addEdgesForFragment(params, source);
+                this.addEdgesForCfnResource(params, source);
                 break;
         }
     }
