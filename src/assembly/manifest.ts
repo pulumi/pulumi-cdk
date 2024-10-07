@@ -62,7 +62,6 @@ export class AssemblyManifestReader {
     private renderStackManifests() {
         for (const [artifactId, artifact] of Object.entries(this.manifest.artifacts ?? {})) {
             if (artifact.type === ArtifactType.AWS_CLOUDFORMATION_STACK) {
-                const metadata: StackMetadata = {};
                 if (!artifact.properties || !('templateFile' in artifact.properties)) {
                     throw new Error('Invalid CloudFormation artifact. Cannot find the template file');
                 }
@@ -75,15 +74,8 @@ export class AssemblyManifestReader {
                     throw new Error(`Failed to read CloudFormation template at path: ${templateFile}: ${e}`);
                 }
 
-                for (const [metadataId, metadataEntry] of Object.entries(artifact.metadata ?? {})) {
-                    metadataEntry.forEach((meta) => {
-                        if (meta.type === ArtifactMetadataEntryType.LOGICAL_ID) {
-                            // For some reason the metadata entry prefixes the path with a `/`
-                            const path = metadataId.startsWith('/') ? metadataId.substring(1) : metadataId;
-                            metadata[path] = meta.data as LogicalIdMetadataEntry;
-                        }
-                    });
-                }
+                const metadata = this.getMetadata(artifact);
+
                 const assets = this.getAssetsForStack(artifactId);
                 if (!this.tree.children) {
                     throw new Error('Invalid tree.json found');
@@ -101,6 +93,26 @@ export class AssemblyManifestReader {
                 this._stackManifests.set(artifactId, stackManifest);
             }
         }
+    }
+
+    /**
+     * Creates a metadata map of constructPath to logicalId for all resources in the stack
+     *
+     * @param artifact - The manifest containing the stack metadata
+     * @returns The StackMetadata lookup table
+     */
+    private getMetadata(artifact: ArtifactManifest): StackMetadata {
+        const metadata: StackMetadata = {};
+        for (const [metadataId, metadataEntry] of Object.entries(artifact.metadata ?? {})) {
+            metadataEntry.forEach((meta) => {
+                if (meta.type === ArtifactMetadataEntryType.LOGICAL_ID) {
+                    // For some reason the metadata entry prefixes the path with a `/`
+                    const path = metadataId.startsWith('/') ? metadataId.substring(1) : metadataId;
+                    metadata[path] = meta.data as LogicalIdMetadataEntry;
+                }
+            });
+        }
+        return metadata;
     }
 
     /**

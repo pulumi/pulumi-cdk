@@ -69,7 +69,6 @@ export class StackConverter extends ArtifactConverter {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
-    stackResource!: CdkConstruct;
 
     constructor(host: StackComponentResource, readonly stack: StackManifest) {
         super(host);
@@ -85,7 +84,7 @@ export class StackConverter extends ArtifactConverter {
 
         for (const n of dependencyGraphNodes) {
             if (n.construct.id === this.stack.id) {
-                this.stackResource = new CdkConstruct(
+                const stackResource = new CdkConstruct(
                     `${this.stackComponent.name}/${n.construct.path}`,
                     n.construct.id,
                     {
@@ -97,7 +96,7 @@ export class StackConverter extends ArtifactConverter {
                         dependsOn: this.stackDependsOn(dependencies),
                     },
                 );
-                this.constructs.set(n.construct, this.stackResource);
+                this.constructs.set(n.construct, stackResource);
                 continue;
             }
 

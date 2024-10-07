@@ -1,11 +1,11 @@
 import * as pulumi from '@pulumi/pulumi';
+import * as aws from '@pulumi/aws-native';
 import * as pulumicdk from '@pulumi/cdk';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3ObjectLambda from 'aws-cdk-lib/aws-s3objectlambda';
-import { Construct } from 'constructs';
 
 // configurable variables
 const S3_ACCESS_POINT_NAME = 'example-test-ap';
@@ -74,23 +74,27 @@ export class S3ObjectLambdaStack extends pulumicdk.Stack {
         const policyStatement = new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
             actions: ['s3:GetObject'],
-            principals: [new iam.ArnPrincipal(<string>retrieveTransformedObjectLambda.role?.roleArn)],
-            resources: [`${accessPoint}/object/*`],
+            principals: [
+                new iam.ArnPrincipal(this.asOutput(retrieveTransformedObjectLambda.role?.roleArn) as unknown as string),
+            ],
+            resources: [this.asOutput(`${accessPoint}/object/*`) as unknown as string],
         });
         policyStatement.sid = 'AllowLambdaToUseAccessPoint';
         policyDoc.addStatements(policyStatement);
 
-        new s3.CfnAccessPoint(this, 'exampleBucketAP', {
-            bucket: bucket.bucketName,
+        const ap = new aws.s3.AccessPoint('exampleBucketAP', {
+            // CDK property can be passed to a Pulumi resource
+            bucket: this.asOutput(bucket.bucketName),
             name: S3_ACCESS_POINT_NAME,
-            policy: policyDoc,
+            policy: policyDoc.toJSON(),
         });
 
         // Access point to receive GET request and use lambda to process objects
         const objectLambdaAP = new s3ObjectLambda.CfnAccessPoint(this, 's3ObjectLambdaAP', {
             name: OBJECT_LAMBDA_ACCESS_POINT_NAME,
             objectLambdaConfiguration: {
-                supportingAccessPoint: accessPoint,
+                // a pulumi resource property can be passed to a cdk resource
+                supportingAccessPoint: pulumicdk.asString(ap.arn),
                 transformationConfigurations: [
                     {
                         actions: ['GetObject'],

@@ -142,9 +142,9 @@ export class GraphBuilder {
                 node.logicalId = logicalId;
                 this.cfnElementNodes.set(logicalId, node);
             } else {
-                console.error('SOMETHING WENT WRONG: ', tree);
-                // TODO:
-                // Something went wrong...
+                throw new Error(
+                    `Something went wrong: resourceType ${resource.Type} does not equal CfnType ${cfnType}`,
+                );
             }
         }
         this.constructNodes.set(construct, node);
