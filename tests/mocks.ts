@@ -41,14 +41,6 @@ export function setMocks(assertFn: (args: MockResourceArgs) => void) {
                     return { id: '', state: {} };
                 case 'cdk:index:Component':
                     return { id: '', state: {} };
-                // case 'aws-native:s3:Bucket':
-                //     return {
-                //         id: args.name + '_id',
-                //         state: {
-                //             ...args.inputs,
-                //             arn: args.
-                //         },
-                //     };
                 default:
                     assertFn(args);
                     return {
@@ -62,6 +54,8 @@ export function setMocks(assertFn: (args: MockResourceArgs) => void) {
         },
     };
 
+    // I don't know why, but using pulumi.runtime.setMocks caused the mocks
+    // to interfere with each other between tests
     const mockMonitor = new MockMonitor(mocks);
     setMockOptions(mockMonitor, 'project', 'stack', false);
 }

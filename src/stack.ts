@@ -17,9 +17,45 @@ import * as pulumi from '@pulumi/pulumi';
 import { AppComponent, AppOptions, PulumiStack } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
+import { MockCallArgs, MockMonitor, MockResourceArgs, setMocks } from '@pulumi/pulumi/runtime/mocks';
+import { setMockOptions } from '@pulumi/pulumi/runtime';
+import { error } from '@pulumi/pulumi/log';
 
 const STACK_SYMBOL = Symbol.for('@pulumi/cdk.Stack');
 export type create = (scope: App) => void;
+setMocks(
+    {
+        call: async (args: MockCallArgs) => {
+            return {};
+        },
+        newResource: async (args: MockResourceArgs) => {
+            console.error(args.type);
+            switch (args.type) {
+                case 'cdk:index:App':
+                    return { id: 'app', state: { outputs: {} } };
+                case 'aws-native:ssm:Parameter':
+                    return {
+                        id: `${args.name}${Math.random()}`,
+                        state: {
+                            ...args.inputs,
+                            name: `${args.name}${Math.random()}`,
+                            id: `${args.name}${Math.random()}`,
+                        },
+                    };
+                default:
+                    return {
+                        id: `${args.name}${Math.random()}`,
+                        state: {
+                            ...args.inputs,
+                        },
+                    };
+            }
+        },
+    },
+    pulumi.runtime.getProject(),
+    pulumi.runtime.getStack(),
+    pulumi.runtime.isDryRun(),
+);
 
 export class App extends AppComponent<AppConverter> implements ICloudAssemblyDirectoryProducer {
     /** @internal */
@@ -75,7 +111,22 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
 
     protected async initialize(): Promise<AppConverter> {
         const cli = AwsCdkCli.fromCloudAssemblyDirectoryProducer(this);
-        await cli.synth({ quiet: true });
+        try {
+            await cli.synth({ quiet: true /*, lookups: false */ });
+        } catch (e: any) {
+            if (typeof e.message === 'string' && e.message.includes('Context lookups have been disabled')) {
+                const message = e.message as string;
+                const messageParts = message.split('Context lookups have been disabled. ');
+                const missingParts = messageParts[1].split('Missing context keys: ');
+                error(
+                    'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". \n' +
+                        'Missing context keys: ' +
+                        missingParts[1],
+                );
+            } else {
+                error(e.message, this);
+            }
+        }
 
         const converter = new AppConverter(this);
         converter.convert();
@@ -85,7 +136,6 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
 
     async produce(context: Record<string, any>): Promise<string> {
         const app = new cdk.App({
-            // outdir: 'cdk.out',
             ...(this.appProps ?? {}),
             autoSynth: false,
             analyticsReporting: false,
@@ -94,6 +144,7 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
         this._app = app;
         this.assemblyDir = app.outdir;
         this.createFunc(this);
+
         app.node.children.forEach((child) => {
             if (Stack.isPulumiStack(child)) {
                 this.stacks[child.artifactId] = child;
