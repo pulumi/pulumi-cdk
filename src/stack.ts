@@ -85,7 +85,7 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
 
     async produce(context: Record<string, any>): Promise<string> {
         const app = new cdk.App({
-            outdir: 'cdk.out',
+            // outdir: 'cdk.out',
             ...(this.appProps ?? {}),
             autoSynth: false,
             analyticsReporting: false,

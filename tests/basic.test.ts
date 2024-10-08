@@ -14,77 +14,34 @@
 
 import * as pulumi from '@pulumi/pulumi';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import { Stack } from '../src/stack';
-import { Construct } from 'constructs';
+import { App, Stack } from '../src/stack';
 import * as output from '../src/output';
-import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
-
-function arn(service: string, type: string): string {
-    const [region, account] = service === 's3' ? ['', ''] : ['us-west-2', '123456789012'];
-    return `arn:aws:${service}:${region}:${account}:${type}`;
-}
-
-function setMocks() {
-    pulumi.runtime.setMocks({
-        call: (args: MockCallArgs) => {
-            return {};
-        },
-        newResource: (args: MockResourceArgs): { id: string; state: any } => {
-            switch (args.type) {
-                case 'cdk:index:Stack':
-                    return { id: '', state: {} };
-                case 'cdk:construct:TestStack':
-                    return { id: '', state: {} };
-                case 'cdk:construct:teststack':
-                    return { id: '', state: {} };
-                case 'cdk:index:Component':
-                    return { id: '', state: {} };
-                case 'cdk:construct:Bucket':
-                    return { id: '', state: {} };
-                case 'aws-native:s3:Bucket':
-                    return {
-                        id: args.name,
-                        state: {
-                            ...args.inputs,
-                            arn: arn('s3', args.inputs['bucketName']),
-                        },
-                    };
-                default:
-                    throw new Error(`unrecognized resource type ${args.type}`);
-            }
-        },
-    });
-}
-
-function testStack(fn: (scope: Construct) => void, done: any) {
-    class TestStack extends Stack {
-        constructor(id: string) {
-            super(id);
-
-            fn(this);
-
-            this.synth();
-        }
-    }
-
-    const s = new TestStack('teststack');
-    s.urn.apply(() => done());
-}
+import { promiseOf, setMocks } from './mocks';
 
 describe('Basic tests', () => {
-    beforeEach(() => {
-        setMocks();
+    beforeAll(() => {
+        setMocks(() => {});
     });
-    test('Checking single resource registration', (done) => {
-        testStack((adapter) => {
-            new s3.Bucket(adapter, 'MyFirstBucket', { versioned: true });
-        }, done);
+    test('Checking single resource registration', async () => {
+        const app = new App('testapp', (scope: App) => {
+            const s = new Stack(scope, 'teststack');
+            new s3.Bucket(s, 'MyFirstBucket', { versioned: true });
+        });
+        const outputs = await app.outputs;
+        expect(outputs).toEqual({});
+        const urn = await promiseOf(app.urn);
+        expect(urn).toEqual('urn:pulumi:stack::project::cdk:index:App::testapp');
     });
 
-    test('Supports Output<T>', (done) => {
+    test('Supports Output<T>', async () => {
         const o = pulumi.output('the-bucket-name');
-        testStack((adapter) => {
-            new s3.Bucket(adapter, 'MyFirstBucket', { bucketName: output.asString(o) });
-        }, done);
+        const app = new App('testapp', (scope: App) => {
+            const s = new Stack(scope, 'teststack');
+            new s3.Bucket(s, 'MyFirstBucket', { bucketName: output.asString(o) });
+        });
+        const outputs = await app.outputs;
+        expect(outputs).toEqual({});
+        const urn = await promiseOf(app.urn);
+        expect(urn).toEqual('urn:pulumi:stack::project::cdk:index:App::testapp');
     });
 });

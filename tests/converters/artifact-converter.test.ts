@@ -1,6 +1,6 @@
 import { FileAssetPackaging, Stack } from 'aws-cdk-lib/core';
 import { FileAssetManifestConverter } from '../../src/converters/artifact-converter';
-import { StackComponentResource, StackOptions } from '../../src/types';
+import { AppComponent, AppOptions } from '../../src/types';
 import { FileAssetManifest } from '../../src/assembly';
 import * as pulumi from '@pulumi/pulumi';
 import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
@@ -45,17 +45,15 @@ function setMocks(assertFn: (args: MockResourceArgs) => void) {
     );
 }
 
-class MockStackComponent extends StackComponentResource {
+class MockStackComponent extends AppComponent {
     public readonly name = 'stack';
     public readonly assemblyDir: string = 'dir';
     public stack: Stack;
-    public options?: StackOptions | undefined;
+    public appOptions?: AppOptions | undefined;
     constructor() {
         super('stack');
         this.registerOutputs();
     }
-
-    registerOutput(outputId: string, output: any): void {}
 }
 
 describe('Artifact Converters', () => {
