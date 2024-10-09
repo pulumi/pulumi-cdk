@@ -21,45 +21,46 @@ import { MockCallArgs, MockMonitor, MockResourceArgs, setMocks } from '@pulumi/p
 import { setMockOptions } from '@pulumi/pulumi/runtime';
 import { error } from '@pulumi/pulumi/log';
 
+export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
+
 const STACK_SYMBOL = Symbol.for('@pulumi/cdk.Stack');
-export type create = (scope: App) => void;
-setMocks(
-    {
-        call: async (args: MockCallArgs) => {
-            return {};
-        },
-        newResource: async (args: MockResourceArgs) => {
-            console.error(args.type);
-            switch (args.type) {
-                case 'cdk:index:App':
-                    return { id: 'app', state: { outputs: {} } };
-                case 'aws-native:ssm:Parameter':
-                    return {
-                        id: `${args.name}${Math.random()}`,
-                        state: {
-                            ...args.inputs,
-                            name: `${args.name}${Math.random()}`,
-                            id: `${args.name}${Math.random()}`,
-                        },
-                    };
-                default:
-                    return {
-                        id: `${args.name}${Math.random()}`,
-                        state: {
-                            ...args.inputs,
-                        },
-                    };
-            }
-        },
-    },
-    pulumi.runtime.getProject(),
-    pulumi.runtime.getStack(),
-    pulumi.runtime.isDryRun(),
-);
+export type create = (scope: App) => AppOutputs;
+// setMocks(
+//     {
+//         call: async (args: MockCallArgs) => {
+//             return {};
+//         },
+//         newResource: async (args: MockResourceArgs) => {
+//             console.error(args.type);
+//             switch (args.type) {
+//                 case 'cdk:index:App':
+//                     return { id: 'app', state: { outputs: {} } };
+//                 case 'aws-native:ssm:Parameter':
+//                     return {
+//                         id: `${args.name}${Math.random()}`,
+//                         state: {
+//                             ...args.inputs,
+//                             name: `${args.name}${Math.random()}`,
+//                             id: `${args.name}${Math.random()}`,
+//                         },
+//                     };
+//                 default:
+//                     return {
+//                         id: `${args.name}${Math.random()}`,
+//                         state: {
+//                             ...args.inputs,
+//                         },
+//                     };
+//             }
+//         },
+//     },
+//     pulumi.runtime.getProject(),
+//     pulumi.runtime.getStack(),
+//     pulumi.runtime.isDryRun(),
+// );
 
 export class App extends AppComponent<AppConverter> implements ICloudAssemblyDirectoryProducer {
-    /** @internal */
-    name: string;
+    public name: string;
 
     public assemblyDir!: string;
 
@@ -81,38 +82,46 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
      * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
      * Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs.
      */
-    public outputs: Promise<{ [outputId: string]: pulumi.Output<any> }>;
+    // public outputs: pulumi.Output<{ [outputId: string]: pulumi.Output<any> }>;
+    public outputs: { [outputId: string]: pulumi.Output<any> } = {};
 
+    private readonly createFunc: (scope: App) => AppOutputs | void;
     private appProps?: cdk.AppProps;
+    // private stacks: pulumi.Output<Map<string, StackConverter>>;
 
-    constructor(id: string, private readonly createFunc: create, props?: AppOptions) {
+    constructor(id: string, createFunc: (scope: App) => void | AppOutputs, props?: AppOptions) {
         super(id, props);
         this.appOptions = props;
+        this.createFunc = createFunc;
 
         this.name = id;
         this.appProps = props?.props;
         this.converter = this.getData();
 
-        this.outputs = this.converter.then((converter) => {
+        const outputs = this.converter.then((converter) => {
             const stacks = Array.from(converter.stacks.values());
-            return stacks.reduce((prev, curr) => {
-                const outputs: { [outputId: string]: pulumi.Output<any> } = {};
-                for (const [outputId, args] of Object.entries(curr.stack.outputs ?? {})) {
-                    outputs[outputId] = curr.processIntrinsics(args.Value);
-                }
-                return {
-                    ...prev,
-                    ...outputs,
-                };
-            }, {});
+            return stacks.reduce(
+                (prev, curr) => {
+                    const o: { [outputId: string]: pulumi.Output<any> } = {};
+                    for (const [outputId, args] of Object.entries(curr.stack.outputs ?? {})) {
+                        o[outputId] = curr.processIntrinsics(args.Value);
+                    }
+                    return {
+                        ...prev,
+                        ...o,
+                    };
+                },
+                { ...this.outputs } as pulumi.Output<{ [outputId: string]: pulumi.Output<any> }>,
+            );
         });
+        this.outputs = pulumi.output(outputs);
         this.registerOutputs(this.outputs);
     }
 
     protected async initialize(): Promise<AppConverter> {
         const cli = AwsCdkCli.fromCloudAssemblyDirectoryProducer(this);
         try {
-            await cli.synth({ quiet: true /*, lookups: false */ });
+            await cli.synth({ quiet: true, lookups: false });
         } catch (e: any) {
             if (typeof e.message === 'string' && e.message.includes('Context lookups have been disabled')) {
                 const message = e.message as string;
@@ -143,7 +152,8 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
         });
         this._app = app;
         this.assemblyDir = app.outdir;
-        this.createFunc(this);
+        const outputs = this.createFunc(this);
+        this.outputs = outputs ?? {};
 
         app.node.children.forEach((child) => {
             if (Stack.isPulumiStack(child)) {
