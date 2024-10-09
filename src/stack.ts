@@ -14,44 +14,158 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cx from 'aws-cdk-lib/cx-api';
 import * as pulumi from '@pulumi/pulumi';
-import { debug } from '@pulumi/pulumi/log';
-import { StackComponentResource, StackOptions } from './types';
+import { AppComponent, AppOptions, PulumiStack } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
+import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
+import { MockCallArgs, MockMonitor, MockResourceArgs, setMocks } from '@pulumi/pulumi/runtime/mocks';
+import { setMockOptions } from '@pulumi/pulumi/runtime';
+import { error } from '@pulumi/pulumi/log';
 
-class StackComponent extends pulumi.ComponentResource implements StackComponentResource {
-    /** @internal */
-    name: string;
+export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
 
-    /** @internal */
-    converter: AppConverter;
+const STACK_SYMBOL = Symbol.for('@pulumi/cdk.Stack');
+export type create = (scope: App) => AppOutputs;
+// setMocks(
+//     {
+//         call: async (args: MockCallArgs) => {
+//             return {};
+//         },
+//         newResource: async (args: MockResourceArgs) => {
+//             console.error(args.type);
+//             switch (args.type) {
+//                 case 'cdk:index:App':
+//                     return { id: 'app', state: { outputs: {} } };
+//                 case 'aws-native:ssm:Parameter':
+//                     return {
+//                         id: `${args.name}${Math.random()}`,
+//                         state: {
+//                             ...args.inputs,
+//                             name: `${args.name}${Math.random()}`,
+//                             id: `${args.name}${Math.random()}`,
+//                         },
+//                     };
+//                 default:
+//                     return {
+//                         id: `${args.name}${Math.random()}`,
+//                         state: {
+//                             ...args.inputs,
+//                         },
+//                     };
+//             }
+//         },
+//     },
+//     pulumi.runtime.getProject(),
+//     pulumi.runtime.getStack(),
+//     pulumi.runtime.isDryRun(),
+// );
 
-    /** @internal */
-    assemblyDir: string;
+export class App extends AppComponent<AppConverter> implements ICloudAssemblyDirectoryProducer {
+    public name: string;
 
-    options?: StackOptions;
+    public assemblyDir!: string;
 
-    constructor(public readonly stack: Stack) {
-        super('cdk:index:Stack', stack.node.id, {}, stack.options);
-        this.options = stack.options;
+    // /** @internal */
+    converter: Promise<AppConverter>;
 
-        this.name = stack.node.id;
+    private _app?: cdk.App;
 
-        const assembly = stack.app.synth();
-        this.assemblyDir = assembly.directory;
-        debug(`ASSEMBLY_DIR: ${this.assemblyDir}`);
+    public appOptions?: AppOptions;
 
-        debug(JSON.stringify(debugAssembly(assembly)));
-
-        this.converter = new AppConverter(this);
-        this.converter.convert();
-
-        this.registerOutputs(stack.outputs);
+    public get app(): cdk.App {
+        if (!this._app) {
+            throw new Error('cdk.App has not been created yet');
+        }
+        return this._app!;
     }
 
-    /** @internal */
-    registerOutput(outputId: string, output: any) {
-        this.stack.outputs[outputId] = pulumi.output(output);
+    /**
+     * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
+     * Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs.
+     */
+    // public outputs: pulumi.Output<{ [outputId: string]: pulumi.Output<any> }>;
+    public outputs: { [outputId: string]: pulumi.Output<any> } = {};
+
+    private readonly createFunc: (scope: App) => AppOutputs | void;
+    private appProps?: cdk.AppProps;
+    // private stacks: pulumi.Output<Map<string, StackConverter>>;
+
+    constructor(id: string, createFunc: (scope: App) => void | AppOutputs, props?: AppOptions) {
+        super(id, props);
+        this.appOptions = props;
+        this.createFunc = createFunc;
+
+        this.name = id;
+        this.appProps = props?.props;
+        this.converter = this.getData();
+
+        const outputs = this.converter.then((converter) => {
+            const stacks = Array.from(converter.stacks.values());
+            return stacks.reduce(
+                (prev, curr) => {
+                    const o: { [outputId: string]: pulumi.Output<any> } = {};
+                    for (const [outputId, args] of Object.entries(curr.stack.outputs ?? {})) {
+                        o[outputId] = curr.processIntrinsics(args.Value);
+                    }
+                    return {
+                        ...prev,
+                        ...o,
+                    };
+                },
+                { ...this.outputs } as pulumi.Output<{ [outputId: string]: pulumi.Output<any> }>,
+            );
+        });
+        this.outputs = pulumi.output(outputs);
+        this.registerOutputs(this.outputs);
     }
+
+    protected async initialize(): Promise<AppConverter> {
+        const cli = AwsCdkCli.fromCloudAssemblyDirectoryProducer(this);
+        try {
+            await cli.synth({ quiet: true, lookups: false });
+        } catch (e: any) {
+            if (typeof e.message === 'string' && e.message.includes('Context lookups have been disabled')) {
+                const message = e.message as string;
+                const messageParts = message.split('Context lookups have been disabled. ');
+                const missingParts = messageParts[1].split('Missing context keys: ');
+                error(
+                    'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". \n' +
+                        'Missing context keys: ' +
+                        missingParts[1],
+                );
+            } else {
+                error(e.message, this);
+            }
+        }
+
+        const converter = new AppConverter(this);
+        converter.convert();
+
+        return converter;
+    }
+
+    async produce(context: Record<string, any>): Promise<string> {
+        const app = new cdk.App({
+            ...(this.appProps ?? {}),
+            autoSynth: false,
+            analyticsReporting: false,
+            context,
+        });
+        this._app = app;
+        this.assemblyDir = app.outdir;
+        const outputs = this.createFunc(this);
+        this.outputs = outputs ?? {};
+
+        app.node.children.forEach((child) => {
+            if (Stack.isPulumiStack(child)) {
+                this.stacks[child.artifactId] = child;
+            }
+        });
+        return app.synth().directory;
+    }
+}
+
+export interface StackOptions extends pulumi.ComponentResourceOptions {
+    props: cdk.StackProps;
 }
 
 /**
@@ -61,31 +175,40 @@ class StackComponent extends pulumi.ComponentResource implements StackComponentR
  * all CDK resources have been defined in order to deploy the stack (usually, this is done as the last line of the
  * subclass's constructor).
  */
-export class Stack extends cdk.Stack {
-    // The URN of the underlying Pulumi component.
-    urn!: pulumi.Output<pulumi.URN>;
-    resolveURN!: (urn: pulumi.Output<pulumi.URN>) => void;
-    rejectURN!: (error: any) => void;
-
+export class Stack extends PulumiStack {
     /**
-     * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
-     * Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs.
+     * Return whether the given object is a Stack.
+     *
+     * We do attribute detection since we can't reliably use 'instanceof'.
+     * @internal
      */
-    outputs: { [outputId: string]: pulumi.Output<any> } = {};
+    public static isPulumiStack(x: any): x is Stack {
+        return x !== null && typeof x === 'object' && STACK_SYMBOL in x;
+    }
+
+    // // The URN of the underlying Pulumi component.
+    // urn!: pulumi.Output<pulumi.URN>;
+    // resolveURN!: (urn: pulumi.Output<pulumi.URN>) => void;
+    // rejectURN!: (error: any) => void;
 
     /** @internal */
     app: cdk.App;
-
-    /** @internal */
-    options: StackOptions | undefined;
 
     // The stack's converter. This is used by asOutput in order to convert CDK values to Pulumi Outputs. This is a
     // Promise so users are able to call asOutput before they've called synth. Note that this _does_ make forgetting
     // to call synth a sharper edge: calling asOutput without calling synth will create outputs that never resolve
     // and the program will hang.
     converter!: Promise<StackConverter>;
-    resolveConverter!: (converter: StackConverter) => void;
-    rejectConverter!: (error: any) => void;
+
+    /**
+     * @internal
+     */
+    public options?: StackOptions;
+
+    /** @internal */
+    public outdir: string;
+
+    private pulumiApp: App;
 
     /**
      * Create and register an AWS CDK stack deployed with Pulumi.
@@ -93,51 +216,16 @@ export class Stack extends cdk.Stack {
      * @param name The _unique_ name of the resource.
      * @param options A bag of options that control this resource's behavior.
      */
-    constructor(name: string, options?: StackOptions) {
-        const app = new cdk.App({
-            context: {
-                // Ask CDK to attach 'aws:asset:*' metadata to resources in generated stack templates. Although this
-                // metadata is not currently used, it may be useful in the future to map between assets and the
-                // resources with which they are associated. For example, the lambda.Function L2 construct attaches
-                // metadata for its Code asset (if any) to its generated CFN resource.
-                [cx.ASSET_RESOURCE_METADATA_ENABLED_CONTEXT]: true,
-
-                // Ask CDK to embed 'aws:cdk:path' metadata in resources in generated stack templates. Although this
-                // metadata is not currently used, it provides an aditional mechanism by which we can map between
-                // constructs and the resources they emit in the CFN template.
-                [cx.PATH_METADATA_ENABLE_CONTEXT]: true,
-            },
-        });
-
-        super(app, name, options?.props);
-
-        this.app = app;
+    constructor(app: App, name: string, options?: StackOptions) {
+        super(app.app, name, options?.props);
+        Object.defineProperty(this, STACK_SYMBOL, { value: true });
+        this.pulumiApp = app;
         this.options = options;
 
-        const urnPromise = new Promise((resolve, reject) => {
-            this.resolveURN = resolve;
-            this.rejectURN = reject;
-        });
-        this.urn = pulumi.output(urnPromise);
+        this.outdir = app.assemblyDir;
+        this.app = app.app;
 
-        this.converter = new Promise((resolve, reject) => {
-            this.resolveConverter = resolve;
-            this.rejectConverter = reject;
-        });
-    }
-
-    /**
-     * Finalize the stack and deploy its resources.
-     */
-    protected synth() {
-        try {
-            const component = new StackComponent(this);
-            this.resolveURN(component.urn);
-            this.resolveConverter(component.converter.stacks.get(this.artifactId)!);
-        } catch (e) {
-            this.rejectURN(e);
-            this.rejectConverter(e);
-        }
+        this.converter = this.pulumiApp.converter.then((converter) => converter.stacks.get(this.artifactId)!);
     }
 
     /**

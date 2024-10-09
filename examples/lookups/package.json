@@ -1,0 +1,12 @@
+{
+    "name": "pulumi-aws-cdk",
+    "devDependencies": {
+        "@types/node": "^10.0.0"
+    },
+    "dependencies": {
+        "@pulumi/aws-native": "^1.0.2",
+        "@pulumi/cdk": "^0.5.0",
+        "aws-cdk-lib": "2.149.0",
+        "constructs": "^10.0.111"
+    }
+}

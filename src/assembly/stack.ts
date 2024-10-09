@@ -65,7 +65,7 @@ export class StackManifest {
     /**
      * The Outputs from the CFN Stack
      */
-    public readonly outputs?: { [id: string]: any };
+    public readonly outputs: { [id: string]: any };
 
     /**
      * The Parameters from the CFN Stack
@@ -94,7 +94,7 @@ export class StackManifest {
     ) {
         this.directory = directory;
         this.assets = assets;
-        this.outputs = template.Outputs;
+        this.outputs = template.Outputs ?? {};
         this.parameters = template.Parameters;
         this.metadata = metadata;
         this.templatePath = templatePath;
