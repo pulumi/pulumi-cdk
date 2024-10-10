@@ -17,8 +17,10 @@ import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
 import { StackComponentResource, StackOptions } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
+import { PulumiSynthesizer } from './synthesizer';
+import { CdkConstruct } from './interop';
 
-class StackComponent extends pulumi.ComponentResource implements StackComponentResource {
+class StackComponent extends StackComponentResource {
     /** @internal */
     name: string;
 
@@ -30,9 +32,12 @@ class StackComponent extends pulumi.ComponentResource implements StackComponentR
 
     options?: StackOptions;
 
+    public dependencies: CdkConstruct[] = [];
+
     constructor(public readonly stack: Stack) {
-        super('cdk:index:Stack', stack.node.id, {}, stack.options);
+        super(stack.node.id, stack.options);
         this.options = stack.options;
+        this.dependencies.push(stack.stagingStack);
 
         this.name = stack.node.id;
 
@@ -88,13 +93,24 @@ export class Stack extends cdk.Stack {
     rejectConverter!: (error: any) => void;
 
     /**
+     * @internal
+     */
+    stagingStack: CdkConstruct;
+
+    /**
      * Create and register an AWS CDK stack deployed with Pulumi.
      *
      * @param name The _unique_ name of the resource.
      * @param options A bag of options that control this resource's behavior.
      */
     constructor(name: string, options?: StackOptions) {
+        const appId = options?.appId ?? generateAppId();
+
+        const synthesizer = new PulumiSynthesizer({
+            appId,
+        });
         const app = new cdk.App({
+            defaultStackSynthesizer: synthesizer,
             context: {
                 // Ask CDK to attach 'aws:asset:*' metadata to resources in generated stack templates. Although this
                 // metadata is not currently used, it may be useful in the future to map between assets and the
@@ -110,6 +126,8 @@ export class Stack extends cdk.Stack {
         });
 
         super(app, name, options?.props);
+
+        this.stagingStack = synthesizer.stagingStack;
 
         this.app = app;
         this.options = options;
@@ -176,4 +194,20 @@ function debugArtifact(artifact: cx.CloudArtifact): any {
         manifest: artifact.manifest,
         messages: artifact.messages,
     };
+}
+
+/**
+ * Generate a unique app id based on the project and stack. We need some uniqueness
+ * in case multiple stacks/projects are deployed to the same AWS environment.
+ *
+ * This will be used in resource names (e.g. S3 Bucket names) so there
+ * are some limitations.
+ */
+function generateAppId(): string {
+    const stack = pulumi.runtime.getStack();
+    const project = pulumi.runtime.getProject();
+    return `${project}-${stack}`
+        .toLowerCase()
+        .replace(/[^a-z0-9-.]/g, '-')
+        .slice(-17);
 }

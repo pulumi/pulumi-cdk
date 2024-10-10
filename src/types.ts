@@ -1,6 +1,6 @@
 import * as pulumi from '@pulumi/pulumi';
 import { Stack, StackProps } from 'aws-cdk-lib/core';
-import { ResourceMapping } from './interop';
+import { CdkConstruct, ResourceMapping } from './interop';
 /**
  * Options specific to the Stack component.
  */
@@ -9,6 +9,19 @@ export interface StackOptions extends pulumi.ComponentResourceOptions {
      * Specify the CDK Stack properties to asociate with the stack.
      */
     props?: StackProps;
+
+    /**
+     * A unique identifier for the application that the asset staging stack belongs to.
+     *
+     * This identifier will be used in the name of staging resources
+     * created for this application, and should be unique across apps.
+     *
+     * The identifier should include lowercase characters, numbers, periods (.) and dashes ('-') only
+     * and have a maximum of 17 characters.
+     *
+     * @default - generated from the pulumi project and stack name
+     */
+    appId?: string;
 
     /**
      * Defines a mapping to override and/or provide an implementation for a CloudFormation resource
@@ -64,6 +77,11 @@ export abstract class StackComponentResource extends pulumi.ComponentResource {
      * @internal
      */
     public abstract options?: StackOptions;
+
+    /**
+     * @internal
+     */
+    public abstract readonly dependencies: CdkConstruct[];
 
     /**
      * Register pulumi outputs to the stack

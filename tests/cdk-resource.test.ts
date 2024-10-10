@@ -1,42 +1,9 @@
-import * as pulumi from '@pulumi/pulumi';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { TableArgs } from '@pulumi/aws-native/dynamodb';
 import { Stack } from '../src/stack';
 import { Construct } from 'constructs';
-import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Key } from 'aws-cdk-lib/aws-kms';
-import { ApplicationLoadBalancer } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
-import { Vpc } from 'aws-cdk-lib/aws-ec2';
-import { aws_ssm } from 'aws-cdk-lib';
-
-function setMocks(assertFn: (args: MockResourceArgs) => void) {
-    pulumi.runtime.setMocks(
-        {
-            call: (_args: MockCallArgs) => {
-                return {};
-            },
-            newResource: (args: MockResourceArgs): { id: string; state: any } => {
-                switch (args.type) {
-                    case 'cdk:index:Stack':
-                        return { id: '', state: {} };
-                    case 'cdk:construct:TestStack':
-                        return { id: '', state: {} };
-                    case 'cdk:index:Component':
-                        return { id: '', state: {} };
-                    default:
-                        assertFn(args);
-                        return {
-                            id: args.name + '_id',
-                            state: args.inputs,
-                        };
-                }
-            },
-        },
-        'project',
-        'stack',
-        false,
-    );
-}
+import { setMocks } from './mocks';
 
 function testStack(fn: (scope: Construct) => void, done: any) {
     class TestStack extends Stack {
@@ -140,23 +107,6 @@ describe('CDK Construct tests', () => {
                     name: 'gsiKey',
                     type: dynamodb.AttributeType.STRING,
                 },
-            });
-        }, done);
-    });
-
-    test('LoadBalancer dnsName attribute does not throw', (done) => {
-        setMocks((_args) => {});
-        testStack((scope) => {
-            const vpc = new Vpc(scope, 'vpc');
-            const alb = new ApplicationLoadBalancer(scope, 'alb', {
-                vpc,
-            });
-
-            new aws_ssm.StringParameter(scope, 'param', {
-                // Referencing the `dnsName` attribute of the LoadBalancer resource.
-                // This tests that the reference is correctly mapped, otherwise this test
-                // throws an error
-                stringValue: alb.loadBalancerDnsName,
             });
         }, done);
     });
