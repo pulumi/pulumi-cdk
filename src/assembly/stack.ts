@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { DestinationIdentifier, FileManifestEntry } from 'cdk-assets';
 import { CloudFormationParameter, CloudFormationResource, CloudFormationTemplate } from '../cfn';
-import { ConstructTree, StackAsset, StackMetadata } from './types';
+import { ConstructTree, StackMetadata } from './types';
 import { FileAssetPackaging, FileDestination } from 'aws-cdk-lib/cloud-assembly-schema';
 
 /**
@@ -39,6 +39,38 @@ export class FileAssetManifest {
         this.path = path.join(directory, asset.source.path!);
         this.packaging = asset.source.packaging ?? FileAssetPackaging.FILE;
     }
+}
+
+export interface StackManifestProps {
+    /**
+     * The artifactId of the stack
+     */
+    readonly id: string;
+
+    /**
+     * The path to the CloudFormation template file within the assembly
+     */
+    readonly templatePath: string;
+
+    /**
+     * The StackMetadata for the stack
+     */
+    readonly metadata: StackMetadata;
+
+    /**
+     * The construct tree for the App
+     */
+    readonly tree: ConstructTree;
+
+    /**
+     * The actual CloudFormation template being processed
+     */
+    readonly template: CloudFormationTemplate;
+
+    /**
+     * A list of artifact ids that this stack depends on
+     */
+    readonly dependencies: string[];
 }
 
 /**
@@ -81,41 +113,20 @@ export class StackManifest {
      *
      */
     private readonly metadata: StackMetadata;
-    private readonly assets: StackAsset[];
-    private readonly directory: string;
-    constructor(
-        directory: string,
-        id: string,
-        templatePath: string,
-        metadata: StackMetadata,
-        tree: ConstructTree,
-        template: CloudFormationTemplate,
-        assets: StackAsset[],
-    ) {
-        this.directory = directory;
-        this.assets = assets;
-        this.outputs = template.Outputs;
-        this.parameters = template.Parameters;
-        this.metadata = metadata;
-        this.templatePath = templatePath;
-        this.id = id;
-        this.constructTree = tree;
-        if (!template.Resources) {
+    public readonly dependencies: string[];
+    constructor(props: StackManifestProps) {
+        this.dependencies = props.dependencies;
+        this.outputs = props.template.Outputs;
+        this.parameters = props.template.Parameters;
+        this.metadata = props.metadata;
+        this.templatePath = props.templatePath;
+        this.id = props.id;
+        this.constructTree = props.tree;
+        if (!props.template.Resources) {
             throw new Error('CloudFormation template has no resources!');
         }
-        this.resources = template.Resources;
+        this.resources = props.template.Resources;
     }
-
-    public get fileAssets(): FileAssetManifest[] {
-        return this.assets
-            .filter((asset) => asset.type === 'file')
-            .flatMap((asset) => new FileAssetManifest(this.directory, asset));
-    }
-
-    // TODO: implement docker assets
-    // public get dockerAssets(): DockerAssetManifest[] {
-    //
-    // }
 
     /**
      * Get the CloudFormation logicalId for the CFN resource at the given Construct path
