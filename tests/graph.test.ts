@@ -16,23 +16,26 @@ import { GraphBuilder, GraphNode } from '../src/graph';
 import { StackManifest } from '../src/assembly';
 import { createStackManifest } from './utils';
 
-describe('Graph tests', () => {
+describe('GraphBuilder', () => {
     const nodes = GraphBuilder.build(
-        new StackManifest(
-            'test',
-            'stack',
-            'test/stack',
-            {
+        new StackManifest({
+            id: 'stack',
+            templatePath: 'test/stack',
+            metadata: {
                 'stack/example-bucket/Resource': 'examplebucketC9DFA43E',
                 'stack/example-bucket/Policy/Resource': 'examplebucketPolicyE09B485E',
             },
-            {
+            tree: {
                 path: 'stack',
                 id: 'stack',
                 children: {
                     'example-bucket': {
                         id: 'example-bucket',
                         path: 'stack/example-bucket',
+                        constructInfo: {
+                            fqn: 'aws-cdk-lib.aws_s3.Bucket',
+                            version: '2.149.0',
+                        },
                         children: {
                             Resource: {
                                 id: 'Resource',
@@ -44,32 +47,30 @@ describe('Graph tests', () => {
                                     fqn: 'aws-cdk-lib.aws_s3.CfnBucket',
                                     version: '2.149.0',
                                 },
-                            },
-                            Policy: {
-                                id: 'Policy',
-                                path: 'stack/example-bucket/Policy',
                                 children: {
-                                    Resource: {
-                                        id: 'Resource',
-                                        path: 'stack/example-bucket/Policy/Resource',
-                                        attributes: {
-                                            'aws:cdk:cloudformation:type': 'AWS::S3::BucketPolicy',
+                                    Policy: {
+                                        id: 'Policy',
+                                        path: 'stack/example-bucket/Policy',
+                                        children: {
+                                            Resource: {
+                                                id: 'Resource',
+                                                path: 'stack/example-bucket/Policy/Resource',
+                                                attributes: {
+                                                    'aws:cdk:cloudformation:type': 'AWS::S3::BucketPolicy',
+                                                },
+                                                constructInfo: {
+                                                    fqn: 'aws-cdk-lib.aws_s3.CfnBucketPolicy',
+                                                    version: '2.149.0',
+                                                },
+                                            },
                                         },
                                         constructInfo: {
-                                            fqn: 'aws-cdk-lib.aws_s3.CfnBucketPolicy',
+                                            fqn: 'aws-cdk-lib.aws_s3.BucketPolicy',
                                             version: '2.149.0',
                                         },
                                     },
                                 },
-                                constructInfo: {
-                                    fqn: 'aws-cdk-lib.aws_s3.BucketPolicy',
-                                    version: '2.149.0',
-                                },
                             },
-                        },
-                        constructInfo: {
-                            fqn: 'aws-cdk-lib.aws_s3.Bucket',
-                            version: '2.149.0',
                         },
                     },
                 },
@@ -78,7 +79,7 @@ describe('Graph tests', () => {
                     version: '2.149.0',
                 },
             },
-            {
+            template: {
                 Resources: {
                     examplebucketC9DFA43E: {
                         Type: 'AWS::S3::Bucket',
@@ -94,8 +95,8 @@ describe('Graph tests', () => {
                     },
                 },
             },
-            [],
-        ),
+            dependencies: [],
+        }),
     );
     test.each([
         [
@@ -240,15 +241,14 @@ test('pulumi resource type name fallsback when fqn not available', () => {
     const bucketId = 'example-bucket';
     const policyResourceId = 'Policy';
     const nodes = GraphBuilder.build(
-        new StackManifest(
-            'test',
-            'stack',
-            'test/stack',
-            {
+        new StackManifest({
+            id: 'stack',
+            templatePath: 'test/stack',
+            metadata: {
                 'stack/example-bucket/Resource': 'examplebucketC9DFA43E',
                 'stack/example-bucket/Policy/Resource': 'examplebucketPolicyE09B485E',
             },
-            {
+            tree: {
                 path: 'stack',
                 id: 'stack',
                 children: {
@@ -292,7 +292,7 @@ test('pulumi resource type name fallsback when fqn not available', () => {
                     version: '2.149.0',
                 },
             },
-            {
+            template: {
                 Resources: {
                     examplebucketC9DFA43E: {
                         Type: 'AWS::S3::Bucket',
@@ -308,8 +308,8 @@ test('pulumi resource type name fallsback when fqn not available', () => {
                     },
                 },
             },
-            [],
-        ),
+            dependencies: [],
+        }),
     );
 
     expect(nodes[0].construct.type).toEqual('aws-cdk-lib:Stack');

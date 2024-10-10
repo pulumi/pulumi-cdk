@@ -134,9 +134,8 @@ describe('cloud assembly manifest reader', () => {
         const manifest = AssemblyManifestReader.fromDirectory(path.dirname(manifestFile));
 
         expect(manifest.stackManifests[0]).toEqual({
-            assets: expect.anything(),
             constructTree: { id: 'test-stack', path: 'test-stack' },
-            directory: '/tmp/foo/bar/does/not/exist',
+            dependencies: [],
             id: 'test-stack',
             metadata: {
                 'test-stack/MyFunction1/Resource': 'MyFunction12A744C2E',
@@ -149,19 +148,6 @@ describe('cloud assembly manifest reader', () => {
                 MyFunction1ServiceRole9852B06B: { Properties: {}, Type: 'AWS::IAM::Role' },
             },
             templatePath: 'test-stack.template.json',
-        });
-        expect(manifest.stackManifests[0].fileAssets.length).toEqual(1);
-        expect(manifest.stackManifests[0].fileAssets[0]).toEqual({
-            destination: {
-                bucketName: 'cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}',
-                objectKey: 'abe4e2f4fcc1aaaf53db4829c23a5cf08795d36cce0f68a3321c1c8d728fec44.zip',
-            },
-            id: {
-                assetId: 'abe4e2f4fcc1aaaf53db4829c23a5cf08795d36cce0f68a3321c1c8d728fec44',
-                destinationId: 'current_account-current_region',
-            },
-            packaging: 'zip',
-            path: '/tmp/foo/bar/does/not/exist/asset.abe4e2f4fcc1aaaf53db4829c23a5cf08795d36cce0f68a3321c1c8d728fec44',
         });
     });
 });

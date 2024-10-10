@@ -2,7 +2,7 @@ import * as pulumi from '@pulumi/pulumi';
 import { AssemblyManifestReader, StackManifest } from '../assembly';
 import { ConstructInfo, GraphBuilder } from '../graph';
 import { StackComponentResource, lift, Mapping } from '../types';
-import { ArtifactConverter, FileAssetManifestConverter } from './artifact-converter';
+import { ArtifactConverter } from './artifact-converter';
 import { CdkConstruct, ResourceMapping } from '../interop';
 import { debug } from '@pulumi/pulumi/log';
 import {
@@ -35,30 +35,50 @@ export class AppConverter {
     }
 
     convert() {
+        const assetStackIds = this.host.dependencies.flatMap((dep) => dep.name);
+        const stackManifests: StackManifest[] = [];
         for (const stackManifest of this.manifestReader.stackManifests) {
+            // Don't process artifact manifests
+            if (assetStackIds.includes(stackManifest.id)) continue;
+            stackManifests.push(stackManifest);
+
             const stackConverter = new StackConverter(this.host, stackManifest);
             this.stacks.set(stackManifest.id, stackConverter);
-            this.convertStackManifest(stackManifest);
+        }
+
+        for (const stack of stackManifests) {
+            const done: { [artifactId: string]: StackConverter } = {};
+            this.convertStackManifest(stack, done);
         }
     }
 
-    private convertStackManifest(artifact: StackManifest): void {
-        const dependencies = new Set<ArtifactConverter>();
-        for (const file of artifact.fileAssets) {
-            const converter = new FileAssetManifestConverter(this.host, file);
-            converter.convert();
-            dependencies.add(converter);
+    private convertStackManifest(
+        artifact: StackManifest,
+        done: { [artifactId: string]: StackConverter },
+    ): StackConverter | undefined {
+        if (artifact.id in done) {
+            return done[artifact.id];
         }
 
-        // TODO add docker asset converter
-        // for (const image of artifact.dockerAssets) {
-        // }
+        const dependencies = new Set<ArtifactConverter>();
+        for (const d of artifact.dependencies) {
+            const converter = this.stacks.get(d);
+            if (converter) {
+                const c = this.convertStackManifest(converter.stack, done);
+                if (c !== undefined) {
+                    debug(`${artifact.id} depends on ${d}`);
+                    dependencies.add(c);
+                }
+            }
+        }
 
         const stackConverter = this.stacks.get(artifact.id);
         if (!stackConverter) {
             throw new Error(`missing CDK Stack for artifact ${artifact.id}`);
         }
         stackConverter.convert(dependencies);
+        done[artifact.id] = stackConverter;
+        return stackConverter;
     }
 }
 
@@ -70,7 +90,16 @@ export class StackConverter extends ArtifactConverter {
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
 
-    constructor(host: StackComponentResource, readonly stack: StackManifest) {
+    private _stackResource?: CdkConstruct;
+
+    public get stackResource(): CdkConstruct {
+        if (!this._stackResource) {
+            throw new Error('StackConverter has no stack resource');
+        }
+        return this._stackResource;
+    }
+
+    constructor(private readonly host: StackComponentResource, readonly stack: StackManifest) {
         super(host);
     }
 
@@ -84,7 +113,7 @@ export class StackConverter extends ArtifactConverter {
 
         for (const n of dependencyGraphNodes) {
             if (n.construct.id === this.stack.id) {
-                const stackResource = new CdkConstruct(
+                this._stackResource = new CdkConstruct(
                     `${this.stackComponent.name}/${n.construct.path}`,
                     n.construct.id,
                     {
@@ -96,7 +125,7 @@ export class StackConverter extends ArtifactConverter {
                         dependsOn: this.stackDependsOn(dependencies),
                     },
                 );
-                this.constructs.set(n.construct, stackResource);
+                this.constructs.set(n.construct, this._stackResource);
                 continue;
             }
 
@@ -147,12 +176,11 @@ export class StackConverter extends ArtifactConverter {
 
     private stackDependsOn(dependencies: Set<ArtifactConverter>): pulumi.Resource[] {
         const dependsOn: pulumi.Resource[] = [];
+        dependsOn.push(...this.host.dependencies);
         for (const d of dependencies) {
-            if (d instanceof FileAssetManifestConverter) {
-                this.resources.set(d.id, { resource: d.file, resourceType: d.resourceType });
-                dependsOn.push(d.file);
+            if (d instanceof StackConverter) {
+                dependsOn.push(d.stackResource);
             }
-            // TODO: handle docker images
         }
         return dependsOn;
     }
