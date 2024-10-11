@@ -1,11 +1,16 @@
 import * as path from 'path';
 import * as pulumi from '@pulumi/pulumi';
-import { DEPLOY_TIME_PREFIX } from '@aws-cdk/app-staging-synthesizer-alpha';
 import * as cdk from 'aws-cdk-lib/core';
 import { translateCfnTokenToAssetToken } from 'aws-cdk-lib/core/lib/helpers-internal';
 import * as aws from '@pulumi/aws';
 import { CdkConstruct } from './interop';
 import { zipDirectory } from './zip';
+
+/**
+ * Deploy time assets will be put in this S3 bucket prefix
+ * so that separate lifecycle rules can apply
+ */
+const DEPLOY_TIME_PREFIX = 'deploy-time/';
 
 export interface PulumiSynthesizerOptions {
     /**
