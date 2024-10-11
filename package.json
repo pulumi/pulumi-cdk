@@ -58,7 +58,6 @@
     "constructs": "^10.0.111"
   },
   "dependencies": {
-    "@aws-cdk/app-staging-synthesizer-alpha": "^2.149.0-alpha.0",
     "@types/glob": "^8.1.0",
     "archiver": "^7.0.1",
     "cdk-assets": "^2.154.8",
