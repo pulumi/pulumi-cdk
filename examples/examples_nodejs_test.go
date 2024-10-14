@@ -102,6 +102,15 @@ func TestEC2Instance(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestCloudFront(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "cloudfront-lambda-urls"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func TestAPIWebsocketLambdaDynamoDB(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
