@@ -1,12 +1,38 @@
 import * as pulumi from '@pulumi/pulumi';
+import { Stack } from '../src/stack';
+import { Construct } from 'constructs';
 import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
 
 // Convert a pulumi.Output to a promise of the same type.
 export function promiseOf<T>(output: pulumi.Output<T>): Promise<T> {
     return new Promise((resolve) => output.apply(resolve));
 }
+export async function testStack(fn: (scope: Construct) => void) {
+    class TestStack extends Stack {
+        constructor(id: string) {
+            super(id, {
+                props: {
+                    env: {
+                        region: 'us-east-1',
+                        account: '12345678912',
+                    },
+                },
+            });
 
-export function setMocks(assertFn: (args: MockResourceArgs) => void) {
+            fn(this);
+
+            this.synth();
+        }
+    }
+
+    const s = new TestStack('teststack');
+    const converter = await s.converter;
+    await Promise.all(Array.from(converter.constructs.values()).flatMap((v) => promiseOf(v.urn)));
+    await promiseOf(s.urn);
+    await promiseOf(s.pulumiSynthesizer.stagingStack.urn);
+}
+
+export function setMocks(resources?: MockResourceArgs[]) {
     const mocks: pulumi.runtime.Mocks = {
         call: (args: MockCallArgs): { [id: string]: any } => {
             switch (args.token) {
@@ -43,7 +69,7 @@ export function setMocks(assertFn: (args: MockResourceArgs) => void) {
                 case 'cdk:index:Component':
                     return { id: '', state: {} };
                 default:
-                    assertFn(args);
+                    resources?.push(args);
                     return {
                         id: args.name + '_id',
                         state: {

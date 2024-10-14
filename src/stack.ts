@@ -37,7 +37,7 @@ class StackComponent extends StackComponentResource {
     constructor(public readonly stack: Stack) {
         super(stack.node.id, stack.options);
         this.options = stack.options;
-        this.dependencies.push(stack.stagingStack);
+        this.dependencies.push(stack.pulumiSynthesizer.stagingStack);
 
         this.name = stack.node.id;
 
@@ -95,7 +95,7 @@ export class Stack extends cdk.Stack {
     /**
      * @internal
      */
-    stagingStack: CdkConstruct;
+    public readonly pulumiSynthesizer: PulumiSynthesizer;
 
     /**
      * Create and register an AWS CDK stack deployed with Pulumi.
@@ -126,8 +126,7 @@ export class Stack extends cdk.Stack {
         });
 
         super(app, name, options?.props);
-
-        this.stagingStack = synthesizer.stagingStack;
+        this.pulumiSynthesizer = synthesizer;
 
         this.app = app;
         this.options = options;

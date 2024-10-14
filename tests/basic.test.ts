@@ -37,7 +37,7 @@ function testStack(id: string, fn: (scope: Construct) => void): Stack {
 }
 
 beforeAll(() => {
-    setMocks(() => {});
+    setMocks();
 });
 
 describe('Basic tests', () => {
