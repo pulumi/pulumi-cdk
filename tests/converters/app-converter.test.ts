@@ -25,7 +25,7 @@ class MockStackComponent extends StackComponentResource {
 }
 
 beforeAll(() => {
-    setMocks(() => {});
+    setMocks();
 });
 
 describe('App Converter', () => {

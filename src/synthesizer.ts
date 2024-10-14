@@ -152,7 +152,9 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
         const region = aws.getRegionOutput();
         this.pulumiRegion = region.name;
         const id = `${stackPrefix}-${this.appId}`;
-
+        // The name that CDK uses needs to include CDK intrinsics so we use the CDK account/region
+        this.cdkBucketName =
+            this._stagingBucketName ?? `pulumi-cdk-${this.appId}-staging-${this.cdkAccount}-${this.cdkRegion}`;
         // create a wrapper component resource that we can depend on
         this.stagingStack = new CdkConstruct(id, 'StagingStack', {});
         this.stagingStack.done();
@@ -181,10 +183,7 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
      * CDK application.
      */
     private getCreateBucket(): void {
-        // The name that CDK uses needs to include CDK intrinsics so we use the CDK account/region
-        this.cdkBucketName =
-            this._stagingBucketName ?? `pulumi-cdk-${this.appId}-staging-${this.cdkAccount}-${this.cdkRegion}`;
-
+        // this._stagingStack.done();
         // The pulumi resources can use the actual output values for account/region
         this.pulumiBucketName =
             this._stagingBucketName ??
@@ -333,8 +332,16 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
      * later post-process the assets from the manifest
      */
     public addFileAsset(asset: cdk.FileAssetSource): cdk.FileAssetLocation {
-        this.getCreateBucket();
         assertBound(this.cdkBucketName);
+        if (asset.fileName === this.boundStack.templateFile) {
+            return this.cloudFormationLocationFromFileAsset(
+                this.assetManifest.defaultAddFileAsset(this.boundStack, asset, {
+                    bucketName: translateCfnTokenToAssetToken(this.cdkBucketName),
+                    bucketPrefix: asset.deployTime ? DEPLOY_TIME_PREFIX : undefined,
+                }),
+            );
+        }
+        this.getCreateBucket();
         assertBound(this.pulumiBucketName);
         assertBound(this.outdir);
         assertBound(this.stagingBucket);
