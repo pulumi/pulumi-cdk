@@ -7,7 +7,9 @@ import * as pulumicdk from '@pulumi/cdk';
 import * as aws from '@pulumi/aws';
 
 const defaultVpc = pulumi.output(aws.ec2.getVpc({ default: true }));
-const defaultVpcSubnets = defaultVpc.id.apply((id) => aws.ec2.getSubnetIds({ vpcId: id }));
+const defaultVpcSubnets = defaultVpc.id.apply((id) =>
+    aws.ec2.getSubnets({ filters: [{ name: 'vpc-id', values: [id] }] }),
+);
 const azs = aws.getAvailabilityZonesOutput({
     filters: [
         {
