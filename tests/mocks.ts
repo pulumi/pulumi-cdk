@@ -52,6 +52,14 @@ export function setMocks(resources?: MockResourceArgs[]) {
                     return {
                         azs: ['us-east-1a', 'us-east-1b'],
                     };
+                case 'aws:index/getCallerIdentity:getCallerIdentity':
+                    return {
+                        accountId: '12345678910',
+                    };
+                case 'aws:index/getRegion:getRegion':
+                    return {
+                        name: 'us-east-2',
+                    };
                 default:
                     return {};
             }
