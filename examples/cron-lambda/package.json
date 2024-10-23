@@ -4,12 +4,11 @@
         "@types/node": "^10.0.0"
     },
     "dependencies": {
-        "@pulumi/aws": "^4.6.0",
-        "@pulumi/awsx": "^0.32.0",
-        "@pulumi/aws-native": "^0.117.0",
+        "@pulumi/aws": "^6.0.0",
+        "@pulumi/aws-native": "^1.0.0",
         "@pulumi/pulumi": "^3.0.0",
         "aws-cdk-lib": "2.149.0",
-        "constructs": "^10.0.111", 
+        "constructs": "10.3.0", 
         "@pulumi/cdk": "^0.5.0"
     } 
 }
