@@ -63,12 +63,13 @@ export class AppConverter {
         const dependencies = new Set<ArtifactConverter>();
         for (const d of artifact.dependencies) {
             const converter = this.stacks.get(d);
-            if (converter) {
-                const c = this.convertStackManifest(converter.stack, done);
-                if (c !== undefined) {
-                    debug(`${artifact.id} depends on ${d}`);
-                    dependencies.add(c);
-                }
+            if (!converter) {
+                throw new Error(`Could not convert artifact with id ${d}`);
+            }
+            const c = this.convertStackManifest(converter.stack, done);
+            if (c !== undefined) {
+                debug(`${artifact.id} depends on ${d}`);
+                dependencies.add(c);
             }
         }
 

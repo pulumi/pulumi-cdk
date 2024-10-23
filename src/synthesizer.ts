@@ -146,10 +146,10 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
         this.autoDeleteStagingAssets = props.autoDeleteStagingAssets ?? true;
         this.appId = this.validateAppId(props.appId);
 
-        const caller = aws.getCallerIdentityOutput();
-        this.pulumiAccount = caller.accountId;
-        const region = aws.getRegionOutput();
-        this.pulumiRegion = region.name;
+        const account = aws.getCallerIdentity().then((id) => id.accountId);
+        this.pulumiAccount = pulumi.output(account);
+        const region = aws.getRegion().then((r) => r.name);
+        this.pulumiRegion = pulumi.output(region);
         const id = `${stackPrefix}-${this.appId}`;
         // create a wrapper component resource that we can depend on
         this.stagingStack = new CdkConstruct(id, 'StagingStack', {});
@@ -178,7 +178,7 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
      * Create a S3 Bucket which will be used to store any file assets that are created in the
      * CDK application.
      */
-    private getCreateBucket(): void {
+    private getCreateBucket(): aws.s3.BucketV2 {
         // The pulumi resources can use the actual output values for account/region
         this.pulumiBucketName =
             this._stagingBucketName ??
@@ -252,35 +252,35 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
             );
 
             // Many AWS account safety checkers will complain when SSL isn't enforced
+            const policyDoc = pulumi.jsonStringify({
+                Version: '2012-10-17',
+                Id: 'require-ssl',
+                Statement: [
+                    {
+                        Sid: 'ssl',
+                        Action: ['s3:*'],
+                        Condition: {
+                            Bool: {
+                                'aws:SecureTransport': false,
+                            },
+                        },
+                        Effect: 'Deny',
+                        Principal: '*',
+                        Resource: [this.stagingBucket.arn, pulumi.interpolate`${this.stagingBucket.arn}/*`],
+                    },
+                ],
+            });
             const policy = new aws.s3.BucketPolicy(
                 'staging-bucket-policy',
                 {
                     bucket: this.stagingBucket.bucket,
-                    policy: aws.iam.getPolicyDocumentOutput({
-                        version: '2012-10-17',
-                        policyId: 'require-ssl',
-                        statements: [
-                            {
-                                sid: 'ssl',
-                                actions: ['s3:*'],
-                                conditions: [
-                                    {
-                                        variable: 'aws:SecureTransport',
-                                        test: 'Bool',
-                                        values: ['false'],
-                                    },
-                                ],
-                                effect: 'Deny',
-                                principals: [{ type: 'AWS', identifiers: ['*'] }],
-                                resources: [this.stagingBucket.arn, pulumi.interpolate`${this.stagingBucket.arn}/*`],
-                            },
-                        ],
-                    }).json,
+                    policy: policyDoc,
                 },
                 { parent: this.stagingStack },
             );
             this.fileDependencies.push(this.stagingBucket, encryption, versioning, lifecycle, policy);
         }
+        return this.stagingBucket;
     }
 
     /**
@@ -340,10 +340,8 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
                 }),
             );
         }
-        this.getCreateBucket();
-        assertBound(this.pulumiBucketName);
+        const stagingBucket = this.getCreateBucket();
         assertBound(this.outdir);
-        assertBound(this.stagingBucket);
 
         if (asset.executable || !asset.fileName) {
             throw new Error(`file assets produced by commands are not yet supported`);
@@ -366,7 +364,7 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
                 `${this.stagingStack.name}/${asset.sourceHash}`,
                 {
                     source: outputPath,
-                    bucket: this.pulumiBucketName,
+                    bucket: stagingBucket.bucket,
                     key: location.objectKey,
                 },
                 { parent: this.stagingStack, dependsOn: this.fileDependencies },
