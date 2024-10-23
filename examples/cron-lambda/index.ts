@@ -9,8 +9,8 @@ import * as pulumicdk from '@pulumi/cdk';
 class LambdaStack extends pulumicdk.Stack {
     lambdaArn: pulumi.Output<string>;
 
-    constructor(id: string, options?: pulumicdk.StackOptions) {
-        super(id, options);
+    constructor(app: pulumicdk.App, id: string) {
+        super(app, id);
 
         // Use the AWS CDK Lambda Function API directly.
         const lambdaFn = new aws_lambda.Function(this, 'lambda', {
@@ -31,10 +31,17 @@ class LambdaStack extends pulumicdk.Stack {
 
         // Export the Lambda function's ARN as an output.
         this.lambdaArn = this.asOutput(lambdaFn.functionArn);
-
-        this.synth();
     }
 }
 
-const stack = new LambdaStack('teststack');
-export const lambdaArn = stack.lambdaArn;
+class MyApp extends pulumicdk.App {
+    constructor() {
+        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+            const stack = new LambdaStack(scope, 'teststack');
+            return { lambdaArn: stack.lambdaArn };
+        });
+    }
+}
+
+const app = new MyApp();
+export const lambdaArn = app.outputs['lambdaArn'];

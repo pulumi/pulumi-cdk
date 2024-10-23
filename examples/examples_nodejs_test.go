@@ -34,15 +34,6 @@ func TestAppSvc(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
-func TestECSCluster(t *testing.T) {
-	test := getJSBaseOptions(t).
-		With(integration.ProgramTestOptions{
-			Dir: filepath.Join(getCwd(t), "ecscluster"),
-		})
-
-	integration.ProgramTest(t, &test)
-}
-
 func TestAppRunner(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
@@ -106,6 +97,17 @@ func TestCloudFront(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "cloudfront-lambda-urls"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+func TestLookups(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "lookups"),
+			Config: map[string]string{
+				"zoneName": "coolcompany.io",
+			},
 		})
 
 	integration.ProgramTest(t, &test)

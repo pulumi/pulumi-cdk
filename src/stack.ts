@@ -17,58 +17,29 @@ import * as pulumi from '@pulumi/pulumi';
 import { AppComponent, AppOptions, PulumiStack } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
-import { MockCallArgs, MockMonitor, MockResourceArgs, setMocks } from '@pulumi/pulumi/runtime/mocks';
-import { setMockOptions } from '@pulumi/pulumi/runtime';
 import { error } from '@pulumi/pulumi/log';
 
 export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
 
 const STACK_SYMBOL = Symbol.for('@pulumi/cdk.Stack');
 export type create = (scope: App) => AppOutputs;
-// setMocks(
-//     {
-//         call: async (args: MockCallArgs) => {
-//             return {};
-//         },
-//         newResource: async (args: MockResourceArgs) => {
-//             console.error(args.type);
-//             switch (args.type) {
-//                 case 'cdk:index:App':
-//                     return { id: 'app', state: { outputs: {} } };
-//                 case 'aws-native:ssm:Parameter':
-//                     return {
-//                         id: `${args.name}${Math.random()}`,
-//                         state: {
-//                             ...args.inputs,
-//                             name: `${args.name}${Math.random()}`,
-//                             id: `${args.name}${Math.random()}`,
-//                         },
-//                     };
-//                 default:
-//                     return {
-//                         id: `${args.name}${Math.random()}`,
-//                         state: {
-//                             ...args.inputs,
-//                         },
-//                     };
-//             }
-//         },
-//     },
-//     pulumi.runtime.getProject(),
-//     pulumi.runtime.getStack(),
-//     pulumi.runtime.isDryRun(),
-// );
 
 export class App extends AppComponent<AppConverter> implements ICloudAssemblyDirectoryProducer {
     public name: string;
 
+    /**
+     *
+     */
     public assemblyDir!: string;
 
-    // /** @internal */
-    converter: Promise<AppConverter>;
+    /** @internal */
+    public converter: Promise<AppConverter>;
 
     private _app?: cdk.App;
 
+    /**
+     * @internal
+     */
     public appOptions?: AppOptions;
 
     public get app(): cdk.App {
@@ -82,12 +53,10 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
      * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
      * Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs.
      */
-    // public outputs: pulumi.Output<{ [outputId: string]: pulumi.Output<any> }>;
     public outputs: { [outputId: string]: pulumi.Output<any> } = {};
 
     private readonly createFunc: (scope: App) => AppOutputs | void;
     private appProps?: cdk.AppProps;
-    // private stacks: pulumi.Output<Map<string, StackConverter>>;
 
     constructor(id: string, createFunc: (scope: App) => void | AppOutputs, props?: AppOptions) {
         super(id, props);
@@ -131,6 +100,7 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
                     'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". \n' +
                         'Missing context keys: ' +
                         missingParts[1],
+                    this,
                 );
             } else {
                 error(e.message, this);
@@ -160,6 +130,7 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
                 this.stacks[child.artifactId] = child;
             }
         });
+
         return app.synth().directory;
     }
 }
@@ -219,6 +190,7 @@ export class Stack extends PulumiStack {
     constructor(app: App, name: string, options?: StackOptions) {
         super(app.app, name, options?.props);
         Object.defineProperty(this, STACK_SYMBOL, { value: true });
+
         this.pulumiApp = app;
         this.options = options;
 
