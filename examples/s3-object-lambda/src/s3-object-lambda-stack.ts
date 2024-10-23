@@ -17,8 +17,8 @@ export class S3ObjectLambdaStack extends pulumicdk.Stack {
     objectLambdaAccessPointArn: pulumi.Output<string>;
     objectLambdaAccessPointUrl: pulumi.Output<string>;
 
-    constructor(id: string) {
-        super(id);
+    constructor(app: pulumicdk.App, id: string) {
+        super(app, id);
 
         const accessPoint = `arn:aws:s3:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:accesspoint/${S3_ACCESS_POINT_NAME}`;
 
@@ -108,13 +108,12 @@ export class S3ObjectLambdaStack extends pulumicdk.Stack {
             },
         });
 
+        new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });
         this.exampleBucketArn = this.asOutput(bucket.bucketArn);
         this.objectLambdaArn = this.asOutput(retrieveTransformedObjectLambda.functionArn);
         this.objectLambdaAccessPointArn = this.asOutput(objectLambdaAP.attrArn);
         this.objectLambdaAccessPointUrl = this.asOutput(
             `https://console.aws.amazon.com/s3/olap/${cdk.Aws.ACCOUNT_ID}/${OBJECT_LAMBDA_ACCESS_POINT_NAME}?region=${cdk.Aws.REGION}`,
         );
-
-        this.synth();
     }
 }

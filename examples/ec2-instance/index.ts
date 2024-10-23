@@ -6,8 +6,8 @@ import * as pulumicdk from '@pulumi/cdk';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 
 export class Ec2CdkStack extends pulumicdk.Stack {
-    constructor(id: string) {
-        super(id);
+    constructor(app: pulumicdk.App, id: string) {
+        super(app, id);
 
         // Create a Key Pair to be used with this EC2 Instance
         // Temporarily disabled since `cdk-ec2-key-pair` is not yet CDK v2 compatible
@@ -80,12 +80,19 @@ export class Ec2CdkStack extends pulumicdk.Stack {
         new cdk.CfnOutput(this, 'ssh command', {
             value: 'ssh -i cdk-key.pem -o IdentitiesOnly=yes ec2-user@' + ec2Instance.instancePublicIp,
         });
-
-        this.synth();
     }
 }
 
-const stack = new Ec2CdkStack('teststack');
-export const ipAddress = stack.outputs['IP Address'];
-export const keyCommand = stack.outputs['Download Key Command'];
-export const sshCommand = stack.outputs['sshCommand'];
+class MyApp extends pulumicdk.App {
+    constructor() {
+        super('app', (scope: pulumicdk.App) => {
+            new Ec2CdkStack(scope, 'teststack');
+        });
+    }
+}
+
+const app = new MyApp();
+
+export const ipAddress = app.outputs['IP Address'];
+export const keyCommand = app.outputs['Download Key Command'];
+export const sshCommand = app.outputs['sshCommand'];
