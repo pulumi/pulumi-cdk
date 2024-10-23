@@ -6,15 +6,14 @@ export function createStackManifest(
     resource2DependsOn?: string | string[],
     resource1DependsOn?: string | string[],
 ): StackManifest {
-    return new StackManifest(
-        'dir',
-        'stack',
-        'template',
-        {
+    return new StackManifest({
+        id: 'stack',
+        templatePath: 'template',
+        metadata: {
             'stack/resource-1': 'resource1',
             'stack/resource-2': 'resource2',
         },
-        {
+        tree: {
             path: 'stack',
             id: 'stack',
             children: {
@@ -34,7 +33,7 @@ export function createStackManifest(
                 },
             },
         },
-        {
+        template: {
             Resources: {
                 resource1: {
                     Type: 'AWS::S3::Bucket',
@@ -48,6 +47,6 @@ export function createStackManifest(
                 },
             },
         },
-        [],
-    );
+        dependencies: [],
+    });
 }

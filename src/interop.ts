@@ -97,7 +97,7 @@ export function getFqn(construct: IConstruct): string | undefined {
 }
 
 export class CdkConstruct extends pulumi.ComponentResource {
-    constructor(name: string, type?: string, options?: pulumi.ComponentResourceOptions) {
+    constructor(public readonly name: string, type?: string, options?: pulumi.ComponentResourceOptions) {
         const constructType = type ?? 'Construct';
         const constructName = name;
 

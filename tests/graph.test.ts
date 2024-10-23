@@ -17,15 +17,14 @@ import { StackManifest } from '../src/assembly';
 import { createStackManifest } from './utils';
 
 const nodes = GraphBuilder.build(
-    new StackManifest(
-        'test',
-        'stack',
-        'test/stack',
-        {
+    new StackManifest({
+        id: 'stack',
+        templatePath: 'test/stack',
+        metadata: {
             'stack/example-bucket/Resource': 'examplebucketC9DFA43E',
             'stack/example-bucket/Policy/Resource': 'examplebucketPolicyE09B485E',
         },
-        {
+        tree: {
             path: 'stack',
             id: 'stack',
             children: {
@@ -77,7 +76,7 @@ const nodes = GraphBuilder.build(
                 version: '2.149.0',
             },
         },
-        {
+        template: {
             Resources: {
                 examplebucketC9DFA43E: {
                     Type: 'AWS::S3::Bucket',
@@ -93,8 +92,8 @@ const nodes = GraphBuilder.build(
                 },
             },
         },
-        [],
-    ),
+        dependencies: [],
+    }),
 );
 
 describe('Graph tests', () => {
