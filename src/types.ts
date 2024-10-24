@@ -30,7 +30,7 @@ export interface StackOptions extends pulumi.ComponentResourceOptions {
         typeName: string,
         props: any,
         options: pulumi.ResourceOptions,
-    ): ResourceMapping | undefined;
+    ): ResourceMapping[] | undefined;
 }
 
 /**

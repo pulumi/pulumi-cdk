@@ -25,14 +25,14 @@ export function mapToCfnResource(
     typeName: string,
     rawProps: any,
     options: pulumi.ResourceOptions,
-): ResourceMapping {
+): ResourceMapping[] {
     const props = normalize(rawProps, typeName);
     debug(`mapToCfnResource typeName: ${typeName} props: ${JSON.stringify(props)}`);
     switch (typeName) {
         case 'AWS::S3::Bucket':
             // Lowercase the bucket name to comply with the Bucket resource's naming constraints, which only allow
             // lowercase letters.
-            return new s3.Bucket(logicalId.toLowerCase(), props, options);
+            return [new s3.Bucket(logicalId.toLowerCase(), props, options)];
         default: {
             // When creating a generic `CfnResource` we don't have any information on the
             // attributes attached to the resource. We need to populate them by looking up the
@@ -41,7 +41,7 @@ export function mapToCfnResource(
             const resource = metadata.findResource(typeName);
             const attributes = Object.keys(resource.outputs);
 
-            return new CfnResource(logicalId, typeName, props, attributes, options);
+            return [new CfnResource(logicalId, typeName, props, attributes, options)];
         }
     }
 }

@@ -112,10 +112,12 @@ export class StackConverter extends ArtifactConverter {
                 const options = this.processOptions(cfn, parent);
 
                 const mapped = this.mapResource(n.logicalId, cfn.Type, props, options);
-                const resource = pulumi.Resource.isInstance(mapped) ? mapped : mapped.resource;
-                const attributes = pulumi.Resource.isInstance(mapped) ? undefined : mapped.attributes;
-                this.resources.set(n.logicalId, { resource, attributes, resourceType: cfn.Type });
-                this.constructs.set(n.construct, resource);
+                mapped.forEach((m) => {
+                    const resource = pulumi.Resource.isInstance(m) ? m : m.resource;
+                    const attributes = pulumi.Resource.isInstance(m) ? undefined : m.attributes;
+                    this.resources.set(n.logicalId!, { resource, attributes, resourceType: cfn.Type });
+                    this.constructs.set(n.construct, resource);
+                });
 
                 debug(`Done creating resource for ${n.logicalId}`);
                 // TODO: process template conditions
@@ -186,7 +188,7 @@ export class StackConverter extends ArtifactConverter {
         typeName: string,
         props: any,
         options: pulumi.ResourceOptions,
-    ): ResourceMapping {
+    ): ResourceMapping[] {
         if (this.stackComponent.options?.remapCloudControlResource !== undefined) {
             const res = this.stackComponent.options.remapCloudControlResource(logicalId, typeName, props, options);
             if (res !== undefined) {

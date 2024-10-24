@@ -9,6 +9,16 @@ jest.mock('@pulumi/aws', () => {
                 return {};
             }),
         },
+        sqs: {
+            QueuePolicy: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+        },
+        sns: {
+            TopicPolicy: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+        },
         iam: {
             Policy: jest.fn().mockImplementation(() => {
                 return {};
@@ -96,6 +106,122 @@ describe('AWS Resource Mappings', () => {
             {},
         );
     });
+
+    test('maps sns.TopicPolicy', () => {
+        // GIVEN
+        const cfnType = 'AWS::SNS::TopicPolicy';
+        const logicalId = 'my-resource';
+        const cfnProps = {
+            PolicyDocument: {
+                Version: '2012-10-17',
+                Statement: [
+                    {
+                        Effect: 'Allow',
+                        Action: ['sns:*'],
+                        Resource: '*',
+                    },
+                ],
+            },
+            Topics: ['my-topic', 'my-other-topic'],
+        };
+
+        // WHEN
+        mapToAwsResource(logicalId, cfnType, cfnProps, {});
+
+        // THEN
+        expect(aws.sns.TopicPolicy).toHaveBeenCalledTimes(2);
+        expect(aws.sns.TopicPolicy).toHaveBeenCalledWith(
+            logicalId,
+            expect.objectContaining({
+                arn: 'my-topic',
+                policy: {
+                    Version: '2012-10-17',
+                    Statement: [
+                        {
+                            Effect: 'Allow',
+                            Action: ['sns:*'],
+                            Resource: '*',
+                        },
+                    ],
+                },
+            }),
+        );
+        expect(aws.sns.TopicPolicy).toHaveBeenCalledWith(
+            logicalId,
+            expect.objectContaining({
+                arn: 'my-other-topic',
+                policy: {
+                    Version: '2012-10-17',
+                    Statement: [
+                        {
+                            Effect: 'Allow',
+                            Action: ['sns:*'],
+                            Resource: '*',
+                        },
+                    ],
+                },
+            }),
+        );
+    });
+
+    test('maps sqs.QueuePolicy', () => {
+        // GIVEN
+        const cfnType = 'AWS::SQS::QueuePolicy';
+        const logicalId = 'my-resource';
+        const cfnProps = {
+            Queues: ['my-queue', 'my-other-queue'],
+            PolicyDocument: {
+                Version: '2012-10-17',
+                Statement: [
+                    {
+                        Effect: 'Allow',
+                        Action: ['sqs:*'],
+                        Resource: '*',
+                    },
+                ],
+            },
+        };
+
+        // WHEN
+        mapToAwsResource(logicalId, cfnType, cfnProps, {});
+
+        // THEN
+        expect(aws.sqs.QueuePolicy).toHaveBeenCalledTimes(2);
+        expect(aws.sqs.QueuePolicy).toHaveBeenCalledWith(
+            logicalId,
+            expect.objectContaining({
+                queueUrl: 'my-queue',
+                policy: {
+                    Version: '2012-10-17',
+                    Statement: [
+                        {
+                            Effect: 'Allow',
+                            Action: ['sqs:*'],
+                            Resource: '*',
+                        },
+                    ],
+                },
+            }),
+        );
+
+        expect(aws.sqs.QueuePolicy).toHaveBeenCalledWith(
+            logicalId,
+            expect.objectContaining({
+                queueUrl: 'my-other-queue',
+                policy: {
+                    Version: '2012-10-17',
+                    Statement: [
+                        {
+                            Effect: 'Allow',
+                            Action: ['sqs:*'],
+                            Resource: '*',
+                        },
+                    ],
+                },
+            }),
+        );
+    });
+
     test('maps apigatewayv2.Integration', () => {
         // GIVEN
         const cfnType = 'AWS::ApiGatewayV2::Integration';
