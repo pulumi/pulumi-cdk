@@ -22,6 +22,13 @@ class EventBridgeSnsStack extends pulumicdk.Stack {
         });
         eventBus.grantPutEventsTo(handler);
 
+        // create an archive so we can replay events later
+        eventBus.archive('archive', {
+            eventPattern: {
+                source: ['custom.myATMapp'],
+            },
+        });
+
         const approvedRule = new aws_events.Rule(this, 'approved-rule', {
             eventBus,
             description: 'Approved transactions',
