@@ -46,43 +46,77 @@ export function mapToAwsResource(
     typeName: string,
     rawProps: any,
     options: pulumi.ResourceOptions,
-): ResourceMapping | undefined {
+): ResourceMapping[] | undefined {
     const props = normalize(rawProps);
     switch (typeName) {
         // ApiGatewayV2
         case 'AWS::ApiGatewayV2::Integration':
-            return new aws.apigatewayv2.Integration(
-                logicalId,
-                {
-                    ...props,
-                    requestParameters: rawProps.RequestParameters,
-                    requestTemplates: rawProps.RequestTemplates,
-                    responseParameters: rawProps.ResponseParameters,
-                    tlsConfig: maybe(props.tlsConfig, () => ({ insecureSkipVerification: true })),
-                },
-                options,
-            );
+            return [
+                new aws.apigatewayv2.Integration(
+                    logicalId,
+                    {
+                        ...props,
+                        requestParameters: rawProps.RequestParameters,
+                        requestTemplates: rawProps.RequestTemplates,
+                        responseParameters: rawProps.ResponseParameters,
+                        tlsConfig: maybe(props.tlsConfig, () => ({ insecureSkipVerification: true })),
+                    },
+                    options,
+                ),
+            ];
         case 'AWS::ApiGatewayV2::Stage':
-            return new aws.apigatewayv2.Stage(
-                logicalId,
-                {
-                    accessLogSettings: props.accessLogSettings,
-                    apiId: props.apiId,
-                    autoDeploy: props.autoDeploy,
-                    clientCertificateId: props.clientCertificateId,
-                    defaultRouteSettings: props.defaultRouteSettings,
-                    deploymentId: props.deploymentId,
-                    description: props.description,
-                    name: props.stageName,
-                    routeSettings: props.routeSettings,
-                    stageVariables: rawProps.StageVariables,
-                    tags: tags(props.tags),
-                },
-                options,
-            );
+            return [
+                new aws.apigatewayv2.Stage(
+                    logicalId,
+                    {
+                        accessLogSettings: props.accessLogSettings,
+                        apiId: props.apiId,
+                        autoDeploy: props.autoDeploy,
+                        clientCertificateId: props.clientCertificateId,
+                        defaultRouteSettings: props.defaultRouteSettings,
+                        deploymentId: props.deploymentId,
+                        description: props.description,
+                        name: props.stageName,
+                        routeSettings: props.routeSettings,
+                        stageVariables: rawProps.StageVariables,
+                        tags: tags(props.tags),
+                    },
+                    options,
+                ),
+            ];
+
+        // SQS
+        // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sqs-queuepolicy.html
+        case 'AWS::SQS::QueuePolicy': {
+            if (!Array.isArray(props.queues)) {
+                throw new Error('QueuePolicy has an invalid value for `queues` property');
+            }
+
+            return (props.queues || []).flatMap((q: string) => {
+                return new aws.sqs.QueuePolicy(logicalId, {
+                    policy: rawProps.PolicyDocument,
+                    queueUrl: q,
+                });
+            });
+        }
+
+        // SNS
+        // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sns-topicpolicy.html
+        case 'AWS::SNS::TopicPolicy':
+            if (!Array.isArray(props.topics)) {
+                throw new Error('TopicPolicy has an invalid value for `topics` property');
+            }
+
+            return (props.topics || []).flatMap((arn: string) => {
+                return new aws.sns.TopicPolicy(logicalId, {
+                    policy: rawProps.PolicyDocument,
+                    arn,
+                });
+            });
 
         // IAM
         case 'AWS::IAM::Policy': {
+            const resources: ResourceMapping[] = [];
             const policy = new aws.iam.Policy(
                 logicalId,
                 {
@@ -90,39 +124,46 @@ export function mapToAwsResource(
                 },
                 options,
             );
+            resources.push(policy);
 
             for (let i = 0; i < (props.groups || []).length; i++) {
-                new aws.iam.GroupPolicyAttachment(
-                    `${logicalId}-${i}`,
-                    {
-                        group: props.groups[i],
-                        policyArn: policy.arn,
-                    },
-                    options,
+                resources.push(
+                    new aws.iam.GroupPolicyAttachment(
+                        `${logicalId}-${i}`,
+                        {
+                            group: props.groups[i],
+                            policyArn: policy.arn,
+                        },
+                        options,
+                    ),
                 );
             }
             for (let i = 0; i < (props.roles || []).length; i++) {
-                new aws.iam.RolePolicyAttachment(
-                    `${logicalId}-${i}`,
-                    {
-                        role: props.roles[i],
-                        policyArn: policy.arn,
-                    },
-                    options,
+                resources.push(
+                    new aws.iam.RolePolicyAttachment(
+                        `${logicalId}-${i}`,
+                        {
+                            role: props.roles[i],
+                            policyArn: policy.arn,
+                        },
+                        options,
+                    ),
                 );
             }
             for (let i = 0; i < (props.users || []).length; i++) {
-                new aws.iam.UserPolicyAttachment(
-                    `${logicalId}-${i}`,
-                    {
-                        user: props.users[i],
-                        policyArn: policy.arn,
-                    },
-                    options,
+                resources.push(
+                    new aws.iam.UserPolicyAttachment(
+                        `${logicalId}-${i}`,
+                        {
+                            user: props.users[i],
+                            policyArn: policy.arn,
+                        },
+                        options,
+                    ),
                 );
             }
 
-            return policy;
+            return resources;
         }
 
         default:

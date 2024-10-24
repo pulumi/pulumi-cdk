@@ -116,3 +116,5 @@ dist
 
 test-reports/
 lib/
+
+**/cdk.out

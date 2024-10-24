@@ -1,0 +1,3 @@
+name: pulumi-aws-eventbridge-sns
+runtime: nodejs
+description: Eventbridge SNS example for CDK
