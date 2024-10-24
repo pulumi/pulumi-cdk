@@ -304,5 +304,5 @@ describe('App Converter', () => {
 });
 
 function createUrn(resource: string, logicalId: string): string {
-    return `urn:pulumi:stack::project::cdk:construct:${resource}$aws-native:s3:${resource}::${logicalId}`;
+    return `urn:pulumi:stack::project::cdk:construct:aws-cdk-lib/aws_s3:${resource}$aws-native:s3:${resource}::${logicalId}`;
 }

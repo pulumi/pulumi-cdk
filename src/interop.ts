@@ -85,15 +85,8 @@ export class CfnResource extends pulumi.CustomResource {
         }
         Object.assign(args, properties);
 
-        // console.debug(`CfnResource opts: ${JSON.stringify(opts)}`)
         super(resourceName, name, args, opts);
     }
-}
-
-export const JSII_RUNTIME_SYMBOL = Symbol.for('jsii.rtti');
-
-export function getFqn(construct: IConstruct): string | undefined {
-    return Object.getPrototypeOf(construct).constructor[JSII_RUNTIME_SYMBOL]?.fqn;
 }
 
 export class CdkConstruct extends pulumi.ComponentResource {
