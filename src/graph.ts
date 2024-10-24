@@ -89,7 +89,9 @@ function typeFromCfn(cfnType: string): string {
 
 function typeFromFqn(fqn: string): string {
     const fqnParts = fqn.split('.');
-    return fqnParts[fqnParts.length - 1];
+    const mod = fqnParts.slice(0, fqnParts.length - 1).join('/');
+    const type = fqnParts[fqnParts.length - 1];
+    return `${mod}:${type}`;
 }
 
 export class GraphBuilder {
