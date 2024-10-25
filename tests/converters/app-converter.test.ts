@@ -9,14 +9,15 @@ import { createStackManifest } from '../utils';
 import { promiseOf, setMocks } from '../mocks';
 import { CdkConstruct } from '../../src/interop';
 
-class MockStackComponent extends StackComponentResource {
+class MockStackComponent extends pulumi.ComponentResource implements StackComponentResource {
     public readonly name = 'stack';
     public readonly assemblyDir: string;
+    component: pulumi.ComponentResource;
     public stack: Stack;
     public options?: StackOptions | undefined;
     public dependencies: CdkConstruct[] = [];
     constructor(dir: string) {
-        super('stack');
+        super('cdk:index:Stack', 'stack', {}, {});
         this.assemblyDir = dir;
         this.registerOutputs();
     }

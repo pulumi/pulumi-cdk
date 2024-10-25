@@ -47,28 +47,26 @@ describe('GraphBuilder', () => {
                                     fqn: 'aws-cdk-lib.aws_s3.CfnBucket',
                                     version: '2.149.0',
                                 },
+                            },
+                            Policy: {
+                                id: 'Policy',
+                                path: 'stack/example-bucket/Policy',
                                 children: {
-                                    Policy: {
-                                        id: 'Policy',
-                                        path: 'stack/example-bucket/Policy',
-                                        children: {
-                                            Resource: {
-                                                id: 'Resource',
-                                                path: 'stack/example-bucket/Policy/Resource',
-                                                attributes: {
-                                                    'aws:cdk:cloudformation:type': 'AWS::S3::BucketPolicy',
-                                                },
-                                                constructInfo: {
-                                                    fqn: 'aws-cdk-lib.aws_s3.CfnBucketPolicy',
-                                                    version: '2.149.0',
-                                                },
-                                            },
+                                    Resource: {
+                                        id: 'Resource',
+                                        path: 'stack/example-bucket/Policy/Resource',
+                                        attributes: {
+                                            'aws:cdk:cloudformation:type': 'AWS::S3::BucketPolicy',
                                         },
                                         constructInfo: {
-                                            fqn: 'aws-cdk-lib.aws_s3.BucketPolicy',
+                                            fqn: 'aws-cdk-lib.aws_s3.CfnBucketPolicy',
                                             version: '2.149.0',
                                         },
                                     },
+                                },
+                                constructInfo: {
+                                    fqn: 'aws-cdk-lib.aws_s3.BucketPolicy',
+                                    version: '2.149.0',
                                 },
                             },
                         },
