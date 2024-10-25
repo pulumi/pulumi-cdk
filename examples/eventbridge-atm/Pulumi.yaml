@@ -1,0 +1,3 @@
+name: pulumi-aws-eventbridge-atm
+runtime: nodejs
+description: Eventbridge ATM example for CDK
