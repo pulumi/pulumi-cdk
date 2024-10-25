@@ -16,6 +16,10 @@ import { CloudFormationResource } from './cfn';
 import { parseSub } from './sub';
 import { ConstructTree, StackManifest } from './assembly';
 
+// Represents a value that will be used as the (or part of the) pulumi resource
+// type token
+export type PulumiResourceType = string;
+
 /**
  * Represents a CDK Construct
  */
@@ -31,11 +35,9 @@ export interface ConstructInfo {
     id: string;
 
     /**
-     * The CloudFormation resource type
-     *
-     * This will only be set if this is the construct for cfn resource
+     * The value to use as part of the Pulumi resource type
      */
-    type?: string;
+    type: PulumiResourceType;
 
     /**
      * The attributes of the construct
@@ -100,7 +102,7 @@ function typeFromCfn(cfnType: string): string {
  * @param fqn - The fully qualified name of the construct
  * @returns The pulumi resource type (i.e. aws-cdk-lib/aws-s3:Bucket)
  */
-function typeFromFqn(fqn: string): string {
+function typeFromFqn(fqn: string): PulumiResourceType {
     const fqnParts = fqn.split('.');
     const mod = fqnParts.slice(0, fqnParts.length - 1).join('/');
     const type = fqnParts[fqnParts.length - 1];

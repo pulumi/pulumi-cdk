@@ -18,7 +18,7 @@ import { IConstruct } from 'constructs';
 import { normalizeObject } from './pulumi-metadata';
 import { toSdkName, typeToken } from './naming';
 import { PulumiProvider } from './types';
-import { ConstructInfo } from './graph';
+import { ConstructInfo, PulumiResourceType } from './graph';
 
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
@@ -90,7 +90,7 @@ export class CfnResource extends pulumi.CustomResource {
 }
 
 export class CdkConstruct extends pulumi.ComponentResource {
-    constructor(name: string, type?: string, options?: pulumi.ComponentResourceOptions) {
+    constructor(name: string, type?: PulumiResourceType, options?: pulumi.ComponentResourceOptions) {
         const constructType = type ?? 'Construct';
         const constructName = name;
 
