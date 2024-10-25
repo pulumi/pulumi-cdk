@@ -236,7 +236,9 @@ describe('Graph tests', () => {
     });
 });
 
-test('fqn not available', () => {
+test('pulumi resource type name fallsback when fqn not available', () => {
+    const bucketId = 'example-bucket';
+    const policyResourceId = 'Policy';
     const nodes = GraphBuilder.build(
         new StackManifest(
             'test',
@@ -250,8 +252,8 @@ test('fqn not available', () => {
                 path: 'stack',
                 id: 'stack',
                 children: {
-                    'example-bucket': {
-                        id: 'example-bucket',
+                    [bucketId]: {
+                        id: bucketId,
                         path: 'stack/example-bucket',
                         children: {
                             Resource: {
@@ -265,8 +267,8 @@ test('fqn not available', () => {
                                     version: '2.149.0',
                                 },
                             },
-                            Policy: {
-                                id: 'Policy',
+                            [policyResourceId]: {
+                                id: policyResourceId,
                                 path: 'stack/example-bucket/Policy',
                                 children: {
                                     Resource: {
@@ -311,9 +313,10 @@ test('fqn not available', () => {
     );
 
     expect(nodes[0].construct.type).toEqual('aws-cdk-lib:Stack');
-    expect(nodes[1].construct.type).toEqual('example-bucket');
+    expect(nodes[1].construct.type).toEqual(bucketId);
     expect(nodes[2].construct.type).toEqual('Bucket');
-    expect(nodes[3].construct.type).toEqual('Policy');
+    expect(nodes[3].construct.type).toEqual(policyResourceId);
+    expect(nodes[4].construct.type).toEqual('BucketPolicy');
 });
 
 function edgesToArray(edges: Set<GraphNode>): string[] {
