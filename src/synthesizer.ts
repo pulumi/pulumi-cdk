@@ -159,6 +159,7 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
         this.autoDeleteStagingAssets = props.autoDeleteStagingAssets ?? true;
         this.appId = this.validateAppId(props.appId);
 
+        // TODO: inherit the provider from the app component https://github.com/pulumi/pulumi-cdk/issues/181
         const account = aws.getCallerIdentity().then((id) => id.accountId);
         this.pulumiAccount = pulumi.output(account);
         const region = aws.getRegion().then((r) => r.name);

@@ -127,6 +127,7 @@ export class Stack extends cdk.Stack {
     constructor(name: string, options?: StackOptions) {
         const appId = options?.appId ?? generateAppId();
 
+        // TODO: allow the user to customize this https://github.com/pulumi/pulumi-cdk/issues/180
         const synthesizer = new PulumiSynthesizer({
             appId,
         });
