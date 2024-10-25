@@ -39,7 +39,7 @@ function setMocks() {
                     return { id: '', state: {} };
                 case 'cdk:index:Component':
                     return { id: '', state: {} };
-                case 'cdk:construct:Bucket':
+                case 'cdk:construct:aws-cdk-lib/aws_s3:Bucket':
                     return { id: '', state: {} };
                 case 'aws-native:s3:Bucket':
                     return {

@@ -18,7 +18,7 @@ import { IConstruct } from 'constructs';
 import { normalizeObject } from './pulumi-metadata';
 import { toSdkName, typeToken } from './naming';
 import { PulumiProvider } from './types';
-import { ConstructInfo } from './graph';
+import { ConstructInfo, PulumiResourceType } from './graph';
 
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
@@ -85,19 +85,12 @@ export class CfnResource extends pulumi.CustomResource {
         }
         Object.assign(args, properties);
 
-        // console.debug(`CfnResource opts: ${JSON.stringify(opts)}`)
         super(resourceName, name, args, opts);
     }
 }
 
-export const JSII_RUNTIME_SYMBOL = Symbol.for('jsii.rtti');
-
-export function getFqn(construct: IConstruct): string | undefined {
-    return Object.getPrototypeOf(construct).constructor[JSII_RUNTIME_SYMBOL]?.fqn;
-}
-
 export class CdkConstruct extends pulumi.ComponentResource {
-    constructor(name: string, type?: string, options?: pulumi.ComponentResourceOptions) {
+    constructor(name: string, type?: PulumiResourceType, options?: pulumi.ComponentResourceOptions) {
         const constructType = type ?? 'Construct';
         const constructName = name;
 
