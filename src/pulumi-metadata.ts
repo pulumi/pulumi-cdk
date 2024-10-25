@@ -7,8 +7,8 @@ import { PulumiProvider } from './types';
 import { debug } from '@pulumi/pulumi/log';
 
 export class UnknownCfnType extends Error {
-    constructor() {
-        super("CfnType doesn't exist as a native type");
+    constructor(cfnType: string) {
+        super(`CfnType ${cfnType} doesn't exist as a native type`);
     }
 }
 
@@ -35,7 +35,7 @@ export class Metadata {
         if (pType in this.pulumiMetadata.resources) {
             return this.pulumiMetadata.resources[pType];
         }
-        throw new UnknownCfnType();
+        throw new UnknownCfnType(cfnType);
     }
 
     public types(): { [key: string]: PulumiType } {

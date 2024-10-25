@@ -111,6 +111,15 @@ func TestCloudFront(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestEventBridgeSNS(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "eventbridge-sns"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func TestAPIWebsocketLambdaDynamoDB(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
