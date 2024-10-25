@@ -4,69 +4,30 @@ import { StackComponentResource, StackOptions } from '../../src/types';
 import * as path from 'path';
 import * as mockfs from 'mock-fs';
 import * as pulumi from '@pulumi/pulumi';
-import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
-import { Bucket, BucketPolicy } from '@pulumi/aws-native/s3';
+import { BucketPolicy } from '@pulumi/aws-native/s3';
 import { createStackManifest } from '../utils';
+import { promiseOf, setMocks } from '../mocks';
+import { CdkConstruct } from '../../src/interop';
 
-// Convert a pulumi.Output to a promise of the same type.
-function promiseOf<T>(output: pulumi.Output<T>): Promise<T> {
-    return new Promise((resolve) => output.apply(resolve));
-}
-
-function setMocks() {
-    pulumi.runtime.setMocks(
-        {
-            call: (args: MockCallArgs): { [id: string]: any } => {
-                switch (args.token) {
-                    case 'aws-native:index:getAccountId':
-                        return {
-                            accountId: '12345678910',
-                        };
-                    case 'aws-native:index:getRegion':
-                        return {
-                            region: 'us-east-2',
-                        };
-                    case 'aws-native:index:getPartition':
-                        return {
-                            partition: 'aws',
-                        };
-                    case 'aws-native:index:getAzs':
-                        return {
-                            azs: ['us-east-1a', 'us-east-1b'],
-                        };
-                    default:
-                        return {};
-                }
-            },
-            newResource: (args: MockResourceArgs): { id: string; state: any } => {
-                return {
-                    id: args.name + '_id',
-                    state: {
-                        ...args.inputs,
-                        arn: args.name + '_arn',
-                    },
-                };
-            },
-        },
-        'project',
-        'stack',
-        false,
-    );
-}
-
-class MockStackComponent extends StackComponentResource {
+class MockStackComponent extends pulumi.ComponentResource implements StackComponentResource {
     public readonly name = 'stack';
     public readonly assemblyDir: string;
+    component: pulumi.ComponentResource;
     public stack: Stack;
     public options?: StackOptions | undefined;
+    public dependencies: CdkConstruct[] = [];
     constructor(dir: string) {
-        super('stack');
+        super('cdk:index:Stack', 'stack', {}, {});
         this.assemblyDir = dir;
         this.registerOutputs();
     }
 
     registerOutput(outputId: string, output: any): void {}
 }
+
+beforeAll(() => {
+    setMocks();
+});
 
 describe('App Converter', () => {
     const manifestFile = '/tmp/foo/bar/does/not/exist/manifest.json';
@@ -215,7 +176,6 @@ describe('App Converter', () => {
         mockfs.restore();
     });
     test('can convert', async () => {
-        setMocks();
         const mockStackComponent = new MockStackComponent('/tmp/foo/bar/does/not/exist');
         const converter = new AppConverter(mockStackComponent);
         converter.convert();
@@ -229,7 +189,6 @@ describe('App Converter', () => {
         });
         const urns = await Promise.all(urnPromises);
         expect(urns).toEqual([
-            'urn:pulumi:stack::project::cdk:index:Stack$aws:s3/bucketObjectv2:BucketObjectv2::stack/abe4e2f4fcc1aaaf53db4829c23a5cf08795d36cce0f68a3321c1c8d728fec44/current_account-current_region',
             createUrn('Bucket', 'examplebucketc9dfa43e'),
             createUrn('BucketPolicy', 'examplebucketPolicyE09B485E'),
         ]);
@@ -285,7 +244,6 @@ describe('App Converter', () => {
     ])(
         'intrinsics %s',
         async (_name, stackManifest, expected) => {
-            setMocks();
             const mockStackComponent = new MockStackComponent('/tmp/foo/bar/does/not/exist');
             const converter = new StackConverter(mockStackComponent, stackManifest);
             converter.convert(new Set());

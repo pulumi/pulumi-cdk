@@ -14,11 +14,10 @@
 
 import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
-import { IConstruct } from 'constructs';
 import { normalizeObject } from './pulumi-metadata';
 import { toSdkName, typeToken } from './naming';
 import { PulumiProvider } from './types';
-import { ConstructInfo, PulumiResourceType } from './graph';
+import { PulumiResourceType } from './graph';
 
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
@@ -90,7 +89,7 @@ export class CfnResource extends pulumi.CustomResource {
 }
 
 export class CdkConstruct extends pulumi.ComponentResource {
-    constructor(name: string, type?: PulumiResourceType, options?: pulumi.ComponentResourceOptions) {
+    constructor(public readonly name: PulumiResourceType, type?: string, options?: pulumi.ComponentResourceOptions) {
         const constructType = type ?? 'Construct';
         const constructName = name;
 

@@ -2,11 +2,9 @@ import * as path from 'path';
 import { AssemblyManifest, Manifest, ArtifactType, ArtifactMetadataEntryType } from '@aws-cdk/cloud-assembly-schema';
 import * as fs from 'fs-extra';
 import { CloudFormationTemplate } from '../cfn';
-import { ArtifactManifest, AssetManifestProperties, LogicalIdMetadataEntry } from 'aws-cdk-lib/cloud-assembly-schema';
-import { AssetManifest, DockerImageManifestEntry, FileManifestEntry } from 'cdk-assets';
+import { ArtifactManifest, LogicalIdMetadataEntry } from 'aws-cdk-lib/cloud-assembly-schema';
 import { StackManifest } from './stack';
-import { ConstructTree, StackAsset, StackMetadata } from './types';
-import { warn } from '@pulumi/pulumi/log';
+import { ConstructTree, StackMetadata } from './types';
 
 /**
  * Reads a Cloud Assembly manifest
@@ -76,20 +74,18 @@ export class AssemblyManifestReader {
 
                 const metadata = this.getMetadata(artifact);
 
-                const assets = this.getAssetsForStack(artifactId);
                 if (!this.tree.children) {
                     throw new Error('Invalid tree.json found');
                 }
                 const stackTree = this.tree.children[artifactId];
-                const stackManifest = new StackManifest(
-                    this.directory,
-                    artifactId,
-                    templateFile,
+                const stackManifest = new StackManifest({
+                    id: artifactId,
+                    templatePath: templateFile,
                     metadata,
-                    stackTree,
+                    tree: stackTree,
                     template,
-                    assets,
-                );
+                    dependencies: artifact.dependencies ?? [],
+                });
                 this._stackManifests.set(artifactId, stackManifest);
             }
         }
@@ -122,53 +118,5 @@ export class AssemblyManifestReader {
      */
     public get stackManifests(): StackManifest[] {
         return Array.from(this._stackManifests.values());
-    }
-
-    /**
-     * Return a list of assets for a given stack
-     *
-     * @param stackId - The artifactId of the stack to find assets for
-     * @returns a list of `StackAsset` for the given stack
-     */
-    private getAssetsForStack(stackId: string): StackAsset[] {
-        const assets: (FileManifestEntry | DockerImageManifestEntry)[] = [];
-        for (const artifact of Object.values(this.manifest.artifacts ?? {})) {
-            if (
-                artifact.type === ArtifactType.ASSET_MANIFEST &&
-                (artifact.properties as AssetManifestProperties)?.file === `${stackId}.assets.json`
-            ) {
-                assets.push(...this.assetsFromAssetManifest(artifact));
-            }
-        }
-        return assets;
-    }
-
-    /**
-     * Get a list of assets from the asset manifest.
-     *
-     * @param artifact - An ArtifactManifest to extract individual assets from
-     * @returns a list of file and docker assets found in the manifest
-     */
-    private assetsFromAssetManifest(artifact: ArtifactManifest): StackAsset[] {
-        const assets: (FileManifestEntry | DockerImageManifestEntry)[] = [];
-        const fileName = (artifact.properties as AssetManifestProperties).file;
-        const assetManifest = AssetManifest.fromFile(path.join(this.directory, fileName));
-        assetManifest.entries.forEach((entry) => {
-            if (entry.type === 'file') {
-                const source = (entry as FileManifestEntry).source;
-                // This will ignore template assets
-                if (source.path && source.path.startsWith('asset.')) {
-                    assets.push(entry as FileManifestEntry);
-                }
-            } else if (entry.type === 'docker-image') {
-                const source = (entry as DockerImageManifestEntry).source;
-                if (source.directory && source.directory.startsWith('asset.')) {
-                    assets.push(entry as DockerImageManifestEntry);
-                }
-            } else {
-                warn(`found unexpected asset type: ${entry.type}`);
-            }
-        });
-        return assets;
     }
 }

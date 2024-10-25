@@ -11,52 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 import * as pulumi from '@pulumi/pulumi';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Stack } from '../src/stack';
 import { Construct } from 'constructs';
 import * as output from '../src/output';
-import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
+import { promiseOf, setMocks } from './mocks';
+import { ApplicationLoadBalancer } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import { Vpc } from 'aws-cdk-lib/aws-ec2';
+import { aws_ssm } from 'aws-cdk-lib';
 
-function arn(service: string, type: string): string {
-    const [region, account] = service === 's3' ? ['', ''] : ['us-west-2', '123456789012'];
-    return `arn:aws:${service}:${region}:${account}:${type}`;
-}
-
-function setMocks() {
-    pulumi.runtime.setMocks({
-        call: (args: MockCallArgs) => {
-            return {};
-        },
-        newResource: (args: MockResourceArgs): { id: string; state: any } => {
-            switch (args.type) {
-                case 'cdk:index:Stack':
-                    return { id: '', state: {} };
-                case 'cdk:construct:TestStack':
-                    return { id: '', state: {} };
-                case 'cdk:construct:teststack':
-                    return { id: '', state: {} };
-                case 'cdk:index:Component':
-                    return { id: '', state: {} };
-                case 'cdk:construct:aws-cdk-lib/aws_s3:Bucket':
-                    return { id: '', state: {} };
-                case 'aws-native:s3:Bucket':
-                    return {
-                        id: args.name,
-                        state: {
-                            ...args.inputs,
-                            arn: arn('s3', args.inputs['bucketName']),
-                        },
-                    };
-                default:
-                    throw new Error(`unrecognized resource type ${args.type}`);
-            }
-        },
-    });
-}
-
-function testStack(fn: (scope: Construct) => void, done: any) {
+function testStack(id: string, fn: (scope: Construct) => void): Stack {
     class TestStack extends Stack {
         constructor(id: string) {
             super(id);
@@ -67,24 +32,46 @@ function testStack(fn: (scope: Construct) => void, done: any) {
         }
     }
 
-    const s = new TestStack('teststack');
-    s.urn.apply(() => done());
+    const s = new TestStack(id);
+    return s;
 }
 
+beforeAll(() => {
+    setMocks();
+});
+
 describe('Basic tests', () => {
-    beforeEach(() => {
-        setMocks();
-    });
-    test('Checking single resource registration', (done) => {
-        testStack((adapter) => {
+    test('Checking single resource registration', async () => {
+        const stack = testStack('test1', (adapter) => {
             new s3.Bucket(adapter, 'MyFirstBucket', { versioned: true });
-        }, done);
+        });
+        const urn = await promiseOf(stack.urn);
+        expect(urn).toEqual('urn:pulumi:stack::project::cdk:index:Stack::test1');
     });
 
-    test('Supports Output<T>', (done) => {
+    test('Supports Output<T>', async () => {
         const o = pulumi.output('the-bucket-name');
-        testStack((adapter) => {
+        const stack = testStack('test2', (adapter) => {
             new s3.Bucket(adapter, 'MyFirstBucket', { bucketName: output.asString(o) });
-        }, done);
+        });
+        const urn = await promiseOf(stack.urn);
+        expect(urn).toEqual('urn:pulumi:stack::project::cdk:index:Stack::test2');
+    });
+    test('LoadBalancer dnsName attribute does not throw', async () => {
+        const stack = testStack('test3', (scope) => {
+            const vpc = new Vpc(scope, 'vpc');
+            const alb = new ApplicationLoadBalancer(scope, 'alb', {
+                vpc,
+            });
+
+            new aws_ssm.StringParameter(scope, 'param', {
+                // Referencing the `dnsName` attribute of the LoadBalancer resource.
+                // This tests that the reference is correctly mapped, otherwise this test
+                // throws an error
+                stringValue: alb.loadBalancerDnsName,
+            });
+        });
+        const urn = await promiseOf(stack.urn);
+        expect(urn).toEqual('urn:pulumi:stack::project::cdk:index:Stack::test3');
     });
 });

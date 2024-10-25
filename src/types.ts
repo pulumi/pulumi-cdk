@@ -1,6 +1,6 @@
 import * as pulumi from '@pulumi/pulumi';
 import { Stack, StackProps } from 'aws-cdk-lib/core';
-import { ResourceMapping } from './interop';
+import { CdkConstruct, ResourceMapping } from './interop';
 /**
  * Options specific to the Stack component.
  */
@@ -9,6 +9,19 @@ export interface StackOptions extends pulumi.ComponentResourceOptions {
      * Specify the CDK Stack properties to asociate with the stack.
      */
     props?: StackProps;
+
+    /**
+     * A unique identifier for the application that the asset staging stack belongs to.
+     *
+     * This identifier will be used in the name of staging resources
+     * created for this application, and should be unique across apps.
+     *
+     * The identifier should include lowercase characters, numbers, periods (.) and dashes ('-') only
+     * and have a maximum of 17 characters.
+     *
+     * @default - generated from the pulumi project and stack name
+     */
+    appId?: string;
 
     /**
      * Defines a mapping to override and/or provide an implementation for a CloudFormation resource
@@ -46,35 +59,49 @@ export enum PulumiProvider {
  * This exists because pulumicdk.Stack needs to extend cdk.Stack, but we also want it to represent a
  * pulumi ComponentResource so we create this `StackComponentResource` to hold the pulumi logic
  */
-export abstract class StackComponentResource extends pulumi.ComponentResource {
-    public abstract name: string;
+export interface StackComponentResource {
+    /**
+     * The name of the component resource
+     * @internal
+     */
+    name: string;
 
     /**
      * The directory to which cdk synthesizes the CloudAssembly
+     * @internal
      */
-    public abstract assemblyDir: string;
+    assemblyDir: string;
 
     /**
-     * The Stack that creates this component
+     * The CDK stack associated with the component resource
      */
-    public abstract stack: Stack;
+    readonly stack: Stack;
 
     /**
      * Any stack options that are supplied by the user
      * @internal
      */
-    public abstract options?: StackOptions;
+    options?: StackOptions;
 
     /**
-     * Register pulumi outputs to the stack
+     * The Resources that the component resource depends on
+     * This will typically be the staging resources
+     *
      * @internal
      */
-    abstract registerOutput(outputId: string, output: any): void;
+    readonly dependencies: CdkConstruct[];
 
-    constructor(id: string, options?: pulumi.ComponentResourceOptions) {
-        super('cdk:index:Stack', id, {}, options);
-    }
+    /**
+     * @internal
+     */
+    readonly component: pulumi.ComponentResource;
+
+    /**
+     * @internal
+     */
+    registerOutput(outputId: string, outupt: any): void;
 }
+
 export type Mapping<T extends pulumi.Resource> = {
     resource: T;
     resourceType: string;
