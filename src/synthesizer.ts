@@ -70,6 +70,19 @@ export interface PulumiSynthesizerOptions {
     readonly autoDeleteStagingAssets?: boolean;
 }
 
+/**
+ * This is a custom synthesizer that determines how the CDK stack should be synthesized.
+ *
+ * In our case, since we can create Pulumi resources directly, we don't need a separate bootstrap step.
+ * This is very similar to how the AppStagingSynthesizer works, but is simpler because we don't need to
+ * manage/create a separate CDK stack to manage the resources.
+ *
+ * As CDK applications register assets this synthesizer will dynamically create the necessary staging
+ * resources and deploy the assets themselves.
+ *
+ * @see Recommended reading https://github.com/aws/aws-cdk/wiki/Security-And-Safety-Dev-Guide#controlling-the-permissions-used-by-cdk-deployments
+ * @see https://docs.aws.amazon.com/cdk/api/v2/docs/app-staging-synthesizer-alpha-readme.html
+ */
 export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReusableStackSynthesizer {
     /**
      * The Pulumi ComponentResource wrapper which contains all of the

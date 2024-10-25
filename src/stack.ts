@@ -20,22 +20,42 @@ import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer } from './synthesizer';
 import { CdkConstruct } from './interop';
 
-class StackComponent extends StackComponentResource {
+/**
+ * StackComponentResource is the underlying pulumi ComponentResource for each pulumicdk.Stack
+ * This exists because pulumicdk.Stack needs to extend cdk.Stack, but we also want it to represent a
+ * pulumi ComponentResource so we create this `StackComponentResource` to hold the pulumi logic
+ */
+class StackComponent extends pulumi.ComponentResource implements StackComponentResource {
     /** @internal */
     name: string;
 
     /** @internal */
     converter: AppConverter;
 
-    /** @internal */
-    assemblyDir: string;
+    /**
+     * @internal
+     */
+    readonly component: pulumi.ComponentResource;
 
-    options?: StackOptions;
+    /**
+     * The directory to which cdk synthesizes the CloudAssembly
+     * @internal
+     */
+    public assemblyDir: string;
 
+    /**
+     * Any stack options that are supplied by the user
+     * @internal
+     */
+    public options?: StackOptions;
+
+    /**
+     * @internal
+     */
     public dependencies: CdkConstruct[] = [];
 
     constructor(public readonly stack: Stack) {
-        super(stack.node.id, stack.options);
+        super('cdk:index:Stack', stack.node.id, {}, stack.options);
         this.options = stack.options;
         this.dependencies.push(stack.pulumiSynthesizer.stagingStack);
 
@@ -51,6 +71,7 @@ class StackComponent extends StackComponentResource {
         this.converter.convert();
 
         this.registerOutputs(stack.outputs);
+        this.component = this;
     }
 
     /** @internal */

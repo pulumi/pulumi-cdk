@@ -59,40 +59,49 @@ export enum PulumiProvider {
  * This exists because pulumicdk.Stack needs to extend cdk.Stack, but we also want it to represent a
  * pulumi ComponentResource so we create this `StackComponentResource` to hold the pulumi logic
  */
-export abstract class StackComponentResource extends pulumi.ComponentResource {
-    public abstract name: string;
+export interface StackComponentResource {
+    /**
+     * The name of the component resource
+     * @internal
+     */
+    name: string;
 
     /**
      * The directory to which cdk synthesizes the CloudAssembly
+     * @internal
      */
-    public abstract assemblyDir: string;
+    assemblyDir: string;
 
     /**
-     * The Stack that creates this component
+     * The CDK stack associated with the component resource
      */
-    public abstract stack: Stack;
+    readonly stack: Stack;
 
     /**
      * Any stack options that are supplied by the user
      * @internal
      */
-    public abstract options?: StackOptions;
+    options?: StackOptions;
+
+    /**
+     * The Resources that the component resource depends on
+     * This will typically be the staging resources
+     *
+     * @internal
+     */
+    readonly dependencies: CdkConstruct[];
 
     /**
      * @internal
      */
-    public abstract readonly dependencies: CdkConstruct[];
+    readonly component: pulumi.ComponentResource;
 
     /**
-     * Register pulumi outputs to the stack
      * @internal
      */
-    abstract registerOutput(outputId: string, output: any): void;
-
-    constructor(id: string, options?: pulumi.ComponentResourceOptions) {
-        super('cdk:index:Stack', id, {}, options);
-    }
+    registerOutput(outputId: string, outupt: any): void;
 }
+
 export type Mapping<T extends pulumi.Resource> = {
     resource: T;
     resourceType: string;

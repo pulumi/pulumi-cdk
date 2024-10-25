@@ -18,15 +18,15 @@ export abstract class ArtifactConverter {
         const host = this.stackComponent;
         return cx.EnvironmentPlaceholders.replaceAsync(s, {
             async region(): Promise<string> {
-                return getRegion({ parent: host }).then((r) => r.region);
+                return getRegion({ parent: host.component }).then((r) => r.region);
             },
 
             async accountId(): Promise<string> {
-                return getAccountId({ parent: host }).then((r) => r.accountId);
+                return getAccountId({ parent: host.component }).then((r) => r.accountId);
             },
 
             async partition(): Promise<string> {
-                return getPartition({ parent: host }).then((p) => p.partition);
+                return getPartition({ parent: host.component }).then((p) => p.partition);
             },
         });
     }

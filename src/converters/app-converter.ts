@@ -118,7 +118,7 @@ export class StackConverter extends ArtifactConverter {
                     `${this.stackComponent.name}/${n.construct.path}`,
                     n.construct.id,
                     {
-                        parent: this.stackComponent,
+                        parent: this.stackComponent.component,
                         // NOTE: Currently we make the stack depend on all the assets and then all resources
                         // have the parent as the stack. This means we deploy all assets before we deploy any resources
                         // we might be able better and have individual resources depend on individual assets, but CDK
@@ -209,7 +209,7 @@ export class StackConverter extends ArtifactConverter {
             return key;
         }
 
-        this.parameters.set(logicalId, parameterValue(this.stackComponent));
+        this.parameters.set(logicalId, parameterValue(this.stackComponent.component));
     }
 
     private mapResource(
@@ -370,15 +370,15 @@ export class StackConverter extends ArtifactConverter {
 
         switch (target) {
             case 'AWS::AccountId':
-                return getAccountId({ parent: this.stackComponent }).then((r) => r.accountId);
+                return getAccountId({ parent: this.stackComponent.component }).then((r) => r.accountId);
             case 'AWS::NoValue':
                 return undefined;
             case 'AWS::Partition':
-                return getPartition({ parent: this.stackComponent }).then((p) => p.partition);
+                return getPartition({ parent: this.stackComponent.component }).then((p) => p.partition);
             case 'AWS::Region':
-                return getRegion({ parent: this.stackComponent }).then((r) => r.region);
+                return getRegion({ parent: this.stackComponent.component }).then((r) => r.region);
             case 'AWS::URLSuffix':
-                return getUrlSuffix({ parent: this.stackComponent }).then((r) => r.urlSuffix);
+                return getUrlSuffix({ parent: this.stackComponent.component }).then((r) => r.urlSuffix);
             case 'AWS::NotificationARNs':
             case 'AWS::StackId':
             case 'AWS::StackName':
