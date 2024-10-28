@@ -152,6 +152,13 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
      */
     private outdir?: string;
 
+    /**
+     * List of asset hashes that have already been uploaded.
+     * The same asset could be registered multiple times, but we
+     * only want to upload it a single time
+     */
+    private readonly seenFileAssets = new Set<string>();
+
     constructor(props: PulumiSynthesizerOptions) {
         super();
         const stackPrefix = props.stagingStackNamePrefix ?? 'staging-stack';
@@ -365,6 +372,12 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
             bucketName: translateCfnTokenToAssetToken(this.cdkBucketName),
             bucketPrefix: asset.deployTime ? DEPLOY_TIME_PREFIX : undefined,
         });
+
+        // Assets can be registered multiple times, but we should only create the resource once
+        if (this.seenFileAssets.has(asset.sourceHash)) {
+            return this.cloudFormationLocationFromFileAsset(location);
+        }
+        this.seenFileAssets.add(asset.sourceHash);
 
         // Don't upload the CloudFormation template
         if (asset.fileName !== this.boundStack.templateFile) {
