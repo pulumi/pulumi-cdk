@@ -34,26 +34,9 @@ export function mapToCfnResource(
             // lowercase letters.
             return [new aws.s3.Bucket(logicalId.toLowerCase(), props, options)];
 
-        // `Method` and `Stage` resources suffer from https://github.com/pulumi/pulumi-cdk/issues/173
+        // A couple of ApiGateway resources suffer from https://github.com/pulumi/pulumi-cdk/issues/173
         // These are very popular resources so handling the workaround here since we can remove these
         // manual mappings once the issue has been fixed without breaking users
-        // case 'AWS::ApiGateway::Method': {
-        //     // const resourceId = pulumi.output(rawProps.ResourceId);
-        //     // const actualResourceId = resourceId.apply((id) => id.split('|').pop());
-        //     //
-        //     // return [
-        //     //     new aws.apigateway.Method(
-        //     //         logicalId,
-        //     //         {
-        //     //             ...props,
-        //     //             resourceId: actualResourceId,
-        //     //         },
-        //     //         options,
-        //     //     ),
-        //     // ];
-        //
-        // }
-
         case 'AWS::ApiGateway::Model': {
             const res = new aws.apigateway.Model(logicalId, props, options);
             const attributes = Object.getOwnPropertyDescriptors(res);
