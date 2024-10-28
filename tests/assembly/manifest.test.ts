@@ -147,7 +147,7 @@ describe('cloud assembly manifest reader', () => {
                 'test-stack/MyFunction1/Resource': 'MyFunction12A744C2E',
                 'test-stack/MyFunction1/ServiceRole/Resource': 'MyFunction1ServiceRole9852B06B',
             },
-            outputs: {},
+            outputs: undefined,
             parameters: undefined,
             resources: {
                 MyFunction12A744C2E: { Properties: {}, Type: 'AWS::Lambda::Function' },

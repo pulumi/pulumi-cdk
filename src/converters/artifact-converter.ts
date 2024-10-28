@@ -1,6 +1,6 @@
 import * as cx from 'aws-cdk-lib/cx-api';
 import { getAccountId, getPartition, getRegion } from '@pulumi/aws-native';
-import { StackComponentResource } from '../types';
+import { AppComponent } from '../types';
 
 /**
  * ArtifactConverter

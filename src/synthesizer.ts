@@ -68,6 +68,17 @@ export interface PulumiSynthesizerOptions {
      * @default true
      */
     readonly autoDeleteStagingAssets?: boolean;
+
+    readonly parent?: pulumi.ComponentResource;
+}
+
+export abstract class PulumiSynthesizerBase extends cdk.StackSynthesizer {
+    /**
+     * The Pulumi ComponentResource wrapper which contains all of the
+     * staging resources. This can be added to the `dependsOn` of the main
+     * stack to ensure the staging assets are created first
+     */
+    public abstract readonly stagingStack: CdkConstruct;
 }
 
 /**
@@ -83,7 +94,7 @@ export interface PulumiSynthesizerOptions {
  * @see Recommended reading https://github.com/aws/aws-cdk/wiki/Security-And-Safety-Dev-Guide#controlling-the-permissions-used-by-cdk-deployments
  * @see https://docs.aws.amazon.com/cdk/api/v2/docs/app-staging-synthesizer-alpha-readme.html
  */
-export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReusableStackSynthesizer {
+export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReusableStackSynthesizer {
     /**
      * The Pulumi ComponentResource wrapper which contains all of the
      * staging resources. This can be added to the `dependsOn` of the main
@@ -166,14 +177,13 @@ export class PulumiSynthesizer extends cdk.StackSynthesizer implements cdk.IReus
         this.autoDeleteStagingAssets = props.autoDeleteStagingAssets ?? true;
         this.appId = this.validateAppId(props.appId);
 
-        // TODO: inherit the provider from the app component https://github.com/pulumi/pulumi-cdk/issues/181
-        const account = aws.getCallerIdentity().then((id) => id.accountId);
+        const account = aws.getCallerIdentity({}, { parent: props.parent }).then((id) => id.accountId);
         this.pulumiAccount = pulumi.output(account);
-        const region = aws.getRegion().then((r) => r.name);
+        const region = aws.getRegion({}, { parent: props.parent }).then((r) => r.name);
         this.pulumiRegion = pulumi.output(region);
         const id = `${stackPrefix}-${this.appId}`;
         // create a wrapper component resource that we can depend on
-        this.stagingStack = new CdkConstruct(id, 'StagingStack', {});
+        this.stagingStack = new CdkConstruct(id, 'StagingStack', { parent: props.parent });
         this.stagingStack.done();
     }
 

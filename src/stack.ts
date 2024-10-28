@@ -14,47 +14,28 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cx from 'aws-cdk-lib/cx-api';
 import * as pulumi from '@pulumi/pulumi';
-import { AppComponent, AppOptions, PulumiStack } from './types';
+import { AppComponent, AppOptions, AppResourceOptions, PulumiStack } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
-import { PulumiSynthesizer } from './synthesizer';
-import { CdkConstruct } from './interop';
+import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
 import { error } from '@pulumi/pulumi/log';
+import { CdkConstruct } from './interop';
 
 export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
 
 const STACK_SYMBOL = Symbol.for('@pulumi/cdk.Stack');
-export type create = (scope: App) => AppOutputs;
 
-export class App extends AppComponent<AppConverter> implements ICloudAssemblyDirectoryProducer {
-    public name: string;
+interface AppResource {
+    converter: AppConverter;
+}
 
-    /** @internal */
-    public converter: Promise<AppConverter>;
-
-    /**
-     * @internal
-     */
-    readonly component: pulumi.ComponentResource;
-
-    /**
-     * The directory to which cdk synthesizes the CloudAssembly
-     * @internal
-     */
-    public assemblyDir: string;
-    private _app?: cdk.App;
-
-    /**
-     * @internal
-     */
-    public appOptions?: AppOptions;
-
-    public get app(): cdk.App {
-        if (!this._app) {
-            throw new Error('cdk.App has not been created yet');
-        }
-        return this._app!;
-    }
+export class App
+    extends pulumi.ComponentResource<AppResource>
+    implements ICloudAssemblyDirectoryProducer, AppComponent
+{
+    public readonly name: string;
+    public readonly component: pulumi.ComponentResource;
+    public readonly stacks: { [artifactId: string]: PulumiStack } = {};
 
     /**
      * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
@@ -62,17 +43,35 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
      */
     public outputs: { [outputId: string]: pulumi.Output<any> } = {};
 
+    /** @internal */
+    public converter: Promise<AppConverter>;
+
+    /**
+     * @internal
+     */
+    public appOptions?: AppOptions;
+
+    /**
+     * The directory to which cdk synthesizes the CloudAssembly
+     * @internal
+     */
+    public assemblyDir!: string;
+    readonly dependencies: CdkConstruct[] = [];
+
     private readonly createFunc: (scope: App) => AppOutputs | void;
+    private _app?: cdk.App;
     private appProps?: cdk.AppProps;
 
-    constructor(id: string, createFunc: (scope: App) => void | AppOutputs, props?: AppOptions) {
-        super(id, props);
-        this.appOptions = props;
+    constructor(id: string, createFunc: (scope: App) => void | AppOutputs, props?: AppResourceOptions) {
+        super('cdk:index:App', id, props?.appOptions, props);
+        this.appOptions = props?.appOptions;
         this.createFunc = createFunc;
+        this.component = this;
 
         this.name = id;
-        this.appProps = props?.props;
-        this.converter = this.getData();
+        this.appProps = props?.appOptions?.props;
+        const data = this.getData();
+        this.converter = data.then((d) => d.converter);
 
         const outputs = this.converter.then((converter) => {
             const stacks = Array.from(converter.stacks.values());
@@ -94,8 +93,21 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
         this.registerOutputs(this.outputs);
     }
 
-    protected async initialize(): Promise<AppConverter> {
+    public get app(): cdk.App {
+        if (!this._app) {
+            throw new Error('cdk.App has not been created yet');
+        }
+        return this._app!;
+    }
+
+    protected async initialize(props: {
+        name: string;
+        args?: AppOptions;
+        opts?: pulumi.ComponentResourceOptions;
+    }): Promise<AppResource> {
         const cli = AwsCdkCli.fromCloudAssemblyDirectoryProducer(this);
+        this.appProps = props.args?.props;
+        this.appOptions = props.args;
         try {
             await cli.synth({ quiet: true, lookups: false });
         } catch (e: any) {
@@ -110,25 +122,34 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
                     this,
                 );
             } else {
-                error(e.message, this);
+                error(e, this);
             }
         }
 
         const converter = new AppConverter(this);
         converter.convert();
 
-        return converter;
+        return {
+            converter,
+        };
     }
 
     async produce(context: Record<string, any>): Promise<string> {
+        const appId = this.appOptions?.appId ?? generateAppId();
+        const synthesizer = this.appProps?.defaultStackSynthesizer ?? new PulumiSynthesizer({ appId, parent: this });
+
+        if (synthesizer instanceof PulumiSynthesizerBase) {
+            this.dependencies.push(synthesizer.stagingStack);
+        }
+
         const app = new cdk.App({
             ...(this.appProps ?? {}),
             autoSynth: false,
             analyticsReporting: false,
             context,
+            defaultStackSynthesizer: synthesizer,
         });
         this._app = app;
-        this.assemblyDir = app.outdir;
         const outputs = this.createFunc(this);
         this.outputs = outputs ?? {};
 
@@ -138,7 +159,9 @@ export class App extends AppComponent<AppConverter> implements ICloudAssemblyDir
             }
         });
 
-        return app.synth().directory;
+        const dir = app.synth().directory;
+        this.assemblyDir = dir;
+        return dir;
     }
 }
 
@@ -187,11 +210,6 @@ export class Stack extends PulumiStack {
     public outdir: string;
 
     private pulumiApp: App;
-
-    /**
-     * @internal
-     */
-    public readonly pulumiSynthesizer: PulumiSynthesizer;
 
     /**
      * Create and register an AWS CDK stack deployed with Pulumi.

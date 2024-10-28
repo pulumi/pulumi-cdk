@@ -117,7 +117,7 @@ export class StackConverter extends ArtifactConverter {
         for (const n of dependencyGraphNodes) {
             if (n.construct.id === this.stack.id) {
                 this._stackResource = new CdkConstruct(`${this.app.name}/${n.construct.path}`, n.construct.id, {
-                    parent: this.app,
+                    parent: this.app.component,
                     // NOTE: Currently we make the stack depend on all the assets and then all resources
                     // have the parent as the stack. This means we deploy all assets before we deploy any resources
                     // we might be able better and have individual resources depend on individual assets, but CDK
@@ -170,7 +170,7 @@ export class StackConverter extends ArtifactConverter {
 
     private stackDependsOn(dependencies: Set<ArtifactConverter>): pulumi.Resource[] {
         const dependsOn: pulumi.Resource[] = [];
-        dependsOn.push(...this.host.dependencies);
+        dependsOn.push(...this.app.dependencies);
         for (const d of dependencies) {
             if (d instanceof StackConverter) {
                 dependsOn.push(d.stackResource);
@@ -202,7 +202,7 @@ export class StackConverter extends ArtifactConverter {
             return key;
         }
 
-        this.parameters.set(logicalId, parameterValue(this.app));
+        this.parameters.set(logicalId, parameterValue(this.app.component));
     }
 
     private mapResource(
@@ -363,15 +363,15 @@ export class StackConverter extends ArtifactConverter {
 
         switch (target) {
             case 'AWS::AccountId':
-                return getAccountId({ parent: this.app }).then((r) => r.accountId);
+                return getAccountId({ parent: this.app.component }).then((r) => r.accountId);
             case 'AWS::NoValue':
                 return undefined;
             case 'AWS::Partition':
-                return getPartition({ parent: this.app }).then((p) => p.partition);
+                return getPartition({ parent: this.app.component }).then((p) => p.partition);
             case 'AWS::Region':
-                return getRegion({ parent: this.app }).then((r) => r.region);
+                return getRegion({ parent: this.app.component }).then((r) => r.region);
             case 'AWS::URLSuffix':
-                return getUrlSuffix({ parent: this.app }).then((r) => r.urlSuffix);
+                return getUrlSuffix({ parent: this.app.component }).then((r) => r.urlSuffix);
             case 'AWS::NotificationARNs':
             case 'AWS::StackId':
             case 'AWS::StackName':
