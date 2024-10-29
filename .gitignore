@@ -118,3 +118,4 @@ test-reports/
 lib/
 
 **/cdk.out
+**/cdk.context.json
