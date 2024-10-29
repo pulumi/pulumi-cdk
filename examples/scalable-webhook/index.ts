@@ -23,7 +23,8 @@ class ScalableWebhookStack extends pulumicdk.Stack {
             partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING }, //the key being id means we squash duplicate sqs messages
             billing: dynamodb.Billing.provisioned({
                 readCapacity: dynamodb.Capacity.fixed(5),
-                writeCapacity: dynamodb.Capacity.fixed(5),
+                // writeCapacity cannot be fixed
+                writeCapacity: dynamodb.Capacity.autoscaled({ maxCapacity: 5 }),
             }),
         });
 
