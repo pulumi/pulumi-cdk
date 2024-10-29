@@ -44,8 +44,8 @@ jobs:
   test:
     name: acceptance-test
     concurrency:
-      group: acceptance-test-${{ matrix.index }} # TODO: concurrent tests across PRs can cause problems
-      cancel-in-progress: false
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.index }} # TODO: concurrent tests across PRs can cause problems
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo

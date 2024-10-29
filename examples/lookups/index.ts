@@ -77,6 +77,9 @@ export class Ec2CdkStack extends pulumicdk.Stack {
         const zone = aws.route53.getZoneOutput(
             {
                 name: zoneName,
+                tags: {
+                    Purpose: 'Lookups',
+                },
             },
             { parent: app },
         );
