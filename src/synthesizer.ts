@@ -69,9 +69,16 @@ export interface PulumiSynthesizerOptions {
      */
     readonly autoDeleteStagingAssets?: boolean;
 
-    readonly parent?: pulumi.ComponentResource;
+    /**
+     * The parent resource for any Pulumi resources created by the Synthesizer
+     */
+    readonly parent?: pulumi.Resource;
 }
 
+/**
+ * Base Synthesizer class. If you want to implement your own Pulumi Synthesizer which
+ * creates Pulumi resources then you should extend this class.
+ */
 export abstract class PulumiSynthesizerBase extends cdk.StackSynthesizer {
     /**
      * The Pulumi ComponentResource wrapper which contains all of the
@@ -436,7 +443,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
  *
  * This replaces the ! assertions we would need everywhere otherwise.
  */
-export function assertBound<A>(x: A | undefined): asserts x is NonNullable<A> {
+function assertBound<A>(x: A | undefined): asserts x is NonNullable<A> {
     if (x === null && x === undefined) {
         throw new Error('You must call bindStack() first');
     }
