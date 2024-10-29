@@ -120,6 +120,33 @@ func TestEventBridgeSNS(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestEventBridgeAtm(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "eventbridge-atm"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
+func TestScalableWebhook(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "scalable-webhook"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
+func TestTheBigFan(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "the-big-fan"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func TestAPIWebsocketLambdaDynamoDB(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{

@@ -390,6 +390,13 @@ export class StackConverter extends ArtifactConverter {
         if ((<any>mapping).value !== undefined) {
             return (<any>mapping).value;
         }
+        // Due to https://github.com/pulumi/pulumi-cdk/issues/173 we have some
+        // resource which we have to special case the `id` attribute. The `Resource.id`
+        // will not contain the correct value
+        const map = <Mapping<pulumi.Resource>>mapping;
+        if (map.attributes && 'id' in map.attributes) {
+            return map.attributes.id;
+        }
         return (<pulumi.CustomResource>(<Mapping<pulumi.Resource>>mapping).resource).id;
     }
 
