@@ -120,25 +120,33 @@ const app = new pulumicdk.App(
         new Ec2CdkStack(scope, 'teststack');
     },
     {
-        remapCloudControlResource(logicalId, typeName, props, options) {
-            switch (typeName) {
-                case 'AWS::Route53::RecordSet':
-                    return new aws.route53.Record(logicalId, {
-                        zoneId: props.HostedZoneId,
-                        aliases: [
-                            {
-                                name: props.AliasTarget.DNSName,
-                                zoneId: props.AliasTarget.HostedZoneId,
-                                evaluateTargetHealth: props.AliasTarget.EvaluateTargetHealth ?? false,
-                            },
-                        ],
-                        name: props.Name,
-                        type: props.Type,
-                        records: props.ResourceRecords,
-                    });
-                default:
-                    return undefined;
-            }
+        appOptions: {
+            remapCloudControlResource(logicalId, typeName, props, options) {
+                switch (typeName) {
+                    case 'AWS::Route53::RecordSet':
+                        return [
+                            new aws.route53.Record(
+                                logicalId,
+                                {
+                                    zoneId: props.HostedZoneId,
+                                    aliases: [
+                                        {
+                                            name: props.AliasTarget.DNSName,
+                                            zoneId: props.AliasTarget.HostedZoneId,
+                                            evaluateTargetHealth: props.AliasTarget.EvaluateTargetHealth ?? false,
+                                        },
+                                    ],
+                                    name: props.Name,
+                                    type: props.Type,
+                                    records: props.ResourceRecords,
+                                },
+                                options,
+                            ),
+                        ];
+                    default:
+                        return undefined;
+                }
+            },
         },
     },
 );
