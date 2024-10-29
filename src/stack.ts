@@ -11,10 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import * as cdk from 'aws-cdk-lib';
-import * as cx from 'aws-cdk-lib/cx-api';
+import * as cdk from 'aws-cdk-lib/core';
 import * as pulumi from '@pulumi/pulumi';
-import { AppComponent, AppOptions, AppResourceOptions, PulumiStack } from './types';
+import { AppComponent, AppOptions, AppResourceOptions } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
@@ -29,19 +28,46 @@ interface AppResource {
     converter: AppConverter;
 }
 
+/**
+ * A Pulumi CDK App component. This is the entrypoint to your Pulumi CDK application.
+ * The second argument is a callback function where all CDK resources must be created.
+ *
+ * @example
+ * import * as s3 from 'aws-cdk-lib/aws-s3';
+ * import * as pulumicdk from '@pulumi/cdk';
+ *
+ * const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+ *   // All resources must be created within a Pulumi Stack
+ *   const stack = new pulumicdk.Stack(scope, 'pulumi-stack');
+ *   const bucket = new s3.Bucket(stack, 'my-bucket');
+ *   return {
+ *     bucket: stack.asOutput(bucket.bucketName),
+ *   };
+ * });
+ *
+ * export const bucket = app.outputs['bucket'];
+ */
 export class App
     extends pulumi.ComponentResource<AppResource>
     implements ICloudAssemblyDirectoryProducer, AppComponent
 {
     public readonly name: string;
-    public readonly component: pulumi.ComponentResource;
-    public readonly stacks: { [artifactId: string]: PulumiStack } = {};
 
     /**
      * The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
      * Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs.
      */
     public outputs: { [outputId: string]: pulumi.Output<any> } = {};
+
+    /**
+     * @internal
+     */
+    public readonly component: pulumi.ComponentResource;
+
+    /**
+     * @internal
+     */
+    public readonly stacks: { [artifactId: string]: cdk.Stack } = {};
 
     /** @internal */
     public converter: Promise<AppConverter>;
@@ -56,6 +82,10 @@ export class App
      * @internal
      */
     public assemblyDir!: string;
+
+    /**
+     * @internal
+     */
     readonly dependencies: CdkConstruct[] = [];
 
     private readonly createFunc: (scope: App) => AppOutputs | void;
@@ -73,6 +103,9 @@ export class App
         const data = this.getData();
         this.converter = data.then((d) => d.converter);
 
+        // This grabs the outputs off of the stacks themselves after they
+        // have been converted. This allows us to present the outputs property
+        // as a plain value instead of an Output value.
         const outputs = this.converter.then((converter) => {
             const stacks = Array.from(converter.stacks.values());
             return stacks.reduce(
@@ -93,6 +126,9 @@ export class App
         this.registerOutputs(this.outputs);
     }
 
+    /**
+     * @internal
+     */
     public get app(): cdk.App {
         if (!this._app) {
             throw new Error('cdk.App has not been created yet');
@@ -109,6 +145,7 @@ export class App
         this.appProps = props.args?.props;
         this.appOptions = props.args;
         try {
+            // TODO: support lookups https://github.com/pulumi/pulumi-cdk/issues/184
             await cli.synth({ quiet: true, lookups: false });
         } catch (e: any) {
             if (typeof e.message === 'string' && e.message.includes('Context lookups have been disabled')) {
@@ -134,6 +171,13 @@ export class App
         };
     }
 
+    /**
+     * produce is called by `AwsCdkCli` as part of the `synth` operation. It will potentially
+     * be called multiple times if there is any missing context values.
+     *
+     * @param context The CDK context collected by the CLI that needs to be passed to the cdk.App
+     * @returns the path to the CDK Assembly directory
+     */
     async produce(context: Record<string, any>): Promise<string> {
         const appId = this.appOptions?.appId ?? generateAppId();
         const synthesizer = this.appProps?.defaultStackSynthesizer ?? new PulumiSynthesizer({ appId, parent: this });
@@ -146,6 +190,8 @@ export class App
             ...(this.appProps ?? {}),
             autoSynth: false,
             analyticsReporting: false,
+            // We require tree metadata to walk the construct tree
+            treeMetadata: true,
             context,
             defaultStackSynthesizer: synthesizer,
         });
@@ -165,18 +211,22 @@ export class App
     }
 }
 
+/**
+ * Options for creating a Pulumi CDK Stack
+ */
 export interface StackOptions extends pulumi.ComponentResourceOptions {
-    props: cdk.StackProps;
+    /**
+     * The CDK Stack props
+     */
+    props?: cdk.StackProps;
 }
 
 /**
  * A Construct that represents an AWS CDK stack deployed with Pulumi.
  *
- * In order to deploy a CDK stack with Pulumi, it must derive from this class. The `synth` method must be called after
- * all CDK resources have been defined in order to deploy the stack (usually, this is done as the last line of the
- * subclass's constructor).
+ * In order to deploy a CDK stack with Pulumi, it must derive from this class.
  */
-export class Stack extends PulumiStack {
+export class Stack extends cdk.Stack {
     /**
      * Return whether the given object is a Stack.
      *
@@ -187,29 +237,14 @@ export class Stack extends PulumiStack {
         return x !== null && typeof x === 'object' && STACK_SYMBOL in x;
     }
 
-    // // The URN of the underlying Pulumi component.
-    // urn!: pulumi.Output<pulumi.URN>;
-    // resolveURN!: (urn: pulumi.Output<pulumi.URN>) => void;
-    // rejectURN!: (error: any) => void;
-
-    /** @internal */
-    app: cdk.App;
-
-    // The stack's converter. This is used by asOutput in order to convert CDK values to Pulumi Outputs. This is a
-    // Promise so users are able to call asOutput before they've called synth. Note that this _does_ make forgetting
-    // to call synth a sharper edge: calling asOutput without calling synth will create outputs that never resolve
-    // and the program will hang.
-    converter!: Promise<StackConverter>;
-
     /**
+     * The stack's converter. This is used by asOutput in order to convert CDK
+     * values to Pulumi Outputs. This is a Promise so users are able to call
+     * asOutput before they've called synth.
+     *
      * @internal
      */
-    public options?: StackOptions;
-
-    /** @internal */
-    public outdir: string;
-
-    private pulumiApp: App;
+    public converter: Promise<StackConverter>;
 
     /**
      * Create and register an AWS CDK stack deployed with Pulumi.
@@ -221,13 +256,7 @@ export class Stack extends PulumiStack {
         super(app.app, name, options?.props);
         Object.defineProperty(this, STACK_SYMBOL, { value: true });
 
-        this.pulumiApp = app;
-        this.options = options;
-
-        this.outdir = app.assemblyDir;
-        this.app = app.app;
-
-        this.converter = this.pulumiApp.converter.then((converter) => converter.stacks.get(this.artifactId)!);
+        this.converter = app.converter.then((converter) => converter.stacks.get(this.artifactId)!);
     }
 
     /**
@@ -249,23 +278,6 @@ export class Stack extends PulumiStack {
         // provider or would require unintuitive options in order to produce the expected result).
         return pulumi.output(this.converter.then((converter) => converter.asOutputValue(v)));
     }
-}
-
-function debugAssembly(assembly: cx.CloudAssembly): any {
-    return {
-        version: assembly.version,
-        directory: assembly.directory,
-        runtime: assembly.runtime,
-        artifacts: assembly.artifacts.map(debugArtifact),
-    };
-}
-
-function debugArtifact(artifact: cx.CloudArtifact): any {
-    return {
-        dependencies: artifact.dependencies.map((artifact) => artifact.id),
-        manifest: artifact.manifest,
-        messages: artifact.messages,
-    };
 }
 
 /**

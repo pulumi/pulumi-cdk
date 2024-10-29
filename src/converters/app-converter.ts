@@ -1,8 +1,9 @@
+import * as cdk from 'aws-cdk-lib/core';
 import * as pulumi from '@pulumi/pulumi';
 import { AssemblyManifestReader, StackManifest } from '../assembly';
 import { ConstructInfo, GraphBuilder } from '../graph';
 import { ArtifactConverter } from './artifact-converter';
-import { lift, Mapping, AppComponent, PulumiStack } from '../types';
+import { lift, Mapping, AppComponent } from '../types';
 import { CdkConstruct, ResourceMapping } from '../interop';
 import { debug } from '@pulumi/pulumi/log';
 import {
@@ -90,7 +91,7 @@ export class StackConverter extends ArtifactConverter {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
-    private readonly cdkStack: PulumiStack;
+    private readonly cdkStack: cdk.Stack;
 
     private _stackResource?: CdkConstruct;
 
