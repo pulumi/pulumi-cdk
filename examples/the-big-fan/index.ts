@@ -11,8 +11,8 @@ import * as pulumicdk from '@pulumi/cdk';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 
 class TheBigFanStack extends pulumicdk.Stack {
-    constructor(id: string) {
-        super(id);
+    constructor(app: pulumicdk.App, id: string) {
+        super(app, id);
         this.node.setContext('@aws-cdk/aws-apigateway:disableCloudWatchRole', 'true');
 
         /**
@@ -221,8 +221,9 @@ class TheBigFanStack extends pulumicdk.Stack {
                 ],
             },
         );
-
-        this.synth();
     }
 }
-new TheBigFanStack('TheBigFanStack');
+
+new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    new TheBigFanStack(scope, 'TheBigFanStack');
+});
