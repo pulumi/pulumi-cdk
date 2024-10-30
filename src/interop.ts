@@ -58,12 +58,31 @@ export function normalize(value: any, cfnType?: string, pulumiProvider?: PulumiP
     return result;
 }
 
-export type ResourceMapping =
-    | {
-          resource: pulumi.Resource;
-          attributes: { [name: string]: pulumi.Input<any> };
-      }
-    | pulumi.Resource;
+/**
+ * Use this type if you need to control the attributes that are available on the
+ * mapped resource. For example if the CFN resource has an attribute called `resourceArn` and
+ * the mapped resource only has an attribute called `arn` you can return the extra `resourceArn`
+ * attribute
+ *
+ * @example
+ * return {
+ *   resource: mappedResource,
+ *   attributes: {
+ *     resourceArn: mappedResource.arn,
+ *   }
+ * }
+ */
+export type ResourceAttributeMapping = {
+    resource: pulumi.Resource;
+    attributes?: { [name: string]: pulumi.Input<any> };
+};
+
+/**
+ * Use this type if a single CFN resource maps to multiple AWS resources
+ */
+export type ResourceAttributeMappingArray = (ResourceAttributeMapping & { logicalId: string })[];
+
+export type ResourceMapping = ResourceAttributeMapping | pulumi.Resource | ResourceAttributeMappingArray;
 
 export class CfnResource extends pulumi.CustomResource {
     constructor(
