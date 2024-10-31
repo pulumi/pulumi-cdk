@@ -131,7 +131,7 @@ describe('AWS Resource Mappings', () => {
         // THEN
         expect(aws.sns.TopicPolicy).toHaveBeenCalledTimes(2);
         expect(aws.sns.TopicPolicy).toHaveBeenCalledWith(
-            `${logicalId}-policy-0`,
+            logicalId,
             expect.objectContaining({
                 arn: 'my-topic',
                 policy: {
@@ -188,7 +188,7 @@ describe('AWS Resource Mappings', () => {
         // THEN
         expect(aws.sqs.QueuePolicy).toHaveBeenCalledTimes(2);
         expect(aws.sqs.QueuePolicy).toHaveBeenCalledWith(
-            `${logicalId}-policy-0`,
+            logicalId,
             expect.objectContaining({
                 queueUrl: 'my-queue',
                 policy: {

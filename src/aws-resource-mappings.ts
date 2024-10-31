@@ -90,7 +90,7 @@ export function mapToAwsResource(
 
             const queues: string[] = props.queues ?? [];
             return queues.flatMap((q: string, i: number) => {
-                const id = `${logicalId}-policy-${i}`;
+                const id = i === 0 ? logicalId : `${logicalId}-policy-${i}`;
                 return {
                     logicalId: id,
                     resource: new aws.sqs.QueuePolicy(id, {
@@ -110,7 +110,7 @@ export function mapToAwsResource(
 
             const topics: string[] = props.topics ?? [];
             return topics.flatMap((arn: string, i: number) => {
-                const id = `${logicalId}-policy-${i}`;
+                const id = i === 0 ? logicalId : `${logicalId}-policy-${i}`;
                 return {
                     logicalId: id,
                     resource: new aws.sns.TopicPolicy(id, {

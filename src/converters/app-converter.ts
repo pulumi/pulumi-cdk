@@ -3,7 +3,7 @@ import { AssemblyManifestReader, StackManifest } from '../assembly';
 import { ConstructInfo, GraphBuilder } from '../graph';
 import { StackComponentResource, lift, Mapping } from '../types';
 import { ArtifactConverter } from './artifact-converter';
-import { CdkConstruct, ResourceMapping } from '../interop';
+import { CdkConstruct, ResourceAttributeMapping, ResourceMapping } from '../interop';
 import { debug } from '@pulumi/pulumi/log';
 import {
     cidr,
@@ -142,22 +142,36 @@ export class StackConverter extends ArtifactConverter {
                 const options = this.processOptions(cfn, parent);
 
                 const mapped = this.mapResource(n.logicalId, cfn.Type, props, options);
-                if (Array.isArray(mapped)) {
-                    mapped.forEach((m) => {
-                        const id = m.logicalId;
-                        this.resources.set(id, {
-                            resource: m.resource,
-                            attributes: m.attributes,
-                            resourceType: cfn.Type,
-                        });
-                        this.constructs.set(n.construct, m.resource);
-                    });
-                } else {
-                    const resource = pulumi.Resource.isInstance(mapped) ? mapped : mapped.resource;
-                    const attributes = pulumi.Resource.isInstance(mapped) ? undefined : mapped.attributes;
-                    this.resources.set(n.logicalId!, { resource: resource, attributes, resourceType: cfn.Type });
-                    this.constructs.set(n.construct, resource);
+                const mainResource: ResourceAttributeMapping | undefined = Array.isArray(mapped)
+                    ? mapped.find((res) => res.logicalId === n.logicalId)
+                    : pulumi.Resource.isInstance(mapped)
+                    ? { resource: mapped }
+                    : mapped;
+                if (!mainResource) {
+                    throw new Error(
+                        `Resource mapping for ${n.logicalId} of type ${cfn.Type} did not return a primary resource`,
+                    );
                 }
+                const resourceMapping: Mapping<pulumi.Resource> = {
+                    resource: mainResource.resource,
+                    attributes: mainResource.attributes,
+                    resourceType: cfn.Type,
+                    resources: [],
+                };
+                this.constructs.set(n.construct, mainResource.resource);
+                if (Array.isArray(mapped)) {
+                    mapped
+                        .filter((map) => map.logicalId !== n.logicalId)
+                        .forEach((m) => {
+                            resourceMapping.resources!.push(m.resource);
+                            this.resources.set(m.logicalId, {
+                                resource: m.resource,
+                                attributes: m.attributes,
+                                resourceType: cfn.Type,
+                            });
+                        });
+                }
+                this.resources.set(n.logicalId!, resourceMapping);
 
                 debug(`Done creating resource for ${n.logicalId}`);
                 // TODO: process template conditions
@@ -251,7 +265,13 @@ export class StackConverter extends ArtifactConverter {
         const dependsOn = getDependsOn(resource);
         return {
             parent: parent,
-            dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources.get(id)!.resource) : undefined,
+            dependsOn:
+                dependsOn !== undefined
+                    ? dependsOn.flatMap((id) => {
+                          const resource = this.resources.get(id);
+                          return resource?.resources ?? resource!.resource;
+                      })
+                    : undefined,
         };
     }
 

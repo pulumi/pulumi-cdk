@@ -105,6 +105,7 @@ export interface StackComponentResource {
 export type Mapping<T extends pulumi.Resource> = {
     resource: T;
     resourceType: string;
+    resources?: T[];
     attributes?: { [name: string]: pulumi.Input<any> };
 };
 
