@@ -45,7 +45,7 @@ jobs:
     name: acceptance-test
     concurrency:
       group: acceptance-test-${{ matrix.index }} # TODO: concurrent tests across PRs can cause problems
-      # TODO: https://github.com/pulumi/pulumi-cdk/issues/152 means that some resources in tests will have a static name
+      # TODO[pulumi/pulumi-cdk#152]: means that some resources in tests will have a static name
       # which if the test does not complete, will not be cleaned up causing the next run to fail with resource already exists
       cancel-in-progress: false 
     runs-on: ubuntu-latest

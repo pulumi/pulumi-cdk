@@ -175,6 +175,8 @@ export class App
      * produce is called by `AwsCdkCli` as part of the `synth` operation. It will potentially
      * be called multiple times if there is any missing context values.
      *
+     * Note: currently lookups are disabled so this will only be executed once
+     *
      * @param context The CDK context collected by the CLI that needs to be passed to the cdk.App
      * @returns the path to the CDK Assembly directory
      */

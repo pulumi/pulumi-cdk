@@ -94,6 +94,30 @@ Try the workshop at https://apprunnerworkshop.com
 Read the docs at https://docs.aws.amazon.com/apprunner
 ```
 
+## Bootstrapping
+
+CDK has the concept of [bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html)
+which requires you to first bootstrap your account with certain AWS resources
+that CDK needs to exist. With Pulumi CDK this is not required! Pulumi CDK will
+automatically and dynamically create the bootstrap resources as needed.
+
+### S3 Resources
+
+When any file assets are added to your application, CDK will automatically
+create the following staging resources.
+
+1. [aws.s3.BucketV2](https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketv2/)
+  - `forceDestroy`: true
+2. [aws.s3.BucketServerSideEncryptionConfigurationV2](https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketserversideencryptionconfigurationv2/)
+  - `AES256`
+3. [aws.s3.BucketVersioningV2](https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketversioningv2/)
+  - `Enabled`
+4. [aws.s3.BucketLifecycleConfigurationV2](https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketlifecycleconfigurationv2/)
+  - Expire old versions > 365 days
+  - Expire deploy-time assets > 30 days
+5. [aws.s3.BucketPolicy](https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpolicy/)
+  - Require SSL
+
 ## API
 
 ### `App`
@@ -116,8 +140,8 @@ Parameters:
 
 #### `outputs`
 
-The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs.
-Each `CfnOutput` defined in the AWS CDK Stack will populate a value in the
+The collection of outputs from the Pulumi CDK App represented as Pulumi Outputs.
+Each `CfnOutput` defined in each AWS CDK Stack will populate a value in the
 outputs.
 
 ```ts
