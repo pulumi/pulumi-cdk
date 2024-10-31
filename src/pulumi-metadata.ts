@@ -4,7 +4,7 @@ import { toSdkName, typeToken } from './naming';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pulumiMetadata = require(path.join(__dirname, '../schemas/aws-native-metadata.json'));
 import { PulumiProvider } from './types';
-import { debug, error } from '@pulumi/pulumi/log';
+import { debug } from '@pulumi/pulumi/log';
 
 export class UnknownCfnType extends Error {
     constructor(cfnType: string) {
@@ -72,6 +72,7 @@ export interface PulumiType {
 
 /**
  * The schema for the array items property
+ * A property will typically have either $ref, properties or additionalProperties
  */
 export interface PulumiPropertyItems {
     /**
@@ -79,6 +80,9 @@ export interface PulumiPropertyItems {
      */
     $ref?: string;
 
+    /**
+     * The properties of an object type
+     */
     properties?: { [key: string]: PulumiPropertyItems };
 
     /**
