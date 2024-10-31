@@ -5,6 +5,7 @@ Pulumi.*.yaml
 
 # Example lock files
 examples/**/yarn.lock
+integration/**/yarn.lock
 
 # Logs
 logs
