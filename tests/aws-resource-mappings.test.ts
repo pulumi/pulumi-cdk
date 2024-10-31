@@ -131,7 +131,7 @@ describe('AWS Resource Mappings', () => {
         // THEN
         expect(aws.sns.TopicPolicy).toHaveBeenCalledTimes(2);
         expect(aws.sns.TopicPolicy).toHaveBeenCalledWith(
-            logicalId,
+            `${logicalId}-policy-0`,
             expect.objectContaining({
                 arn: 'my-topic',
                 policy: {
@@ -147,7 +147,7 @@ describe('AWS Resource Mappings', () => {
             }),
         );
         expect(aws.sns.TopicPolicy).toHaveBeenCalledWith(
-            logicalId,
+            `${logicalId}-policy-1`,
             expect.objectContaining({
                 arn: 'my-other-topic',
                 policy: {
@@ -188,7 +188,7 @@ describe('AWS Resource Mappings', () => {
         // THEN
         expect(aws.sqs.QueuePolicy).toHaveBeenCalledTimes(2);
         expect(aws.sqs.QueuePolicy).toHaveBeenCalledWith(
-            logicalId,
+            `${logicalId}-policy-0`,
             expect.objectContaining({
                 queueUrl: 'my-queue',
                 policy: {
@@ -205,7 +205,7 @@ describe('AWS Resource Mappings', () => {
         );
 
         expect(aws.sqs.QueuePolicy).toHaveBeenCalledWith(
-            logicalId,
+            `${logicalId}-policy-1`,
             expect.objectContaining({
                 queueUrl: 'my-other-queue',
                 policy: {
