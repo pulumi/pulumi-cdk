@@ -10,7 +10,7 @@ import { zipDirectory } from './zip';
  * Deploy time assets will be put in this S3 bucket prefix
  * so that separate lifecycle rules can apply
  */
-const DEPLOY_TIME_PREFIX = 'deploy-time/';
+export const DEPLOY_TIME_PREFIX = 'deploy-time/';
 
 export interface PulumiSynthesizerOptions {
     /**
@@ -322,6 +322,20 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
     }
 
     /**
+     * Retrieves the staging S3 bucket.
+     * 
+     * This method ensures that the staging bucket is created and bound before returning it.
+     * 
+     * @returns {aws.s3.BucketV2} The staging S3 bucket.
+     * @throws {Error} If the staging bucket is not properly bound.
+     */
+    public getStagingBucket(): aws.s3.BucketV2 {
+        const bucket = this.getCreateBucket();
+        assertBound(bucket);
+        return bucket;
+    }
+
+    /**
      * Produce a bound Stack Synthesizer for the given stack.
      *
      * This method may be called more than once on the same object.
@@ -447,4 +461,8 @@ function assertBound<A>(x: A | undefined): asserts x is NonNullable<A> {
     if (x === null && x === undefined) {
         throw new Error('You must call bindStack() first');
     }
+}
+
+export function isPulumiSynthesizer(x: cdk.IStackSynthesizer): x is PulumiSynthesizer {
+    return x instanceof PulumiSynthesizer;
 }

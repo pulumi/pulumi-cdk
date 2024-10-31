@@ -21,6 +21,8 @@ import { CloudFormationResource, getDependsOn } from '../cfn';
 import { OutputMap, OutputRepr } from '../output-map';
 import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
+import { mapToCustomResource } from '../custom-resource-mapping';
+import { CfnCustomResource } from '../custom-resource/custom-resource-emulator';
 import { processSecretsManagerReferenceValue, resolveSecretsManagerDynamicReference } from './secrets-manager-dynamic';
 
 /**
@@ -143,6 +145,14 @@ export class StackConverter extends ArtifactConverter {
 
                 const mapped = this.mapResource(n.logicalId, cfn.Type, props, options);
                 this.registerResource(mapped, n);
+
+                let attributes: { [key: string]: pulumi.Input<any> } | undefined;
+                let customResourceAttributes: pulumi.Output<{ [key: string]: any }> | undefined;
+                if (CfnCustomResource.isInstance(resource)) {
+                    customResourceAttributes = resource.attributes;
+                } else {
+                    attributes = pulumi.Resource.isInstance(m) ? undefined : m.attributes;
+                }
 
                 debug(`Done creating resource for ${n.logicalId}`);
                 // TODO: process template conditions
@@ -286,6 +296,12 @@ export class StackConverter extends ArtifactConverter {
         if (awsMapping !== undefined) {
             debug(`mapped ${logicalId} to classic AWS resource(s)`);
             return awsMapping;
+        }
+
+        const customResourceMapping = mapToCustomResource(logicalId, typeName, props, options, this.stackComponent.stack);
+        if (customResourceMapping !== undefined) {
+            debug(`mapped ${logicalId} to custom resource(s)`);
+            return customResourceMapping;
         }
 
         const cfnMapping = mapToCfnResource(logicalId, typeName, props, options);
@@ -501,6 +517,9 @@ export class StackConverter extends ArtifactConverter {
         const map = <Mapping<pulumi.Resource>>mapping;
         if (map.attributes && 'id' in map.attributes) {
             return map.attributes.id;
+        } else if (CfnCustomResource.isInstance(map.resource)) {
+            // Custom resources have a `physicalResourceId` that is used for Ref
+            return map.resource.physicalResourceId;
         }
         return (<pulumi.CustomResource>(<Mapping<pulumi.Resource>>mapping).resource).id;
     }
@@ -528,6 +547,20 @@ export class StackConverter extends ArtifactConverter {
 
         // If this resource has explicit attribute mappings, those mappings will use PascalCase, not camelCase.
         const propertyName = mapping.attributes !== undefined ? attribute : attributePropertyName(attribute);
+
+        // Custom resource attributes are stored in a separate output
+        if (mapping.customResourceAttributes) {
+            // If the custom resource attributes are present, we can use them to look up the attribute
+            return mapping.customResourceAttributes.apply((attrs) => {
+                // todo refactor
+                const descs = Object.getOwnPropertyDescriptors(attrs);
+                const d = descs[attribute];
+                if (!d) {
+                    throw new Error(`No attribute ${attribute} on custom resource ${logicalId}`);
+                }
+                return d.value;
+            });
+        }
 
         const descs = Object.getOwnPropertyDescriptors(mapping.attributes || mapping.resource);
         const d = descs[propertyName];

@@ -136,6 +136,7 @@ export type Mapping<T extends pulumi.Resource> = {
      * you would provide { attributes: { resourceArn: mappedResource.arn } }
      */
     attributes?: { [name: string]: pulumi.Input<any> };
+    customResourceAttributes?: pulumi.Output<{ [key: string]: any }>;
 };
 
 export function containsEventuals(v: any): boolean {

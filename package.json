@@ -47,7 +47,8 @@
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
-    "typescript-eslint": "^7.16.1"
+    "typescript-eslint": "^7.16.1",
+    "@types/aws-lambda": "^8.10.145"
   },
   "peerDependencies": {
     "@pulumi/aws": "^6.56.0",
@@ -62,7 +63,10 @@
     "@types/glob": "^8.1.0",
     "archiver": "^7.0.1",
     "cdk-assets": "^2.154.8",
-    "fs-extra": "^11.2.0"
+    "fs-extra": "^11.2.0",
+    "@aws-sdk/client-s3": "^3.677.0",
+    "@aws-sdk/s3-request-presigner": "^3.677.0",
+    "@aws-sdk/client-lambda": "^3.677.0"
   },
   "scripts": {
     "set-version": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",

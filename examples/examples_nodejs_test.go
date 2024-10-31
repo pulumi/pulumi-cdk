@@ -20,8 +20,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/gorilla/websocket"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -159,6 +162,44 @@ func TestAPIWebsocketLambdaDynamoDB(t *testing.T) {
 				url := stack.Outputs["url"].(string)
 				websocketValidation(t, url)
 			},
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
+func TestCustomResource(t *testing.T) {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+	svc := sts.New(sess)
+
+	result, err := svc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	require.NoError(t, err, "Failed to get AWS account ID")
+	accountId := *result.Account
+
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "custom-resource"),
+			Config: map[string]string{
+				"accountId": accountId,
+			},
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				t.Helper()
+				t.Logf("Outputs: %v", stack.Outputs)
+				url := stack.Outputs["websiteUrl"].(string)
+				assert.NotEmpty(t, url)
+
+				// Validate that the index.html file is deployed
+				integration.AssertHTTPResultWithRetry(t, url, nil, 60*time.Second, func(body string) bool {
+					return assert.Equal(t, "Hello, World!", body, "Body should equal 'Hello, World!', got %s", body)
+				})
+
+				// This uses GetAtt to get the objectKeys from the custom resource
+				objectKeys := stack.Outputs["objectKeys"].([]interface{})
+				assert.NotEmpty(t, objectKeys)
+			},
+			// UpdateCommandlineFlags: []string{"--attach-debugger"},
+			Verbose: 			  true,
 		})
 
 	integration.ProgramTest(t, &test)

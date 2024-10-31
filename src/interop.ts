@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { debug } from '@pulumi/pulumi/log';
+import { debug, info } from '@pulumi/pulumi/log';
 import { normalizeObject } from './pulumi-metadata';
 import { toSdkName, typeToken } from './naming';
 import { PulumiProvider } from './types';
@@ -104,6 +104,9 @@ export class CfnResource extends pulumi.CustomResource {
             args[k] = undefined;
         }
         Object.assign(args, properties);
+
+        // todo: this is a hack to get around the fact that we can't have a resource name that is too long
+        name = name.length > 54 ? name.substring(0, 54) : name;
 
         super(resourceName, name, args, opts);
     }
