@@ -269,7 +269,10 @@ export class StackConverter extends ArtifactConverter {
                 dependsOn !== undefined
                     ? dependsOn.flatMap((id) => {
                           const resource = this.resources.get(id);
-                          return resource?.resources ?? resource!.resource;
+                          if (resource?.resources && resource.resources.length > 0) {
+                              return resource.resources;
+                          }
+                          return resource!.resource;
                       })
                     : undefined,
         };
