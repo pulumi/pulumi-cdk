@@ -30,7 +30,7 @@ export class SpecRestApi extends Construct {
         });
         const authorizerFn = new lambda_nodejs.NodejsFunction(this, 'MyAuthorizerFunction', {
             runtime: lambda.Runtime.NODEJS_LATEST,
-            entry: path.join(__dirname, 'integ.token-authorizer.handler'),
+            entry: path.join(__dirname, 'token-authorizer.handler.ts'),
         });
 
         const authorizer = new apigateway.TokenAuthorizer(this, 'MyAuthorizer', {
