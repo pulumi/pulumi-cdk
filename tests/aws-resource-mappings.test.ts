@@ -82,7 +82,7 @@ describe('AWS Resource Mappings', () => {
             {},
         );
         expect(aws.iam.GroupPolicyAttachment).toHaveBeenCalledWith(
-            `${logicalId}-0`,
+            `${logicalId}-group-0`,
             expect.objectContaining({
                 group: 'my-group',
                 policyArn: undefined,
@@ -90,7 +90,7 @@ describe('AWS Resource Mappings', () => {
             {},
         );
         expect(aws.iam.RolePolicyAttachment).toHaveBeenCalledWith(
-            `${logicalId}-0`,
+            `${logicalId}-role-0`,
             expect.objectContaining({
                 role: 'my-role',
                 policyArn: undefined,
@@ -98,7 +98,7 @@ describe('AWS Resource Mappings', () => {
             {},
         );
         expect(aws.iam.UserPolicyAttachment).toHaveBeenCalledWith(
-            `${logicalId}-0`,
+            `${logicalId}-user-0`,
             expect.objectContaining({
                 user: 'my-user',
                 policyArn: undefined,
@@ -147,7 +147,7 @@ describe('AWS Resource Mappings', () => {
             }),
         );
         expect(aws.sns.TopicPolicy).toHaveBeenCalledWith(
-            logicalId,
+            `${logicalId}-policy-1`,
             expect.objectContaining({
                 arn: 'my-other-topic',
                 policy: {
@@ -205,7 +205,7 @@ describe('AWS Resource Mappings', () => {
         );
 
         expect(aws.sqs.QueuePolicy).toHaveBeenCalledWith(
-            logicalId,
+            `${logicalId}-policy-1`,
             expect.objectContaining({
                 queueUrl: 'my-other-queue',
                 policy: {
