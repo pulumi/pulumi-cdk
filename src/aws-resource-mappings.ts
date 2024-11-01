@@ -136,45 +136,59 @@ export function mapToAwsResource(
                 logicalId,
             });
 
-            for (let i = 0; i < (props.groups || []).length; i++) {
-                resources.push({
-                    logicalId: `${logicalId}-${i}`,
-                    resource: new aws.iam.GroupPolicyAttachment(
-                        `${logicalId}-${i}`,
-                        {
-                            group: props.groups[i],
-                            policyArn: policy.arn,
-                        },
-                        options,
-                    ),
-                });
-            }
-            for (let i = 0; i < (props.roles || []).length; i++) {
-                resources.push({
-                    logicalId: `${logicalId}-${i}`,
-                    resource: new aws.iam.RolePolicyAttachment(
-                        `${logicalId}-${i}`,
-                        {
-                            role: props.roles[i],
-                            policyArn: policy.arn,
-                        },
-                        options,
-                    ),
-                });
-            }
-            for (let i = 0; i < (props.users || []).length; i++) {
-                resources.push({
-                    logicalId: `${logicalId}-${i}`,
-                    resource: new aws.iam.UserPolicyAttachment(
-                        `${logicalId}-${i}`,
-                        {
-                            user: props.users[i],
-                            policyArn: policy.arn,
-                        },
-                        options,
-                    ),
-                });
-            }
+            const groups: string[] = props.groups ?? [];
+            resources.push(
+                ...groups.flatMap((group: string, i: number) => {
+                    const id = `${logicalId}-group-${i}`;
+                    return {
+                        logicalId: id,
+                        resource: new aws.iam.GroupPolicyAttachment(
+                            id,
+                            {
+                                group,
+                                policyArn: policy.arn,
+                            },
+                            options,
+                        ),
+                    };
+                }),
+            );
+
+            const roles: string[] = props.roles ?? [];
+            resources.push(
+                ...roles.flatMap((role: string, i: number) => {
+                    const id = `${logicalId}-role-${i}`;
+                    return {
+                        logicalId: id,
+                        resource: new aws.iam.RolePolicyAttachment(
+                            id,
+                            {
+                                role,
+                                policyArn: policy.arn,
+                            },
+                            options,
+                        ),
+                    };
+                }),
+            );
+
+            const users: string[] = props.users ?? [];
+            resources.push(
+                ...users.flatMap((user: string, i: number) => {
+                    const id = `${logicalId}-user-${i}`;
+                    return {
+                        logicalId: id,
+                        resource: new aws.iam.UserPolicyAttachment(
+                            id,
+                            {
+                                user,
+                                policyArn: policy.arn,
+                            },
+                            options,
+                        ),
+                    };
+                }),
+            );
 
             return resources;
         }

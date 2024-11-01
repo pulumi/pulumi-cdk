@@ -208,25 +208,25 @@ export class StackConverter extends ArtifactConverter {
                     'Examine your code in "remapCloudControlResource"',
             );
         }
+        const otherResources: pulumi.Resource[] | undefined = Array.isArray(mapped)
+            ? mapped
+                  .filter((map) => map.logicalId !== node.logicalId)
+                  .flatMap((m) => {
+                      this.resources.set(m.logicalId, {
+                          resource: m.resource,
+                          attributes: m.attributes,
+                          resourceType: cfn.Type,
+                      });
+                      return m.resource;
+                  })
+            : undefined;
         const resourceMapping: Mapping<pulumi.Resource> = {
             resource: mainResource.resource,
             attributes: mainResource.attributes,
             resourceType: cfn.Type,
-            otherResources: [],
+            otherResources,
         };
         this.constructs.set(node.construct, mainResource.resource);
-        if (Array.isArray(mapped)) {
-            mapped
-                .filter((map) => map.logicalId !== node.logicalId)
-                .forEach((m) => {
-                    resourceMapping.otherResources!.push(m.resource);
-                    this.resources.set(m.logicalId, {
-                        resource: m.resource,
-                        attributes: m.attributes,
-                        resourceType: cfn.Type,
-                    });
-                });
-        }
         this.resources.set(node.logicalId!, resourceMapping);
     }
 
@@ -296,16 +296,16 @@ export class StackConverter extends ArtifactConverter {
         const dependsOn = getDependsOn(resource);
         return {
             parent: parent,
-            dependsOn:
-                dependsOn !== undefined
-                    ? dependsOn.flatMap((id) => {
-                          const resource = this.resources.get(id);
-                          if (resource?.otherResources && resource.otherResources.length > 0) {
-                              return resource.otherResources;
-                          }
-                          return resource!.resource;
-                      })
-                    : undefined,
+            dependsOn: dependsOn?.flatMap((id) => {
+                const resource = this.resources.get(id);
+                if (resource === undefined) {
+                    throw new Error(`Something went wrong, resource with logicalId '${id}' not found`);
+                }
+                if (resource.otherResources && resource.otherResources.length > 0) {
+                    return resource.otherResources;
+                }
+                return resource!.resource;
+            }),
         };
     }
 
