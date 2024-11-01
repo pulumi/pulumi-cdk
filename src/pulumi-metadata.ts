@@ -72,6 +72,7 @@ export interface PulumiType {
 
 /**
  * The schema for the array items property
+ * A property will typically have either $ref, properties or additionalProperties
  */
 export interface PulumiPropertyItems {
     /**
@@ -80,9 +81,19 @@ export interface PulumiPropertyItems {
     $ref?: string;
 
     /**
+     * The properties of an object type
+     */
+    properties?: { [key: string]: PulumiPropertyItems };
+
+    /**
      * The simple type (i.e. string, number, etc)
      */
     type?: string;
+
+    /**
+     * A type with additional properties
+     */
+    additionalProperties?: PulumiPropertyItems;
 }
 
 /**
@@ -113,6 +124,12 @@ export enum NativeType {
      * The type is not a json type and should be processed
      */
     NON_JSON = 'NON_JSON',
+
+    /**
+     * The type an additional properties type which means the keys
+     * should not be processed but the values should be
+     */
+    ADDITIONAL_PROPERTIES = 'ADDITIONAL_PROPERTIES',
 }
 
 /**
@@ -136,7 +153,49 @@ export function processMetadataProperty(
     meta?: { [key: string]: PulumiProperty };
 } {
     switch (true) {
-        case property.type !== undefined && property.$ref === undefined:
+        // Objects with `additionalProperties` can have arbitrary keys that should not be transformed
+        // for example
+        //
+        // Case 1: additionalProperties that is a JSON type should return `NativeType.JSON` and treat the
+        // entire object as a JSON object
+        //   {
+        //     "targetResources": {
+        //       "additionalProperties": {
+        //         "$ref": "pulumi.json#/Any"
+        //       }
+        //     }
+        //   }
+        //
+        // Case 2: additionalProperties that is a non-JSON type should return `NativeType.ADDITIONAL_PROPERTIES`
+        // so that the keys are not transformed but the values are
+        //   {
+        //     "throttle": {
+        //       "additionalProperties": {
+        //         "$ref": "#/types/pulumi:aws-native/aws:apigateway/UsagePlanThrottleSettings"
+        //       }
+        //     }
+        //   }
+        //   {
+        //     "aws-native:aws:apigateway/UsagePlanThrottleSettings": {
+        //       "type": "object",
+        //       "properties": {
+        //         "burstLimit": {
+        //           "type": "integer"
+        //         }
+        //       }
+        //     }
+        //   }
+        case property.type === 'object' && property.additionalProperties !== undefined: {
+            const props = processMetadataProperty(property.additionalProperties, types, pulumiProvider);
+            return {
+                meta: props.meta,
+                nativeType: props.nativeType === NativeType.JSON ? props.nativeType : NativeType.ADDITIONAL_PROPERTIES,
+            };
+        }
+        case property.type !== undefined &&
+            property.$ref === undefined &&
+            property.properties === undefined &&
+            property.additionalProperties === undefined:
             if (property.type === 'object') {
                 return { nativeType: NativeType.JSON };
             }
@@ -168,27 +227,32 @@ export function processMetadataProperty(
  * @param propName the property name as a list containing parent property names
  * @param types The pulumi types
  * @param pulumiProvider The pulumi provider to read the schema from.
- * @returns true if the property is a JSON type and should not be normalized
+ * @returns the NativeType of the property
  */
-export function isJsonType(
+export function getNativeType(
     propName: string[],
     properties: { [key: string]: PulumiProperty },
     types: { [key: string]: PulumiType },
     pulumiProvider: PulumiProvider,
-): boolean {
+): NativeType {
     let props = properties;
+    let typ: NativeType = NativeType.NON_JSON;
     for (let i = 0; i < propName.length; i++) {
         const prop = toSdkName(propName[i]);
         if (prop in props) {
             const metaProp = props[prop];
+
             const { nativeType, meta } = processMetadataProperty(metaProp, types, pulumiProvider);
             if (nativeType === NativeType.JSON) {
-                return true;
+                return nativeType;
             }
+            typ = nativeType ?? NativeType.NON_JSON;
             props = meta!;
+        } else {
+            return NativeType.NON_JSON;
         }
     }
-    return false;
+    return typ;
 }
 
 /**
@@ -222,12 +286,14 @@ export function normalizeObject(key: string[], value: any, cfnType?: string, pul
             pulumiProvider = pulumiProvider ?? PulumiProvider.AWS_NATIVE;
             const metadata = new Metadata(pulumiProvider);
             const resource = metadata.findResource(cfnType);
-            if (isJsonType(key, resource.inputs, metadata.types(), pulumiProvider)) {
+            const nativeType = getNativeType(key, resource.inputs, metadata.types(), pulumiProvider);
+            if (nativeType === NativeType.JSON) {
                 return value;
             }
 
             Object.entries(value).forEach(([k, v]) => {
-                result[toSdkName(k)] = normalizeObject([...key, k], v, cfnType);
+                k = nativeType === NativeType.ADDITIONAL_PROPERTIES ? k : toSdkName(k);
+                result[k] = normalizeObject([...key, k], v, cfnType);
             });
             return result;
         } catch (e) {
