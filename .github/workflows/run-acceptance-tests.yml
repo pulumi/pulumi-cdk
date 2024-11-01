@@ -44,11 +44,13 @@ jobs:
   test:
     name: acceptance-test
     uses: ./.github/workflows/acceptance-tests.yml
+    secrets: inherit
     with:
       folder: examples
 
   integration-test:
     name: integration-test
+    secrets: inherit
     uses: ./.github/workflows/acceptance-tests.yml
     with:
       folder: integration
