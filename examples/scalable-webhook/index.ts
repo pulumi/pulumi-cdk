@@ -11,8 +11,8 @@ import {
 } from 'aws-cdk-lib';
 
 class ScalableWebhookStack extends pulumicdk.Stack {
-    constructor(id: string) {
-        super(id);
+    constructor(app: pulumicdk.App, id: string) {
+        super(app, id);
         this.node.setContext('@aws-cdk/aws-apigateway:disableCloudWatchRole', 'true');
 
         /**
@@ -77,9 +77,9 @@ class ScalableWebhookStack extends pulumicdk.Stack {
         new apigw.LambdaRestApi(this, 'Endpoint', {
             handler: sqsPublishLambda,
         });
-
-        this.synth();
     }
 }
 
-new ScalableWebhookStack('eventbridge-sns-stack');
+new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    new ScalableWebhookStack(scope, 'eventbridge-sns-stack');
+});

@@ -17,4 +17,6 @@ export * from './output';
 
 import * as interop from './interop';
 export { interop };
-export { StackOptions } from './types';
+export { AppResourceOptions, AppOptions } from './types';
+import * as synthesizer from './synthesizer';
+export { synthesizer };

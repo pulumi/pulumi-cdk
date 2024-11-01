@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
-import { setMocks, testStack } from './mocks';
+import { setMocks, testApp } from './mocks';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { CfnBucket } from 'aws-cdk-lib/aws-s3';
 
@@ -9,7 +9,7 @@ describe('Synthesizer', () => {
         const resources: MockResourceArgs[] = [];
         setMocks(resources);
 
-        await testStack((scope) => {
+        await testApp((scope) => {
             new CfnBucket(scope, 'Bucket');
         });
         expect(resources).toEqual([
@@ -28,7 +28,7 @@ describe('Synthesizer', () => {
         const resources: MockResourceArgs[] = [];
         setMocks(resources);
 
-        await testStack((scope) => {
+        await testApp((scope) => {
             new CfnBucket(scope, 'Bucket');
             new Asset(scope, 'asset', {
                 path: path.join(__dirname, 'synthesizer.test.ts'),
@@ -74,7 +74,7 @@ describe('Synthesizer', () => {
         const resources: MockResourceArgs[] = [];
         setMocks(resources);
 
-        await testStack((scope) => {
+        await testApp((scope) => {
             new CfnBucket(scope, 'Bucket');
             new Asset(scope, 'deploy-time-asset', {
                 deployTime: true,

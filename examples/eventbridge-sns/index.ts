@@ -10,8 +10,8 @@ import {
 } from 'aws-cdk-lib';
 
 class EventBridgeSnsStack extends pulumicdk.Stack {
-    constructor(id: string) {
-        super(id);
+    constructor(scope: pulumicdk.App, id: string) {
+        super(scope, id);
 
         const eventBus = new aws_events.EventBus(this, 'Bus');
         const handler = new aws_lambda_nodejs.NodejsFunction(this, 'handler', {
@@ -72,8 +72,15 @@ class EventBridgeSnsStack extends pulumicdk.Stack {
                 rawMessageDelivery: true,
             }),
         );
-        this.synth();
     }
 }
 
-new EventBridgeSnsStack('eventbridge-sns-stack');
+class MyApp extends pulumicdk.App {
+    constructor() {
+        super('app', (scope: pulumicdk.App) => {
+            new EventBridgeSnsStack(scope, 'eventbridge-sns-stack');
+        });
+    }
+}
+
+new MyApp();

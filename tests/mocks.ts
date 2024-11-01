@@ -1,16 +1,17 @@
 import * as pulumi from '@pulumi/pulumi';
-import { Stack } from '../src/stack';
-import { Construct } from 'constructs';
 import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
+import { Construct } from 'constructs';
+import { App, Stack } from '../src/stack';
 
 // Convert a pulumi.Output to a promise of the same type.
 export function promiseOf<T>(output: pulumi.Output<T>): Promise<T> {
     return new Promise((resolve) => output.apply(resolve));
 }
-export async function testStack(fn: (scope: Construct) => void) {
+
+export async function testApp(fn: (scope: Construct) => void) {
     class TestStack extends Stack {
-        constructor(id: string) {
-            super(id, {
+        constructor(app: App, id: string) {
+            super(app, id, {
                 props: {
                     env: {
                         region: 'us-east-1',
@@ -20,16 +21,24 @@ export async function testStack(fn: (scope: Construct) => void) {
             });
 
             fn(this);
+        }
 
-            this.synth();
+        get availabilityZones(): string[] {
+            return ['us-east-1a', 'us-east-1b'];
         }
     }
 
-    const s = new TestStack('teststack');
-    const converter = await s.converter;
-    await Promise.all(Array.from(converter.constructs.values()).flatMap((v) => promiseOf(v.urn)));
-    await promiseOf(s.urn);
-    await promiseOf(s.pulumiSynthesizer.stagingStack.urn);
+    const app = new App('testapp', (scope: App) => {
+        new TestStack(scope, 'teststack');
+    });
+    const converter = await app.converter;
+    await Promise.all(
+        Array.from(converter.stacks.values()).flatMap((stackConverter) => {
+            return Array.from(stackConverter.constructs.values()).flatMap((v) => promiseOf(v.urn));
+        }),
+    );
+    await promiseOf(app.urn);
+    await Promise.all(app.dependencies.flatMap((d) => promiseOf(d.urn)));
 }
 
 export function setMocks(resources?: MockResourceArgs[]) {

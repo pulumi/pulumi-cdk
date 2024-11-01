@@ -10,8 +10,8 @@ import {
 } from 'aws-cdk-lib';
 
 class EventbridgeAtmStack extends pulumicdk.Stack {
-    constructor(id: string) {
-        super(id);
+    constructor(app: pulumicdk.App, id: string) {
+        super(app, id);
         this.node.setContext('@aws-cdk/aws-apigateway:disableCloudWatchRole', 'true');
 
         /**
@@ -110,9 +110,9 @@ class EventbridgeAtmStack extends pulumicdk.Stack {
         new apigw.LambdaRestApi(this, 'Endpoint', {
             handler: atmProducerLambda,
         });
-
-        this.synth();
     }
 }
 
-new EventbridgeAtmStack('eventbridge-sns-stack');
+new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    new EventbridgeAtmStack(scope, 'eventbridge-sns-stack');
+});

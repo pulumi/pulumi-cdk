@@ -10,7 +10,13 @@ describe('cloud assembly manifest reader', () => {
     beforeEach(() => {
         mockfs({
             // Recursively loads all node_modules
-            node_modules: mockfs.load(path.resolve(__dirname, '../../node_modules')),
+            node_modules: {
+                'aws-cdk-lib': mockfs.load(path.resolve(__dirname, '../../node_modules/aws-cdk-lib')),
+                '@pulumi': {
+                    aws: mockfs.load(path.resolve(__dirname, '../../node_modules/@pulumi/aws')),
+                    'aws-native': mockfs.load(path.resolve(__dirname, '../../node_modules/@pulumi/aws-native')),
+                },
+            },
             [manifestAssets]: JSON.stringify({
                 version: '36.0.0',
                 files: {

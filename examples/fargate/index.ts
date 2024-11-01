@@ -10,8 +10,8 @@ import { CfnTargetGroup } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 class FargateStack extends pulumicdk.Stack {
     loadBalancerDNS: pulumi.Output<string>;
 
-    constructor(id: string, options?: pulumicdk.StackOptions) {
-        super(id, options);
+    constructor(app: pulumicdk.App, id: string) {
+        super(app, id);
 
         // Create VPC and Fargate Cluster
         // NOTE: Limit AZs to avoid reaching resource quotas
@@ -46,11 +46,17 @@ class FargateStack extends pulumicdk.Stack {
         });
 
         this.loadBalancerDNS = this.asOutput(fargateService.loadBalancer.loadBalancerDnsName);
-
-        // Finalize the stack and deploy its resources.
-        this.synth();
     }
 }
 
-const stack = new FargateStack('fargatestack');
-export const loadBalancerURL = stack.loadBalancerDNS;
+class MyApp extends pulumicdk.App {
+    constructor() {
+        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+            const stack = new FargateStack(scope, 'fargatestack');
+            return { loadBalancerURL: stack.loadBalancerDNS };
+        });
+    }
+}
+
+const app = new MyApp();
+export const loadBalancerURL = app.outputs['loadBalancerURL'];

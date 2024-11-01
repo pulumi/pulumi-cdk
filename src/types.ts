@@ -1,14 +1,15 @@
 import * as pulumi from '@pulumi/pulumi';
-import { Stack, StackProps } from 'aws-cdk-lib/core';
+import { Stack, AppProps } from 'aws-cdk-lib/core';
 import { CdkConstruct, ResourceMapping } from './interop';
+
 /**
- * Options specific to the Stack component.
+ * Options for creating a Pulumi CDK App Component
  */
-export interface StackOptions extends pulumi.ComponentResourceOptions {
+export interface AppOptions {
     /**
      * Specify the CDK Stack properties to asociate with the stack.
      */
-    props?: StackProps;
+    props?: AppProps;
 
     /**
      * A unique identifier for the application that the asset staging stack belongs to.
@@ -47,7 +48,14 @@ export interface StackOptions extends pulumi.ComponentResourceOptions {
 }
 
 /**
- * The pulumi provider to read the schema from
+ * Options specific to the Pulumi CDK App component.
+ */
+export interface AppResourceOptions extends pulumi.ComponentResourceOptions {
+    appOptions?: AppOptions;
+}
+
+/**
+ * The Pulumi provider to read the schema from
  */
 export enum PulumiProvider {
     // We currently only support aws-native provider resources
@@ -55,16 +63,13 @@ export enum PulumiProvider {
 }
 
 /**
- * StackComponentResource is the underlying pulumi ComponentResource for each pulumicdk.Stack
- * This exists because pulumicdk.Stack needs to extend cdk.Stack, but we also want it to represent a
- * pulumi ComponentResource so we create this `StackComponentResource` to hold the pulumi logic
+ * AppComponent is the interface representing the Pulumi CDK App Component Resource
  */
-export interface StackComponentResource {
+export interface AppComponent {
     /**
-     * The name of the component resource
-     * @internal
+     * The name of the component
      */
-    name: string;
+    readonly name: string;
 
     /**
      * The directory to which cdk synthesizes the CloudAssembly
@@ -74,14 +79,21 @@ export interface StackComponentResource {
 
     /**
      * The CDK stack associated with the component resource
-     */
-    readonly stack: Stack;
-
-    /**
-     * Any stack options that are supplied by the user
      * @internal
      */
-    options?: StackOptions;
+    readonly stacks: { [artifactId: string]: Stack };
+
+    /**
+     * The underlying ComponentResource
+     * @internal
+     */
+    readonly component: pulumi.ComponentResource;
+
+    /**
+     * The AppOptions for this component
+     * @internal
+     */
+    appOptions?: AppOptions;
 
     /**
      * The Resources that the component resource depends on
@@ -90,16 +102,6 @@ export interface StackComponentResource {
      * @internal
      */
     readonly dependencies: CdkConstruct[];
-
-    /**
-     * @internal
-     */
-    readonly component: pulumi.ComponentResource;
-
-    /**
-     * @internal
-     */
-    registerOutput(outputId: string, outupt: any): void;
 }
 
 export type Mapping<T extends pulumi.Resource> = {

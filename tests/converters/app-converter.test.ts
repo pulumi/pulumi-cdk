@@ -1,6 +1,6 @@
 import { AppConverter, StackConverter } from '../../src/converters/app-converter';
 import { Stack } from 'aws-cdk-lib/core';
-import { StackComponentResource, StackOptions } from '../../src/types';
+import { AppComponent, AppOptions, PulumiStack } from '../../src/types';
 import * as path from 'path';
 import * as mockfs from 'mock-fs';
 import * as pulumi from '@pulumi/pulumi';
@@ -9,20 +9,20 @@ import { createStackManifest } from '../utils';
 import { promiseOf, setMocks } from '../mocks';
 import { CdkConstruct } from '../../src/interop';
 
-class MockStackComponent extends pulumi.ComponentResource implements StackComponentResource {
+class MockAppComponent extends pulumi.ComponentResource implements AppComponent {
     public readonly name = 'stack';
     public readonly assemblyDir: string;
+    stacks: { [artifactId: string]: PulumiStack } = {};
+    dependencies: CdkConstruct[] = [];
+
     component: pulumi.ComponentResource;
     public stack: Stack;
-    public options?: StackOptions | undefined;
-    public dependencies: CdkConstruct[] = [];
+    public appOptions?: AppOptions | undefined;
     constructor(dir: string) {
-        super('cdk:index:Stack', 'stack', {}, {});
+        super('cdk:index:App', 'stack');
         this.assemblyDir = dir;
         this.registerOutputs();
     }
-
-    registerOutput(outputId: string, output: any): void {}
 }
 
 beforeAll(() => {
@@ -37,7 +37,13 @@ describe('App Converter', () => {
     beforeEach(() => {
         mockfs({
             // Recursively loads all node_modules
-            node_modules: mockfs.load(path.resolve(__dirname, '../../node_modules')),
+            node_modules: {
+                'aws-cdk-lib': mockfs.load(path.resolve(__dirname, '../../node_modules/aws-cdk-lib')),
+                '@pulumi': {
+                    aws: mockfs.load(path.resolve(__dirname, '../../node_modules/@pulumi/aws')),
+                    'aws-native': mockfs.load(path.resolve(__dirname, '../../node_modules/@pulumi/aws-native')),
+                },
+            },
             [manifestAssets]: JSON.stringify({
                 version: '36.0.0',
                 files: {
@@ -176,7 +182,7 @@ describe('App Converter', () => {
         mockfs.restore();
     });
     test('can convert', async () => {
-        const mockStackComponent = new MockStackComponent('/tmp/foo/bar/does/not/exist');
+        const mockStackComponent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
         const converter = new AppConverter(mockStackComponent);
         converter.convert();
         const stacks = Array.from(converter.stacks.values());
@@ -244,7 +250,7 @@ describe('App Converter', () => {
     ])(
         'intrinsics %s',
         async (_name, stackManifest, expected) => {
-            const mockStackComponent = new MockStackComponent('/tmp/foo/bar/does/not/exist');
+            const mockStackComponent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
             const converter = new StackConverter(mockStackComponent, stackManifest);
             converter.convert(new Set());
             const promises = Array.from(converter.resources.values()).flatMap((res) => promiseOf(res.resource.urn));

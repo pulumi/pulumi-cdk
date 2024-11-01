@@ -10,8 +10,8 @@ import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 class ChatAppStack extends pulumicdk.Stack {
     public readonly url: Output<string>;
     public readonly table: Output<string>;
-    constructor(id: string) {
-        super(id);
+    constructor(app: pulumicdk.App, id: string) {
+        super(app, id);
 
         // initialise api
         const name = id + '-api';
@@ -93,11 +93,21 @@ class ChatAppStack extends pulumicdk.Stack {
 
         this.table = this.asOutput(table.tableName);
         this.url = this.asOutput(stage.url);
-
-        this.synth();
     }
 }
 
-const stack = new ChatAppStack('chat-app');
-export const url = stack.url;
-export const table = stack.table;
+class MyApp extends pulumicdk.App {
+    constructor() {
+        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+            const stack = new ChatAppStack(scope, 'chat-app');
+            return {
+                url: stack.url,
+                table: stack.table,
+            };
+        });
+    }
+}
+
+const app = new MyApp();
+export const url = app.outputs['url'];
+export const table = app.outputs['table'];

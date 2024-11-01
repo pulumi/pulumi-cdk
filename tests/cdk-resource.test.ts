@@ -1,8 +1,9 @@
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { TableArgs } from '@pulumi/aws-native/dynamodb';
 import { Key } from 'aws-cdk-lib/aws-kms';
-import { setMocks, testStack } from './mocks';
+import { setMocks, testApp } from './mocks';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
+import { Construct } from 'constructs';
 
 describe('CDK Construct tests', () => {
     // DynamoDB table was previously mapped to the `aws` provider
@@ -12,7 +13,7 @@ describe('CDK Construct tests', () => {
         const resources: MockResourceArgs[] = [];
         setMocks(resources);
 
-        await testStack((scope) => {
+        await testApp((scope: Construct) => {
             const key = Key.fromKeyArn(scope, 'key', 'arn:aws:kms:us-west-2:123456789012:key/abcdefg');
             const table = new dynamodb.Table(scope, 'Table', {
                 encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
@@ -41,7 +42,6 @@ describe('CDK Construct tests', () => {
                 },
             });
         });
-
         const db = resources.find((res) => res.type === 'aws-native:dynamodb:Table');
         expect(db).toBeDefined();
         expect(db!.inputs).toEqual({
