@@ -1,10 +1,10 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as pulumi from '@pulumi/pulumi';
 import { AssemblyManifestReader, StackManifest } from '../assembly';
-import { ConstructInfo, GraphBuilder } from '../graph';
+import { ConstructInfo, GraphBuilder, GraphNode } from '../graph';
 import { ArtifactConverter } from './artifact-converter';
 import { lift, Mapping, AppComponent } from '../types';
-import { CdkConstruct, ResourceMapping } from '../interop';
+import { CdkConstruct, ResourceAttributeMapping, ResourceMapping } from '../interop';
 import { debug } from '@pulumi/pulumi/log';
 import {
     cidr,
@@ -141,12 +141,7 @@ export class StackConverter extends ArtifactConverter {
                 const options = this.processOptions(cfn, parent);
 
                 const mapped = this.mapResource(n.logicalId, cfn.Type, props, options);
-                mapped.forEach((m) => {
-                    const resource = pulumi.Resource.isInstance(m) ? m : m.resource;
-                    const attributes = pulumi.Resource.isInstance(m) ? undefined : m.attributes;
-                    this.resources.set(n.logicalId!, { resource, attributes, resourceType: cfn.Type });
-                    this.constructs.set(n.construct, resource);
-                });
+                this.registerResource(mapped, n);
 
                 debug(`Done creating resource for ${n.logicalId}`);
                 // TODO: process template conditions
@@ -167,6 +162,72 @@ export class StackConverter extends ArtifactConverter {
                 (<CdkConstruct>this.constructs.get(n.construct)!).done();
             }
         }
+    }
+
+    /**
+     * This function takes a Pulumi resource that was mapped from a CFN resource and
+     * "registers" it to the StackConverter. The StackConverter keeps track of all of the
+     * resources that were mapped from the CFN resources in the stack. It uses this information
+     * to resolve references to other resources in the stack.
+     *
+     * Typically there will be a couple of scenarios for how a CFN resource maps to Pulumi resources:
+     *
+     * 1. The CFN resource maps to a single Pulumi aws-native resource
+     *    This is the most straightforward case because everything maps directly, including the attributes
+     *
+     * 2. The CFN resource maps to single Pulumi aws resources
+     *    In this case the mapping is to a single resource, but some times the attributes available
+     *    on the CFN resource do not map to the attributes on the Pulumi resource. In these cases
+     *    the mapping can return custom attributes that are later available when references are resolved
+     *
+     * 3. The CFN resource maps to multiple Pulumi aws resources
+     *    One example would be the AWS::IAM::Policy resource which in CFN includes Role, Group, and User
+     *    Polices, but in Pulumi aws these are broken out into separate resources. In that case the "main"
+     *    resource would be the Policy and the other resources would be added to the resources array.
+     *    The critical point here is that the "main" resource needs to have a logicalId that matches the
+     *    logicalId of the CFN resource, while the other supporting resources must have different logicalIds.
+     *
+     * @param mapped - The Pulumi Resource that was mapped from the CFN resource
+     * @param node - The GraphNode that represents the CFN Resource
+     */
+    private registerResource(mapped: ResourceMapping, node: GraphNode): void {
+        const cfn = node.resource;
+        // This should always be set because we only call this function when it is, but
+        // TypeScript doesn't know that.
+        if (!cfn) {
+            throw new Error('Cannot map a resource without a CloudFormation resource');
+        }
+        const mainResource: ResourceAttributeMapping | undefined = Array.isArray(mapped)
+            ? mapped.find((res) => res.logicalId === node.logicalId)
+            : pulumi.Resource.isInstance(mapped)
+            ? { resource: mapped }
+            : mapped;
+        if (!mainResource) {
+            throw new Error(
+                `Resource mapping for ${node.logicalId} of type ${cfn.Type} did not return a primary resource. \n` +
+                    'Examine your code in "remapCloudControlResource"',
+            );
+        }
+        const resourceMapping: Mapping<pulumi.Resource> = {
+            resource: mainResource.resource,
+            attributes: mainResource.attributes,
+            resourceType: cfn.Type,
+            otherResources: [],
+        };
+        this.constructs.set(node.construct, mainResource.resource);
+        if (Array.isArray(mapped)) {
+            mapped
+                .filter((map) => map.logicalId !== node.logicalId)
+                .forEach((m) => {
+                    resourceMapping.otherResources!.push(m.resource);
+                    this.resources.set(m.logicalId, {
+                        resource: m.resource,
+                        attributes: m.attributes,
+                        resourceType: cfn.Type,
+                    });
+                });
+        }
+        this.resources.set(node.logicalId!, resourceMapping);
     }
 
     private stackDependsOn(dependencies: Set<ArtifactConverter>): pulumi.Resource[] {
@@ -211,7 +272,7 @@ export class StackConverter extends ArtifactConverter {
         typeName: string,
         props: any,
         options: pulumi.ResourceOptions,
-    ): ResourceMapping[] {
+    ): ResourceMapping {
         if (this.app.appOptions?.remapCloudControlResource !== undefined) {
             const res = this.app.appOptions.remapCloudControlResource(logicalId, typeName, props, options);
             if (res !== undefined) {
@@ -235,7 +296,16 @@ export class StackConverter extends ArtifactConverter {
         const dependsOn = getDependsOn(resource);
         return {
             parent: parent,
-            dependsOn: dependsOn !== undefined ? dependsOn.map((id) => this.resources.get(id)!.resource) : undefined,
+            dependsOn:
+                dependsOn !== undefined
+                    ? dependsOn.flatMap((id) => {
+                          const resource = this.resources.get(id);
+                          if (resource?.otherResources && resource.otherResources.length > 0) {
+                              return resource.otherResources;
+                          }
+                          return resource!.resource;
+                      })
+                    : undefined,
         };
     }
 

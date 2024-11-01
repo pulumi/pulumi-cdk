@@ -147,7 +147,7 @@ describe('AWS Resource Mappings', () => {
             }),
         );
         expect(aws.sns.TopicPolicy).toHaveBeenCalledWith(
-            logicalId,
+            `${logicalId}-policy-1`,
             expect.objectContaining({
                 arn: 'my-other-topic',
                 policy: {
@@ -205,7 +205,7 @@ describe('AWS Resource Mappings', () => {
         );
 
         expect(aws.sqs.QueuePolicy).toHaveBeenCalledWith(
-            logicalId,
+            `${logicalId}-policy-1`,
             expect.objectContaining({
                 queueUrl: 'my-other-queue',
                 policy: {
