@@ -15,10 +15,31 @@
 package examples
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
 )
+
+func TestApiGateway(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "apigateway"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
+func TestApiGatewayDomain(t *testing.T) {
+	// This can be run manually in the dev account
+	t.Skip("This test requires a valid public Route53 domain which doesn't exist in the CI account")
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "apigateway-domain"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
 
 func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {
 	base := getBaseOptions(t)
