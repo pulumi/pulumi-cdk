@@ -219,7 +219,8 @@ export function processMetadataProperty(
 }
 
 /**
- * Determines whether or not the property in question is a JSON type of not.
+ * Determines the type of the provided property.
+ *
  * If the property is a nested property then the `propName` will contain all the parent
  * properties so that the correct nested type can be found
  *
