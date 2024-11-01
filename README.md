@@ -167,7 +167,7 @@ CustomResources, commonly by using the AWS Classic provider to implement the
 missing resource.
 
 ```ts
-remapCloudControlResource(logicalId: string, typeName: string, props: any, options: pulumi.ResourceOptions): { [key: string]: pulumi.CustomResource } | undefined
+remapCloudControlResource(logicalId: string, typeName: string, props: any, options: pulumi.ResourceOptions): ResourceMapping | undefined;
 ```
 
 Parameters:
