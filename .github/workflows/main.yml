@@ -31,6 +31,7 @@ jobs:
     if: github.event_name == 'schedule'
     name: acceptance-test
     uses: ./.github/workflows/acceptance-tests.yml
+    secrets: inherit
     with:
       folder: examples
 
@@ -40,6 +41,7 @@ jobs:
     if: github.event_name == 'schedule'
     name: integration-test
     uses: ./.github/workflows/acceptance-tests.yml
+    secrets: inherit
     with:
       folder: integration
 
