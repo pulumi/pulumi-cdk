@@ -1,0 +1,20 @@
+import * as pulumicdk from '@pulumi/cdk';
+import { RestApi } from './rest-api';
+import { SfnApi } from './sfn-api';
+import { SpecRestApi } from './spec-rest-api';
+
+class ApiGatewayStack extends pulumicdk.Stack {
+    constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
+        super(app, id, options);
+        this.node.setContext('@aws-cdk/aws-apigateway:disableCloudWatchRole', 'true');
+
+        new RestApi(this, 'test-api');
+        // TODO[pulumi/pulumi-cdk#187]
+        // new SfnApi(this, 'test-sfn-api');
+        new SpecRestApi(this, 'test-spec-api');
+    }
+}
+
+new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    new ApiGatewayStack(scope, 'teststack');
+});

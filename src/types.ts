@@ -44,7 +44,7 @@ export interface AppOptions {
         typeName: string,
         props: any,
         options: pulumi.ResourceOptions,
-    ): ResourceMapping[] | undefined;
+    ): ResourceMapping | undefined;
 }
 
 /**
@@ -104,9 +104,37 @@ export interface AppComponent {
     readonly dependencies: CdkConstruct[];
 }
 
+/**
+ * Represents a mapping from a CloudFormation resource to a Pulumi resource
+ */
 export type Mapping<T extends pulumi.Resource> = {
+    /**
+     * The main resource that is being mapped.
+     * This Pulumi resource will have a `name` that matches the `logicalId`
+     * of the CloudFormation resource
+     */
     resource: T;
+
+    /**
+     * The CFN Resource type that is being mapped
+     */
     resourceType: string;
+
+    /**
+     * Other resources that are created as part of the mapping.
+     * For example, the AWS::IAM::Policy resource will also create
+     * aws.RolePolicyAttachment, aws.GroupPolicyAttachment, and aws.UserPolicyAttachment
+     * resources
+     */
+    otherResources?: T[];
+
+    /**
+     * Override the attributes that are available on the mapped resource.
+     * This is useful for when the attributes of the CFN resource do not match
+     * the attributes of the Pulumi resource, e.g. the CFN resource has an attribute
+     * called `resourceArn` and the Pulumi resource has an attribute called `arn`
+     * you would provide { attributes: { resourceArn: mappedResource.arn } }
+     */
     attributes?: { [name: string]: pulumi.Input<any> };
 };
 

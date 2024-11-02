@@ -25,77 +25,90 @@ export function mapToCfnResource(
     typeName: string,
     rawProps: any,
     options: pulumi.ResourceOptions,
-): ResourceMapping[] {
+): ResourceMapping {
     const props = normalize(rawProps, typeName);
     debug(`mapToCfnResource typeName: ${typeName} props: ${JSON.stringify(props)}`);
     switch (typeName) {
         case 'AWS::S3::Bucket':
             // Lowercase the bucket name to comply with the Bucket resource's naming constraints, which only allow
             // lowercase letters.
-            return [new aws.s3.Bucket(logicalId.toLowerCase(), props, options)];
+            return new aws.s3.Bucket(logicalId.toLowerCase(), props, options);
 
         // A couple of ApiGateway resources suffer from https://github.com/pulumi/pulumi-cdk/issues/173
         // These are very popular resources so handling the workaround here since we can remove these
         // manual mappings once the issue has been fixed without breaking users
         case 'AWS::ApiGateway::Model': {
             const res = new aws.apigateway.Model(logicalId, props, options);
-            const attributes = Object.getOwnPropertyDescriptors(res);
 
-            return [
-                {
-                    resource: res,
-                    attributes: {
-                        ...attributes,
-                        id: res.name,
-                    },
+            return {
+                resource: res,
+                attributes: {
+                    ...getAttributesFromResource(res),
+                    id: res.name,
                 },
-            ];
+            };
         }
 
         case 'AWS::ApiGateway::Resource': {
             const res = new aws.apigateway.Resource(logicalId, props, options);
-            const attributes = Object.getOwnPropertyDescriptors(res);
 
-            return [
-                {
-                    resource: res,
-                    attributes: {
-                        ...attributes,
-                        id: res.resourceId,
-                    },
+            return {
+                resource: res,
+                attributes: {
+                    ...getAttributesFromResource(res),
+                    id: res.resourceId,
                 },
-            ];
+            };
         }
 
         case 'AWS::ApiGateway::Deployment': {
             const res = new aws.apigateway.Deployment(logicalId, props, options);
-            const attributes = Object.getOwnPropertyDescriptors(res);
 
-            return [
-                {
-                    attributes: {
-                        ...attributes,
-                        id: res.deploymentId,
-                    },
-                    resource: res,
+            return {
+                attributes: {
+                    ...getAttributesFromResource(res),
+                    id: res.deploymentId,
                 },
-            ];
+                resource: res,
+            };
         }
 
         case 'AWS::ApiGateway::Stage': {
             const res = new aws.apigateway.Stage(logicalId, props, options);
-            const attributes = Object.getOwnPropertyDescriptors(res);
 
-            return [
-                {
-                    attributes: {
-                        ...attributes,
-                        id: res.stageName,
-                    },
-                    resource: res,
+            return {
+                attributes: {
+                    ...getAttributesFromResource(res),
+                    id: res.stageName,
                 },
-            ];
+                resource: res,
+            };
         }
+
+        case 'AWS::ApiGatewayV2::Authorizer': {
+            const res = new aws.apigatewayv2.Authorizer(logicalId, props, options);
+
+            return {
+                attributes: {
+                    ...getAttributesFromResource(res),
+                    id: res.authorizerId,
+                },
+                resource: res,
+            };
+        }
+
+        case 'AWS::ApiGateway::Authorizer': {
+            const res = new aws.apigateway.Authorizer(logicalId, props, options);
+
+            return {
+                attributes: {
+                    ...getAttributesFromResource(res),
+                    id: res.authorizerId,
+                },
+                resource: res,
+            };
+        }
+
         default: {
             // When creating a generic `CfnResource` we don't have any information on the
             // attributes attached to the resource. We need to populate them by looking up the
@@ -104,11 +117,24 @@ export function mapToCfnResource(
             const resource = metadata.findResource(typeName);
             const attributes = Object.keys(resource.outputs);
 
-            return [new CfnResource(logicalId, typeName, props, attributes, options)];
+            return new CfnResource(logicalId, typeName, props, attributes, options);
         }
     }
 }
 
 export function attributePropertyName(attributeName: string): string {
     return toSdkName(attributeName.split('.')[0]);
+}
+
+/**
+ * This can be used to get the attributes from a resource to return as part
+ * of the ResourceMapping
+ */
+function getAttributesFromResource(resource: pulumi.Resource): { [key: string]: any } {
+    return Object.entries(resource).reduce((prev, [k, v]) => {
+        return {
+            ...prev,
+            [k]: v,
+        };
+    }, {});
 }

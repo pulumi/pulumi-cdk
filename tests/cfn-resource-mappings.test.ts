@@ -1,7 +1,14 @@
 import { CustomResource } from '@pulumi/pulumi';
+import { setMocks } from './mocks';
 import { mapToCfnResource } from '../src/cfn-resource-mappings';
 import * as aws from '@pulumi/aws-native';
+import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 
+class MockResource {
+    constructor(args: { [key: string]: any }) {
+        Object.assign(this, args);
+    }
+}
 jest.mock('@pulumi/pulumi', () => {
     return {
         ...jest.requireActual('@pulumi/pulumi'),
@@ -36,14 +43,32 @@ jest.mock('@pulumi/aws-native', () => {
                 return {};
             }),
         },
+        apigateway: {
+            Model: jest.fn().mockImplementation((name: string, args: any) => {
+                return new MockResource(args);
+            }),
+            Resource: jest.fn().mockImplementation((name: string, args: any) => {
+                return new MockResource(args);
+            }),
+            Deployment: jest.fn().mockImplementation((name: string, args: any) => {
+                return new MockResource(args);
+            }),
+            Stage: jest.fn().mockImplementation((name: string, args: any) => {
+                return new MockResource(args);
+            }),
+            Authorizer: jest.fn().mockImplementation((name: string, args: any) => {
+                return new MockResource(args);
+            }),
+        },
     };
 });
-
-afterEach(() => {
+afterAll(() => {
     jest.resetAllMocks();
 });
 
-beforeAll(() => {});
+beforeEach(() => {
+    jest.clearAllMocks();
+});
 
 describe('Cfn Resource Mappings', () => {
     test('lowercase s3.Bucket name', () => {
@@ -269,6 +294,62 @@ describe('Cfn Resource Mappings', () => {
             },
             {},
         );
+    });
+
+    test('successfully maps ApiGateway Resource resource', () => {
+        // GIVEN
+        const logicalId = 'my-resource';
+        const expected = 'abc';
+        // WHEN
+        const resource = mapToCfnResource(logicalId, 'AWS::ApiGateway::Resource', { resourceId: expected }, {});
+        // THEN
+        if (!('attributes' in resource)) {
+            throw new Error('Resource does not have attributes');
+        }
+        expect(resource).toHaveProperty('attributes');
+        expect(resource.attributes!.id).toEqual(expected);
+    });
+
+    test('successfully maps ApiGateway Model resource', () => {
+        // GIVEN
+        const logicalId = 'my-resource';
+        const expected = 'abc';
+        // WHEN
+        const resource = mapToCfnResource(logicalId, 'AWS::ApiGateway::Model', { name: expected }, {});
+        // THEN
+        if (!('attributes' in resource)) {
+            throw new Error('Resource does not have attributes');
+        }
+        expect(resource).toHaveProperty('attributes');
+        expect(resource.attributes!.id).toEqual(expected);
+    });
+
+    test('successfully maps resource attributes', () => {
+        // GIVEN
+        const logicalId = 'my-resource';
+        const expected = 'abc';
+        // WHEN
+        const resource = mapToCfnResource(
+            logicalId,
+            'AWS::ApiGateway::Stage',
+            {
+                stageName: expected,
+                someAttribute: 'value',
+                someOtherAttribute: 'value',
+            },
+            {},
+        );
+        // THEN
+        if (!('attributes' in resource)) {
+            throw new Error('Resource does not have attributes');
+        }
+        expect(resource).toHaveProperty('attributes');
+        expect(resource.attributes).toEqual({
+            id: expected,
+            someAttribute: 'value',
+            someOtherAttribute: 'value',
+            stageName: expected,
+        });
     });
 
     test.each([
