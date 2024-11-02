@@ -39,12 +39,11 @@ export function mapToCfnResource(
         // manual mappings once the issue has been fixed without breaking users
         case 'AWS::ApiGateway::Model': {
             const res = new aws.apigateway.Model(logicalId, props, options);
-            const attributes = Object.getOwnPropertyDescriptors(res);
 
             return {
                 resource: res,
                 attributes: {
-                    ...attributes,
+                    ...getAttributesFromResource(res),
                     id: res.name,
                 },
             };
@@ -52,12 +51,11 @@ export function mapToCfnResource(
 
         case 'AWS::ApiGateway::Resource': {
             const res = new aws.apigateway.Resource(logicalId, props, options);
-            const attributes = Object.getOwnPropertyDescriptors(res);
 
             return {
                 resource: res,
                 attributes: {
-                    ...attributes,
+                    ...getAttributesFromResource(res),
                     id: res.resourceId,
                 },
             };
@@ -65,11 +63,10 @@ export function mapToCfnResource(
 
         case 'AWS::ApiGateway::Deployment': {
             const res = new aws.apigateway.Deployment(logicalId, props, options);
-            const attributes = Object.getOwnPropertyDescriptors(res);
 
             return {
                 attributes: {
-                    ...attributes,
+                    ...getAttributesFromResource(res),
                     id: res.deploymentId,
                 },
                 resource: res,
@@ -78,16 +75,40 @@ export function mapToCfnResource(
 
         case 'AWS::ApiGateway::Stage': {
             const res = new aws.apigateway.Stage(logicalId, props, options);
-            const attributes = Object.getOwnPropertyDescriptors(res);
 
             return {
                 attributes: {
-                    ...attributes,
+                    ...getAttributesFromResource(res),
                     id: res.stageName,
                 },
                 resource: res,
             };
         }
+
+        case 'AWS::ApiGatewayV2::Authorizer': {
+            const res = new aws.apigatewayv2.Authorizer(logicalId, props, options);
+
+            return {
+                attributes: {
+                    ...getAttributesFromResource(res),
+                    id: res.authorizerId,
+                },
+                resource: res,
+            };
+        }
+
+        case 'AWS::ApiGateway::Authorizer': {
+            const res = new aws.apigateway.Authorizer(logicalId, props, options);
+
+            return {
+                attributes: {
+                    ...getAttributesFromResource(res),
+                    id: res.authorizerId,
+                },
+                resource: res,
+            };
+        }
+
         default: {
             // When creating a generic `CfnResource` we don't have any information on the
             // attributes attached to the resource. We need to populate them by looking up the
@@ -103,4 +124,17 @@ export function mapToCfnResource(
 
 export function attributePropertyName(attributeName: string): string {
     return toSdkName(attributeName.split('.')[0]);
+}
+
+/**
+ * This can be used to get the attributes from a resource to return as part
+ * of the ResourceMapping
+ */
+function getAttributesFromResource(resource: pulumi.Resource): { [key: string]: any } {
+    return Object.entries(resource).reduce((prev, [k, v]) => {
+        return {
+            ...prev,
+            [k]: v,
+        };
+    }, {});
 }

@@ -1,0 +1,3 @@
+name: pulumi-aws-cdk-apigateway
+runtime: nodejs
+description: apigateway integration test
