@@ -322,7 +322,7 @@ describe('Stack Converter', () => {
                     cidr: {
                         Type: 'AWS::EC2::VPCCidrBlock',
                         Properties: {
-                            Ipv6AddressAttribute: 'cidr_ipv6AddressAttribute',
+                            Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
                         },
                     },
                     other: {

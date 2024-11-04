@@ -304,7 +304,7 @@ test('vpc with ipv6 cidr block', () => {
 
     // The other resource should have it's edge swapped to the cidr resource
     expect(Array.from(nodes[2].incomingEdges.values())[0].logicalId).toEqual('other');
-    expect(Array.from(nodes[3].outgoingEdges.values())[0].logicalId).toEqual('cidr');
+    expect(Array.from(nodes[3].outgoingEdges.values())[1].logicalId).toEqual('cidr');
 });
 
 test('pulumi resource type name fallsback when fqn not available', () => {
