@@ -94,7 +94,9 @@ export class CfnResource extends pulumi.CustomResource {
     ) {
         const resourceName = typeToken(type);
 
-        debug(`CfnResource ${resourceName}: ${JSON.stringify(properties)}, ${JSON.stringify(attributes)}`);
+        debug(`Constructing CfnResource ${name} of type ${resourceName} with attributes=${JSON.stringify(attributes)}`);
+        const propertiesDebugString = pulumi.output(properties).apply(JSON.stringify);
+        pulumi.interpolate`CfnResource ${name} input properties: ${propertiesDebugString}`.apply(debug);
 
         // Prepare an args bag with placeholders for output attributes.
         const args: any = {};
