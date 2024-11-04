@@ -1,6 +1,7 @@
 import { AppConverter, StackConverter } from '../../src/converters/app-converter';
+import * as native from '@pulumi/aws-native';
 import { Stack } from 'aws-cdk-lib/core';
-import { AppComponent, AppOptions, PulumiStack } from '../../src/types';
+import { AppComponent, AppOptions } from '../../src/types';
 import * as path from 'path';
 import * as mockfs from 'mock-fs';
 import * as pulumi from '@pulumi/pulumi';
@@ -8,11 +9,13 @@ import { BucketPolicy } from '@pulumi/aws-native/s3';
 import { createStackManifest } from '../utils';
 import { promiseOf, setMocks } from '../mocks';
 import { CdkConstruct } from '../../src/interop';
+import { StackManifest } from '../../src/assembly';
+import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 
 class MockAppComponent extends pulumi.ComponentResource implements AppComponent {
     public readonly name = 'stack';
     public readonly assemblyDir: string;
-    stacks: { [artifactId: string]: PulumiStack } = {};
+    stacks: { [artifactId: string]: Stack } = {};
     dependencies: CdkConstruct[] = [];
 
     component: pulumi.ComponentResource;
@@ -25,8 +28,10 @@ class MockAppComponent extends pulumi.ComponentResource implements AppComponent 
     }
 }
 
+let resources: MockResourceArgs[] = [];
 beforeAll(() => {
-    setMocks();
+    resources = [];
+    setMocks(resources);
 });
 
 describe('App Converter', () => {
@@ -265,6 +270,77 @@ describe('App Converter', () => {
         },
         10_000,
     );
+});
+
+describe('Stack Converter', () => {
+    test('can convert', async () => {
+        const manifest = new StackManifest({
+            id: 'stack',
+            templatePath: 'test/stack',
+            metadata: {
+                'stack/vpc': 'vpc',
+                'stack/cidr': 'cidr',
+                'stack/other': 'other',
+            },
+            tree: {
+                path: 'stack',
+                id: 'stack',
+                children: {
+                    vpc: {
+                        id: 'vpc',
+                        path: 'stack/vpc',
+                        attributes: {
+                            'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                        },
+                    },
+                    cidr: {
+                        id: 'cidr',
+                        path: 'stack/cidr',
+                        attributes: {
+                            'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                        },
+                    },
+                    other: {
+                        id: 'other',
+                        path: 'stack/other',
+                        attributes: {
+                            'aws:cdk:cloudformation:type': 'AWS::EC2::Subnet',
+                        },
+                    },
+                },
+                constructInfo: {
+                    fqn: 'aws-cdk-lib.Stack',
+                    version: '2.149.0',
+                },
+            },
+            template: {
+                Resources: {
+                    vpc: {
+                        Type: 'AWS::EC2::VPC',
+                        Properties: {},
+                    },
+                    cidr: {
+                        Type: 'AWS::EC2::VPCCidrBlock',
+                        Properties: {
+                            Ipv6AddressAttribute: 'cidr_ipv6AddressAttribute',
+                        },
+                    },
+                    other: {
+                        Type: 'AWS::EC2::Subnet',
+                        Properties: {
+                            Ipv6CidrBlock: { 'Fn::Select': [0, { 'Fn::GetAtt': ['vpc', 'Ipv6CidrBlocks'] }] },
+                        },
+                    },
+                },
+            },
+            dependencies: [],
+        });
+        const converter = new StackConverter(new MockAppComponent('/tmp/foo/bar/does/not/exist'), manifest);
+        converter.convert(new Set());
+        const subnet = converter.resources.get('other')?.resource as native.ec2.Subnet;
+        const cidrBlock = await promiseOf(subnet.ipv6CidrBlock);
+        expect(cidrBlock).toEqual('cidr_ipv6AddressAttribute');
+    });
 });
 
 function createUrn(resource: string, logicalId: string): string {

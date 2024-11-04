@@ -94,6 +94,7 @@ export class StackConverter extends ArtifactConverter {
     private readonly cdkStack: cdk.Stack;
 
     private _stackResource?: CdkConstruct;
+    private _graph: GraphBuilder;
 
     public get stackResource(): CdkConstruct {
         if (!this._stackResource) {
@@ -105,10 +106,11 @@ export class StackConverter extends ArtifactConverter {
     constructor(host: AppComponent, readonly stack: StackManifest) {
         super(host);
         this.cdkStack = host.stacks[stack.id];
+        this._graph = new GraphBuilder(stack);
     }
 
     public convert(dependencies: Set<ArtifactConverter>) {
-        const dependencyGraphNodes = GraphBuilder.build(this.stack);
+        const dependencyGraphNodes = this._graph.build();
 
         // process parameters first because resources will reference them
         for (const [logicalId, value] of Object.entries(this.stack.parameters ?? {})) {
@@ -359,7 +361,21 @@ export class StackConverter extends ArtifactConverter {
     private resolveIntrinsic(fn: string, params: any) {
         switch (fn) {
             case 'Fn::GetAtt': {
-                debug(`Fn::GetAtt(${params[0]}, ${params[1]})`);
+                const logicalId = params[0];
+                const attributeName = params[1];
+                debug(`Fn::GetAtt(${logicalId}, ${attributeName})`);
+                // Special case for VPC Ipv6CidrBlocks
+                // Ipv6 cidr blocks are added to the VPC through a separate VpcCidrBlock resource
+                // Due to [pulumi/pulumi-aws-native#1798] the `Ipv6CidrBlocks` attribute will always be empty
+                // and we need to instead pull the `Ipv6CidrBlock` attribute from the VpcCidrBlock resource.
+                if (
+                    logicalId === this._graph.vpcNode?.logicalId &&
+                    attributeName === 'Ipv6CidrBlocks' &&
+                    this._graph.vpcCidrBlockNode?.logicalId
+                ) {
+                    return [this.resolveAtt(this._graph.vpcCidrBlockNode.logicalId, 'Ipv6CidrBlock')];
+                }
+
                 return this.resolveAtt(params[0], params[1]);
             }
 
@@ -375,17 +391,17 @@ export class StackConverter extends ArtifactConverter {
             case 'Fn::Base64':
                 return lift((str) => Buffer.from(str).toString('base64'), this.processIntrinsics(params));
 
-            case 'Fn::Cidr':
+            case 'Fn::Cidr': {
                 return lift(
                     ([ipBlock, count, cidrBits]) =>
                         cidr({
                             ipBlock,
-                            count,
-                            cidrBits,
+                            count: parseInt(count, 10),
+                            cidrBits: parseInt(cidrBits, 10),
                         }).then((r) => r.subnets),
                     this.processIntrinsics(params),
                 );
-
+            }
             case 'Fn::GetAZs':
                 return lift(([region]) => getAzs({ region }).then((r) => r.azs), this.processIntrinsics(params));
 

@@ -17,7 +17,7 @@ import { StackManifest } from '../src/assembly';
 import { createStackManifest } from './utils';
 
 describe('GraphBuilder', () => {
-    const nodes = GraphBuilder.build(
+    const nodes = new GraphBuilder(
         new StackManifest({
             id: 'stack',
             templatePath: 'test/stack',
@@ -95,7 +95,7 @@ describe('GraphBuilder', () => {
             },
             dependencies: [],
         }),
-    );
+    ).build();
     test.each([
         [
             nodes,
@@ -225,7 +225,7 @@ describe('GraphBuilder', () => {
             }),
         ],
     ])('adds edge for %s', (_name, stackManifest) => {
-        const graph = GraphBuilder.build(stackManifest);
+        const graph = new GraphBuilder(stackManifest).build();
         expect(graph[1].construct.path).toEqual('stack/resource-1');
         expect(edgesToArray(graph[1].incomingEdges)).toEqual(['stack/resource-2']);
         expect(edgesToArray(graph[1].outgoingEdges)).toEqual(['stack']);
@@ -234,11 +234,83 @@ describe('GraphBuilder', () => {
         expect(edgesToArray(graph[2].outgoingEdges)).toEqual(['stack', 'stack/resource-1']);
     });
 });
+test('vpc with ipv6 cidr block', () => {
+    const nodes = new GraphBuilder(
+        new StackManifest({
+            id: 'stack',
+            templatePath: 'test/stack',
+            metadata: {
+                'stack/vpc': 'vpc',
+                'stack/cidr': 'cidr',
+                'stack/other': 'other',
+            },
+            tree: {
+                path: 'stack',
+                id: 'stack',
+                children: {
+                    vpc: {
+                        id: 'vpc',
+                        path: 'stack/vpc',
+                        attributes: {
+                            'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                        },
+                    },
+                    cidr: {
+                        id: 'cidr',
+                        path: 'stack/cidr',
+                        attributes: {
+                            'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                        },
+                    },
+                    other: {
+                        id: 'other',
+                        path: 'stack/other',
+                        attributes: {
+                            'aws:cdk:cloudformation:type': 'AWS::Other::Resource',
+                        },
+                    },
+                },
+                constructInfo: {
+                    fqn: 'aws-cdk-lib.Stack',
+                    version: '2.149.0',
+                },
+            },
+            template: {
+                Resources: {
+                    vpc: {
+                        Type: 'AWS::EC2::VPC',
+                        Properties: {},
+                    },
+                    cidr: {
+                        Type: 'AWS::EC2::VPCCidrBlock',
+                        Properties: {},
+                    },
+                    other: {
+                        Type: 'AWS::Other::Resource',
+                        Properties: {
+                            SomeProp: { 'Fn::Select': [0, { 'Fn::GetAtt': ['vpc', 'Ipv6CidrBlocks'] }] },
+                        },
+                    },
+                },
+            },
+            dependencies: [],
+        }),
+    ).build();
+    expect(nodes[0].construct.type).toEqual('aws-cdk-lib:Stack');
+    expect(nodes[1].construct.type).toEqual('VPC');
+    expect(nodes[2].construct.type).toEqual('VPCCidrBlock');
+    expect(nodes[2].incomingEdges.size).toEqual(1);
+    expect(nodes[3].construct.type).toEqual('Resource');
+
+    // The other resource should have it's edge swapped to the cidr resource
+    expect(Array.from(nodes[2].incomingEdges.values())[0].logicalId).toEqual('other');
+    expect(Array.from(nodes[3].outgoingEdges.values())[0].logicalId).toEqual('cidr');
+});
 
 test('pulumi resource type name fallsback when fqn not available', () => {
     const bucketId = 'example-bucket';
     const policyResourceId = 'Policy';
-    const nodes = GraphBuilder.build(
+    const nodes = new GraphBuilder(
         new StackManifest({
             id: 'stack',
             templatePath: 'test/stack',
@@ -308,7 +380,7 @@ test('pulumi resource type name fallsback when fqn not available', () => {
             },
             dependencies: [],
         }),
-    );
+    ).build();
 
     expect(nodes[0].construct.type).toEqual('aws-cdk-lib:Stack');
     expect(nodes[1].construct.type).toEqual(bucketId);

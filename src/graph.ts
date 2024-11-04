@@ -115,15 +115,19 @@ export class GraphBuilder {
     // Map of resource logicalId to GraphNode. Allows for easy lookup by logicalId
     cfnElementNodes: Map<string, GraphNode>;
 
+    // If the app has a VpcCidrBlock resource, this will be set to the GraphNode representing it
+    vpcCidrBlockNode?: GraphNode;
+    // If the app has a Vpc resource, this will be set to the GraphNode representing it
+    vpcNode?: GraphNode;
+
     constructor(private readonly stack: StackManifest) {
         this.constructNodes = new Map<ConstructInfo, GraphNode>();
         this.cfnElementNodes = new Map<string, GraphNode>();
     }
 
     // build constructs a dependency graph from the adapter and returns its nodes sorted in topological order.
-    public static build(stack: StackManifest): GraphNode[] {
-        const b = new GraphBuilder(stack);
-        return b._build();
+    public build(): GraphNode[] {
+        return this._build();
     }
 
     /**
@@ -162,6 +166,12 @@ export class GraphBuilder {
                 throw new Error(
                     `Something went wrong: resourceType ${resource.Type} does not equal CfnType ${cfnType}`,
                 );
+            }
+            if (resource.Type === 'AWS::EC2::VPCCidrBlock') {
+                this.vpcCidrBlockNode = node;
+            }
+            if (resource.Type === 'AWS::EC2::VPC') {
+                this.vpcNode = node;
             }
         }
         this.constructNodes.set(construct, node);
@@ -285,9 +295,25 @@ export class GraphBuilder {
 
     private addEdgesForIntrinsic(fn: string, params: any, source: GraphNode) {
         switch (fn) {
-            case 'Fn::GetAtt':
-                this.addEdgeForRef(params[0], source);
+            case 'Fn::GetAtt': {
+                let logicalId = params[0];
+                const attributeName = params[1];
+                // Special case for VPC Ipv6CidrBlocks
+                // Ipv6 cidr blocks are added to the VPC through a separate VpcCidrBlock resource
+                // Due to [pulumi/pulumi-aws-native#1798] the `Ipv6CidrBlocks` attribute will always be empty
+                // and we need to instead pull the `Ipv6CidrBlock` attribute from the VpcCidrBlock resource.
+                // Here we switching the dependency to be on the `VpcCidrBlock` resource (since that will also have a dependency
+                // on the VPC resource)
+                if (
+                    logicalId === this.vpcNode?.logicalId &&
+                    attributeName === 'Ipv6CidrBlocks' &&
+                    this.vpcCidrBlockNode?.logicalId
+                ) {
+                    logicalId = this.vpcCidrBlockNode.logicalId;
+                }
+                this.addEdgeForRef(logicalId, source);
                 break;
+            }
             case 'Fn::Sub':
                 {
                     const [template, vars] =
