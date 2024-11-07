@@ -1,0 +1,3 @@
+name: pulumi-aws-ec2
+runtime: nodejs
+description: ec2 integration test

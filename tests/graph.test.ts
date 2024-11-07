@@ -188,7 +188,7 @@ describe('GraphBuilder', () => {
             },
         ],
     ])('Parses the graph correctly', (graph, path, expected) => {
-        const actual = graph.find((node) => node.construct.path === path);
+        const actual = graph.nodes.find((node) => node.construct.path === path);
         expect(actual).toBeDefined();
         expect(actual!.logicalId).toEqual(expected.logicalId);
         expect(actual!.resource).toEqual(expected.resource);
@@ -225,7 +225,7 @@ describe('GraphBuilder', () => {
             }),
         ],
     ])('adds edge for %s', (_name, stackManifest) => {
-        const graph = GraphBuilder.build(stackManifest);
+        const graph = GraphBuilder.build(stackManifest).nodes;
         expect(graph[1].construct.path).toEqual('stack/resource-1');
         expect(edgesToArray(graph[1].incomingEdges)).toEqual(['stack/resource-2']);
         expect(edgesToArray(graph[1].outgoingEdges)).toEqual(['stack']);
@@ -233,6 +233,163 @@ describe('GraphBuilder', () => {
         expect(edgesToArray(graph[2].incomingEdges)).toEqual([]);
         expect(edgesToArray(graph[2].outgoingEdges)).toEqual(['stack', 'stack/resource-1']);
     });
+});
+
+test('vpc with ipv6 cidr block', () => {
+    const nodes = GraphBuilder.build(
+        new StackManifest({
+            id: 'stack',
+            templatePath: 'test/stack',
+            metadata: {
+                'stack/vpc': 'vpc',
+                'stack/cidr': 'cidr',
+                'stack/other': 'other',
+            },
+            tree: {
+                path: 'stack',
+                id: 'stack',
+                children: {
+                    vpc: {
+                        id: 'vpc',
+                        path: 'stack/vpc',
+                        attributes: {
+                            'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                        },
+                    },
+                    cidr: {
+                        id: 'cidr',
+                        path: 'stack/cidr',
+                        attributes: {
+                            'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                        },
+                    },
+                    other: {
+                        id: 'other',
+                        path: 'stack/other',
+                        attributes: {
+                            'aws:cdk:cloudformation:type': 'AWS::Other::Resource',
+                        },
+                    },
+                },
+                constructInfo: {
+                    fqn: 'aws-cdk-lib.Stack',
+                    version: '2.149.0',
+                },
+            },
+            template: {
+                Resources: {
+                    vpc: {
+                        Type: 'AWS::EC2::VPC',
+                        Properties: {},
+                    },
+                    cidr: {
+                        Type: 'AWS::EC2::VPCCidrBlock',
+                        Properties: {
+                            VpcId: { Ref: 'vpc' },
+                        },
+                    },
+                    other: {
+                        Type: 'AWS::Other::Resource',
+                        Properties: {
+                            SomeProp: { 'Fn::Select': [0, { 'Fn::GetAtt': ['vpc', 'Ipv6CidrBlocks'] }] },
+                        },
+                    },
+                },
+            },
+            dependencies: [],
+        }),
+    ).nodes;
+    expect(nodes[0].construct.type).toEqual('aws-cdk-lib:Stack');
+    expect(nodes[1].construct.type).toEqual('VPC');
+    expect(nodes[2].construct.type).toEqual('VPCCidrBlock');
+    expect(nodes[2].incomingEdges.size).toEqual(1);
+    expect(nodes[3].construct.type).toEqual('Resource');
+
+    // The other resource should have it's edge swapped to the cidr resource
+    expect(Array.from(nodes[2].incomingEdges.values())[0].logicalId).toEqual('other');
+    expect(Array.from(nodes[3].outgoingEdges.values())[1].logicalId).toEqual('cidr');
+});
+
+test('vpc with multiple ipv6 cidr blocks fails', () => {
+    expect(() => {
+        GraphBuilder.build(
+            new StackManifest({
+                id: 'stack',
+                templatePath: 'test/stack',
+                metadata: {
+                    'stack/vpc': 'vpc',
+                    'stack/cidr': 'cidr',
+                    'stack/cidr2': 'cidr2',
+                    'stack/other': 'other',
+                },
+                tree: {
+                    path: 'stack',
+                    id: 'stack',
+                    children: {
+                        vpc: {
+                            id: 'vpc',
+                            path: 'stack/vpc',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                            },
+                        },
+                        cidr: {
+                            id: 'cidr',
+                            path: 'stack/cidr',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                            },
+                        },
+                        cidr2: {
+                            id: 'cidr2',
+                            path: 'stack/cidr2',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                            },
+                        },
+                        other: {
+                            id: 'other',
+                            path: 'stack/other',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::Other::Resource',
+                            },
+                        },
+                    },
+                    constructInfo: {
+                        fqn: 'aws-cdk-lib.Stack',
+                        version: '2.149.0',
+                    },
+                },
+                template: {
+                    Resources: {
+                        vpc: {
+                            Type: 'AWS::EC2::VPC',
+                            Properties: {},
+                        },
+                        cidr: {
+                            Type: 'AWS::EC2::VPCCidrBlock',
+                            Properties: {
+                                VpcId: { Ref: 'vpc' },
+                            },
+                        },
+                        cidr2: {
+                            Type: 'AWS::EC2::VPCCidrBlock',
+                            Properties: {
+                                VpcId: { Ref: 'vpc' },
+                            },
+                        },
+                        other: {
+                            Type: 'AWS::Other::Resource',
+                            Properties: {
+                                SomeProp: { 'Fn::Select': [0, { 'Fn::GetAtt': ['vpc', 'Ipv6CidrBlocks'] }] },
+                            },
+                        },
+                    },
+                },
+                dependencies: [],
+            }),
+        ).nodes;
+    }).toThrow(/VPC vpc already has a VPCCidrBlock/);
 });
 
 test('pulumi resource type name fallsback when fqn not available', () => {
@@ -308,7 +465,7 @@ test('pulumi resource type name fallsback when fqn not available', () => {
             },
             dependencies: [],
         }),
-    );
+    ).nodes;
 
     expect(nodes[0].construct.type).toEqual('aws-cdk-lib:Stack');
     expect(nodes[1].construct.type).toEqual(bucketId);
