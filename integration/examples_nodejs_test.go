@@ -41,10 +41,19 @@ func TestApiGatewayDomain(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
-func TestSecretsManagerGateway(t *testing.T) {
+func TestSecretsManager(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "secretsmanager"),
+      })
+
+	integration.ProgramTest(t, &test)
+}
+
+func TestEc2(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "ec2"),
 		})
 
 	integration.ProgramTest(t, &test)

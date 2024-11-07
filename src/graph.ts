@@ -109,11 +109,46 @@ function typeFromFqn(fqn: string): PulumiResourceType {
     return `${mod}:${type}`;
 }
 
+/**
+ * Represents the dependency graph of the constructs in the CDK app
+ */
+export interface Graph {
+    /**
+     * The nodes in the graph sorted in topological order
+     */
+    nodes: GraphNode[];
+
+    /**
+     * The VPC nodes in the graph
+     */
+    vpcNodes: { [logicalId: string]: VpcGraphNode };
+}
+
+/**
+ * Represents a VPC and its (optionally) associated VPCCidrBlock
+ */
+export interface VpcGraphNode {
+    /**
+     * The GraphNode representing the VPC
+     */
+    vpcNode: GraphNode;
+
+    /**
+     * The GraphNode representing the VPCCidrBlock
+     */
+    vpcCidrBlockNode?: GraphNode;
+}
+
 export class GraphBuilder {
     // Allows for easy access to the GraphNode of a specific Construct
     constructNodes: Map<ConstructInfo, GraphNode>;
     // Map of resource logicalId to GraphNode. Allows for easy lookup by logicalId
     cfnElementNodes: Map<string, GraphNode>;
+
+    // If the app has a VpcCidrBlock resource, this will be set to the GraphNode representing it
+    private readonly _vpcCidrBlockNodes: { [logicalId: string]: GraphNode } = {};
+    // If the app has a Vpc resource, this will be set to the GraphNode representing it
+    private readonly vpcNodes: { [logicalId: string]: VpcGraphNode } = {};
 
     constructor(private readonly stack: StackManifest) {
         this.constructNodes = new Map<ConstructInfo, GraphNode>();
@@ -121,9 +156,8 @@ export class GraphBuilder {
     }
 
     // build constructs a dependency graph from the adapter and returns its nodes sorted in topological order.
-    public static build(stack: StackManifest): GraphNode[] {
-        const b = new GraphBuilder(stack);
-        return b._build();
+    public static build(stack: StackManifest): Graph {
+        return new GraphBuilder(stack)._build();
     }
 
     /**
@@ -163,6 +197,12 @@ export class GraphBuilder {
                     `Something went wrong: resourceType ${resource.Type} does not equal CfnType ${cfnType}`,
                 );
             }
+            if (resource.Type === 'AWS::EC2::VPCCidrBlock') {
+                this._vpcCidrBlockNodes[node.logicalId] = node;
+            }
+            if (resource.Type === 'AWS::EC2::VPC') {
+                this.vpcNodes[node.logicalId] = { vpcNode: node, vpcCidrBlockNode: undefined };
+            }
         }
         this.constructNodes.set(construct, node);
         if (tree.children) {
@@ -170,7 +210,7 @@ export class GraphBuilder {
         }
     }
 
-    private _build(): GraphNode[] {
+    private _build(): Graph {
         // passes
         // 1. collect all constructs into a map from construct name to DAG node, converting CFN elements to fragments
         // 2. hook up dependency edges
@@ -180,6 +220,31 @@ export class GraphBuilder {
         //
         // NOTE: this doesn't handle cross-stack references. We'll likely need to do so, at least for nested stacks.
         this.parseTree(this.stack.constructTree);
+
+        // parseTree does not guarantee that the VPC resource will be parsed before the VPCCidrBlock resource
+        // so we need to process this separately after
+        if (Object.keys(this._vpcCidrBlockNodes).length) {
+            Object.entries(this._vpcCidrBlockNodes).forEach(([logicalId, node]) => {
+                const resource = node.resource;
+                if (!resource) {
+                    throw new Error(`Something went wrong. CFN Resource not found for VPCCidrBlock ${logicalId}`);
+                }
+                const vpcRef = resource.Properties.VpcId;
+                if (typeof vpcRef === 'object' && 'Ref' in vpcRef) {
+                    const vpcLogicalId = this.cfnElementNodes.get(vpcRef.Ref)?.logicalId;
+                    if (!vpcLogicalId) {
+                        throw new Error(`VPC resource ${vpcRef.Ref} not found for VPCCidrBlock ${node.logicalId}`);
+                    }
+                    const vpcNode = this.vpcNodes[vpcLogicalId];
+                    // currently the CDK VPC only supports a single VPCCidrBlock per VPC so for now we won't allow multiple
+                    // if we get requests for this we can update this to support multiple
+                    if (vpcNode.vpcCidrBlockNode) {
+                        throw new Error(`VPC ${vpcLogicalId} already has a VPCCidrBlock`);
+                    }
+                    vpcNode.vpcCidrBlockNode = node;
+                }
+            });
+        }
 
         for (const [construct, node] of this.constructNodes) {
             // No parent means this is the construct that represents the `Stack`
@@ -228,7 +293,10 @@ export class GraphBuilder {
             sort(node);
         }
 
-        return sorted;
+        return {
+            nodes: sorted,
+            vpcNodes: this.vpcNodes,
+        };
     }
 
     private addEdgesForCfnResource(obj: any, source: GraphNode): void {
@@ -285,9 +353,25 @@ export class GraphBuilder {
 
     private addEdgesForIntrinsic(fn: string, params: any, source: GraphNode) {
         switch (fn) {
-            case 'Fn::GetAtt':
-                this.addEdgeForRef(params[0], source);
+            case 'Fn::GetAtt': {
+                let logicalId = params[0];
+                const attributeName = params[1];
+                // Special case for VPC Ipv6CidrBlocks
+                // Ipv6 cidr blocks are added to the VPC through a separate VpcCidrBlock resource
+                // Due to [pulumi/pulumi-aws-native#1798] the `Ipv6CidrBlocks` attribute will always be empty
+                // and we need to instead pull the `Ipv6CidrBlock` attribute from the VpcCidrBlock resource.
+                // Here we switching the dependency to be on the `VpcCidrBlock` resource (since that will also have a dependency
+                // on the VPC resource)
+                if (
+                    logicalId in this.vpcNodes &&
+                    attributeName === 'Ipv6CidrBlocks' &&
+                    this.vpcNodes[logicalId].vpcCidrBlockNode?.logicalId
+                ) {
+                    logicalId = this.vpcNodes[logicalId].vpcCidrBlockNode!.logicalId;
+                }
+                this.addEdgeForRef(logicalId, source);
                 break;
+            }
             case 'Fn::Sub':
                 {
                     const [template, vars] =
