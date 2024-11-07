@@ -50,6 +50,20 @@ func TestEc2(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestRoute53(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "route53"),
+			Config: map[string]string{
+				// This test has to be run in us-east-1 for DNSSEC
+				"aws:region":        "us-east-1",
+				"aws-native:region": "us-east-1",
+			},
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {
 	base := getBaseOptions(t)
 	baseJS := base.With(integration.ProgramTestOptions{

@@ -1,0 +1,3 @@
+name: pulumi-aws-route53
+runtime: nodejs
+description: route53 integration test

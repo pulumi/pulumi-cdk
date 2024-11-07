@@ -1,5 +1,5 @@
-import { CfnResource, Stack } from 'aws-cdk-lib/core';
 import { mapToAwsResource } from '../src/aws-resource-mappings';
+import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as aws from '@pulumi/aws';
 
 jest.mock('@pulumi/aws', () => {
@@ -30,6 +30,11 @@ jest.mock('@pulumi/aws', () => {
                 return {};
             }),
             GroupPolicyAttachment: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+        },
+        route53: {
+            Record: jest.fn().mockImplementation(() => {
                 return {};
             }),
         },
@@ -266,6 +271,97 @@ describe('AWS Resource Mappings', () => {
                     },
                 },
                 tlsConfig: { insecureSkipVerification: true },
+            }),
+            {},
+        );
+    });
+
+    test('maps route53.Record', () => {
+        // GIVEN
+        const cfnType = 'AWS::Route53::RecordSet';
+        const logicalId = 'my-resource';
+        const cfnProps = {
+            HostedZoneId: 'zone-id',
+            Name: 'example.com',
+            Type: 'A',
+            TTL: 900,
+            ResourceRecords: ['192.0.2.99'],
+            AliasTarget: {
+                DNSName: 'example.com',
+                HostedZoneId: 'zone-id',
+                EvaluateTargetHealth: true,
+            },
+            HealthCheckId: 'health-check-id',
+            SetIdentifier: 'set-identifier',
+            CidrRoutingConfig: {
+                CollectionId: 'collection-id',
+                LocationName: 'location-name',
+            },
+            Failover: 'PRIMARY',
+            Weight: 1,
+            GeoProximityLocation: {
+                Bias: 'bias',
+                AWSRegion: 'region',
+                LocalZoneGroup: 'group',
+                Coordinates: {
+                    Latitude: 0,
+                    Longitude: 0,
+                },
+            },
+            GeoLocation: {
+                ContinentCode: 'code',
+                CountryCode: 'code',
+                SubdivisionCode: 'code',
+            },
+            MultiValueAnswer: true,
+        };
+
+        // WHEN
+        mapToAwsResource(logicalId, cfnType, cfnProps, {});
+
+        // THEN
+        expect(aws.route53.Record).toHaveBeenCalledWith(
+            logicalId,
+            expect.objectContaining({
+                zoneId: 'zone-id',
+                name: 'example.com',
+                type: 'A',
+                records: ['192.0.2.99'],
+                ttl: 900,
+                aliases: [
+                    {
+                        name: 'example.com',
+                        zoneId: 'zone-id',
+                        evaluateTargetHealth: true,
+                    },
+                ],
+                healthCheckId: 'health-check-id',
+                setIdentifier: 'set-identifier',
+                cidrRoutingPolicy: {
+                    collectionId: 'collection-id',
+                    locationName: 'location-name',
+                },
+                failoverRoutingPolicies: [{ type: 'PRIMARY' }],
+                weightedRoutingPolicies: [{ weight: 1 }],
+                geoproximityRoutingPolicy: {
+                    bias: 'bias',
+                    awsRegion: 'region',
+                    localZoneGroup: 'group',
+                    coordinates: [
+                        {
+                            latitude: 0,
+                            longitude: 0,
+                        },
+                    ],
+                },
+                geolocationRoutingPolicies: [
+                    {
+                        continent: 'code',
+                        country: 'code',
+                        subdivision: 'code',
+                    },
+                ],
+                multivalueAnswerRoutingPolicy: true,
             }),
             {},
         );

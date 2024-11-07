@@ -1,3 +1,4 @@
+import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { TableArgs } from '@pulumi/aws-native/dynamodb';
 import { Key } from 'aws-cdk-lib/aws-kms';
@@ -5,14 +6,17 @@ import { setMocks, testApp } from './mocks';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Construct } from 'constructs';
 
+let resources: MockResourceArgs[] = [];
+beforeAll(() => {
+    resources = [];
+    setMocks(resources);
+});
+
 describe('CDK Construct tests', () => {
     // DynamoDB table was previously mapped to the `aws` provider
     // otherwise this level of testing wouldn't be necessary.
     // We also don't need to do this type of testing for _every_ resource
     test('dynamodb table', async () => {
-        const resources: MockResourceArgs[] = [];
-        setMocks(resources);
-
         await testApp((scope: Construct) => {
             const key = Key.fromKeyArn(scope, 'key', 'arn:aws:kms:us-west-2:123456789012:key/abcdefg');
             const table = new dynamodb.Table(scope, 'Table', {
@@ -88,5 +92,21 @@ describe('CDK Construct tests', () => {
                 },
             ],
         } as TableArgs);
+    });
+
+    test('route53 long text records are split', async () => {
+        await testApp((scope: Construct) => {
+            const zone = new route53.PublicHostedZone(scope, 'HostedZone', {
+                zoneName: 'pulumi-cdk.com',
+            });
+            new route53.TxtRecord(scope, 'TxtRecord2', {
+                zone,
+                values: ['hello'.repeat(52)],
+                recordName: 'cdk-txt-2',
+            });
+        });
+        const txt = resources.find((res) => res.type === 'aws:route53/record:Record');
+        expect(txt).toBeDefined();
+        expect(txt?.inputs.records).toEqual(['hello'.repeat(51), 'hello']);
     });
 });
