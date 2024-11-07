@@ -109,6 +109,36 @@ function typeFromFqn(fqn: string): PulumiResourceType {
     return `${mod}:${type}`;
 }
 
+/**
+ * Represents the dependency graph of the constructs in the CDK app
+ */
+export interface Graph {
+    /**
+     * The nodes in the graph sorted in topological order
+     */
+    nodes: GraphNode[];
+
+    /**
+     * The VPC nodes in the graph
+     */
+    vpcNodes: { [logicalId: string]: VpcGraphNode };
+}
+
+/**
+ * Represents a VPC and its (optionally) associated VPCCidrBlock
+ */
+export interface VpcGraphNode {
+    /**
+     * The GraphNode representing the VPC
+     */
+    vpcNode: GraphNode;
+
+    /**
+     * The GraphNode representing the VPCCidrBlock
+     */
+    vpcCidrBlockNode?: GraphNode;
+}
+
 export class GraphBuilder {
     // Allows for easy access to the GraphNode of a specific Construct
     constructNodes: Map<ConstructInfo, GraphNode>;
@@ -116,9 +146,9 @@ export class GraphBuilder {
     cfnElementNodes: Map<string, GraphNode>;
 
     // If the app has a VpcCidrBlock resource, this will be set to the GraphNode representing it
-    vpcCidrBlockNode?: GraphNode;
+    private readonly _vpcCidrBlockNodes: { [logicalId: string]: GraphNode } = {};
     // If the app has a Vpc resource, this will be set to the GraphNode representing it
-    vpcNode?: GraphNode;
+    private readonly vpcNodes: { [logicalId: string]: VpcGraphNode } = {};
 
     constructor(private readonly stack: StackManifest) {
         this.constructNodes = new Map<ConstructInfo, GraphNode>();
@@ -126,8 +156,8 @@ export class GraphBuilder {
     }
 
     // build constructs a dependency graph from the adapter and returns its nodes sorted in topological order.
-    public build(): GraphNode[] {
-        return this._build();
+    public static build(stack: StackManifest): Graph {
+        return new GraphBuilder(stack)._build();
     }
 
     /**
@@ -168,10 +198,10 @@ export class GraphBuilder {
                 );
             }
             if (resource.Type === 'AWS::EC2::VPCCidrBlock') {
-                this.vpcCidrBlockNode = node;
+                this._vpcCidrBlockNodes[node.logicalId] = node;
             }
             if (resource.Type === 'AWS::EC2::VPC') {
-                this.vpcNode = node;
+                this.vpcNodes[node.logicalId] = { vpcNode: node, vpcCidrBlockNode: undefined };
             }
         }
         this.constructNodes.set(construct, node);
@@ -180,7 +210,7 @@ export class GraphBuilder {
         }
     }
 
-    private _build(): GraphNode[] {
+    private _build(): Graph {
         // passes
         // 1. collect all constructs into a map from construct name to DAG node, converting CFN elements to fragments
         // 2. hook up dependency edges
@@ -190,6 +220,31 @@ export class GraphBuilder {
         //
         // NOTE: this doesn't handle cross-stack references. We'll likely need to do so, at least for nested stacks.
         this.parseTree(this.stack.constructTree);
+
+        // parseTree does not guarantee that the VPC resource will be parsed before the VPCCidrBlock resource
+        // so we need to process this separately after
+        if (Object.keys(this._vpcCidrBlockNodes).length) {
+            Object.entries(this._vpcCidrBlockNodes).forEach(([logicalId, node]) => {
+                const resource = node.resource;
+                if (!resource) {
+                    throw new Error(`Something went wrong. CFN Resource not found for VPCCidrBlock ${logicalId}`);
+                }
+                const vpcRef = resource.Properties.VpcId;
+                if (typeof vpcRef === 'object' && 'Ref' in vpcRef) {
+                    const vpcLogicalId = this.cfnElementNodes.get(vpcRef.Ref)?.logicalId;
+                    if (!vpcLogicalId) {
+                        throw new Error(`VPC resource ${vpcRef.Ref} not found for VPCCidrBlock ${node.logicalId}`);
+                    }
+                    const vpcNode = this.vpcNodes[vpcLogicalId];
+                    // currently the CDK VPC only supports a single VPCCidrBlock per VPC so for now we won't allow multiple
+                    // if we get requests for this we can update this to support multiple
+                    if (vpcNode.vpcCidrBlockNode) {
+                        throw new Error(`VPC ${vpcLogicalId} already has a VPCCidrBlock`);
+                    }
+                    vpcNode.vpcCidrBlockNode = node;
+                }
+            });
+        }
 
         for (const [construct, node] of this.constructNodes) {
             // No parent means this is the construct that represents the `Stack`
@@ -238,7 +293,10 @@ export class GraphBuilder {
             sort(node);
         }
 
-        return sorted;
+        return {
+            nodes: sorted,
+            vpcNodes: this.vpcNodes,
+        };
     }
 
     private addEdgesForCfnResource(obj: any, source: GraphNode): void {
@@ -305,11 +363,11 @@ export class GraphBuilder {
                 // Here we switching the dependency to be on the `VpcCidrBlock` resource (since that will also have a dependency
                 // on the VPC resource)
                 if (
-                    logicalId === this.vpcNode?.logicalId &&
+                    logicalId in this.vpcNodes &&
                     attributeName === 'Ipv6CidrBlocks' &&
-                    this.vpcCidrBlockNode?.logicalId
+                    this.vpcNodes[logicalId].vpcCidrBlockNode?.logicalId
                 ) {
-                    logicalId = this.vpcCidrBlockNode.logicalId;
+                    logicalId = this.vpcNodes[logicalId].vpcCidrBlockNode!.logicalId;
                 }
                 this.addEdgeForRef(logicalId, source);
                 break;

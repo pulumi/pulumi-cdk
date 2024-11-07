@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as pulumi from '@pulumi/pulumi';
 import { AssemblyManifestReader, StackManifest } from '../assembly';
-import { ConstructInfo, GraphBuilder, GraphNode } from '../graph';
+import { ConstructInfo, Graph, GraphBuilder, GraphNode } from '../graph';
 import { ArtifactConverter } from './artifact-converter';
 import { lift, Mapping, AppComponent } from '../types';
 import { CdkConstruct, ResourceAttributeMapping, ResourceMapping } from '../interop';
@@ -94,7 +94,7 @@ export class StackConverter extends ArtifactConverter {
     private readonly cdkStack: cdk.Stack;
 
     private _stackResource?: CdkConstruct;
-    private _graph: GraphBuilder;
+    private readonly graph: Graph;
 
     public get stackResource(): CdkConstruct {
         if (!this._stackResource) {
@@ -106,18 +106,16 @@ export class StackConverter extends ArtifactConverter {
     constructor(host: AppComponent, readonly stack: StackManifest) {
         super(host);
         this.cdkStack = host.stacks[stack.id];
-        this._graph = new GraphBuilder(stack);
+        this.graph = GraphBuilder.build(this.stack);
     }
 
     public convert(dependencies: Set<ArtifactConverter>) {
-        const dependencyGraphNodes = this._graph.build();
-
         // process parameters first because resources will reference them
         for (const [logicalId, value] of Object.entries(this.stack.parameters ?? {})) {
             this.mapParameter(logicalId, value.Type, value.Default);
         }
 
-        for (const n of dependencyGraphNodes) {
+        for (const n of this.graph.nodes) {
             if (n.construct.id === this.stack.id) {
                 this._stackResource = new CdkConstruct(`${this.app.name}/${n.construct.path}`, n.construct.id, {
                     parent: this.app.component,
@@ -158,8 +156,8 @@ export class StackConverter extends ArtifactConverter {
             }
         }
 
-        for (let i = dependencyGraphNodes.length - 1; i >= 0; i--) {
-            const n = dependencyGraphNodes[i];
+        for (let i = this.graph.nodes.length - 1; i >= 0; i--) {
+            const n = this.graph.nodes[i];
             if (!n.resource) {
                 (<CdkConstruct>this.constructs.get(n.construct)!).done();
             }
@@ -369,11 +367,13 @@ export class StackConverter extends ArtifactConverter {
                 // Due to [pulumi/pulumi-aws-native#1798] the `Ipv6CidrBlocks` attribute will always be empty
                 // and we need to instead pull the `Ipv6CidrBlock` attribute from the VpcCidrBlock resource.
                 if (
-                    logicalId === this._graph.vpcNode?.logicalId &&
+                    logicalId in this.graph.vpcNodes &&
                     attributeName === 'Ipv6CidrBlocks' &&
-                    this._graph.vpcCidrBlockNode?.logicalId
+                    this.graph.vpcNodes[logicalId].vpcCidrBlockNode?.logicalId
                 ) {
-                    return [this.resolveAtt(this._graph.vpcCidrBlockNode.logicalId, 'Ipv6CidrBlock')];
+                    return [
+                        this.resolveAtt(this.graph.vpcNodes[logicalId].vpcCidrBlockNode.logicalId, 'Ipv6CidrBlock'),
+                    ];
                 }
 
                 return this.resolveAtt(params[0], params[1]);
