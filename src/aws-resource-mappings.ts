@@ -193,6 +193,65 @@ export function mapToAwsResource(
             return resources;
         }
 
+        case 'AWS::Route53::RecordSet': {
+            let records: string[] = props.resourceRecords;
+            if (props.type === 'TXT') {
+                // CDK has special handling for TXT records that conflicts with the Terraform provider's handling.
+                // 1. CDK wraps the value in double quotes, which Terraform does as well. We need to remove the quotes that
+                //    CDK adds otherwise we get double quotes
+                // 2. CDK splits the value into multiple records if it exceeds 255 characters. Terraform does not do this so we need to.
+                //
+                //           (user)                 (cdk)                (terraform)
+                //    e.g. "hello...hello" => '"hello...""hello"'    ["hello...", "hello"]
+                records = records.flatMap((r) => r.split('""').flatMap((record) => record.replace(/"/g, '')));
+            }
+            return new aws.route53.Record(
+                logicalId,
+                {
+                    zoneId: props.hostedZoneId,
+                    name: props.name,
+                    type: props.type,
+                    records,
+                    ttl: props.ttl,
+                    aliases: props.aliasTarget
+                        ? [
+                              {
+                                  name: props.aliasTarget.dnsName,
+                                  zoneId: props.aliasTarget.hostedZoneId,
+                                  evaluateTargetHealth: props.aliasTarget.evaluateTargetHealth ?? false,
+                              },
+                          ]
+                        : undefined,
+                    healthCheckId: props.healthCheckId,
+                    setIdentifier: props.setIdentifier,
+                    cidrRoutingPolicy: props.cidrRoutingConfig,
+                    failoverRoutingPolicies: props.failover ? [{ type: props.failover }] : undefined,
+                    weightedRoutingPolicies: props.weight ? [{ weight: props.weight }] : undefined,
+                    geoproximityRoutingPolicy: props.geoProximityLocation
+                        ? {
+                              bias: props.geoProximityLocation.bias,
+                              awsRegion: props.geoProximityLocation.awsRegion,
+                              localZoneGroup: props.geoProximityLocation.localZoneGroup,
+                              coordinates: props.geoProximityLocation.coordinates
+                                  ? [props.geoProximityLocation.coordinates]
+                                  : undefined,
+                          }
+                        : undefined,
+                    geolocationRoutingPolicies: props.geoLocation
+                        ? [
+                              {
+                                  country: props.geoLocation.countryCode,
+                                  continent: props.geoLocation.continentCode,
+                                  subdivision: props.geoLocation.subdivisionCode,
+                              },
+                          ]
+                        : undefined,
+                    multivalueAnswerRoutingPolicy: props.multiValueAnswer,
+                },
+                options,
+            );
+        }
+
         default:
             return undefined;
     }
