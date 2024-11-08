@@ -150,6 +150,7 @@ describe('AWS Resource Mappings', () => {
                     ],
                 },
             }),
+            {},
         );
         expect(aws.sns.TopicPolicy).toHaveBeenCalledWith(
             `${logicalId}-policy-1`,
@@ -166,6 +167,7 @@ describe('AWS Resource Mappings', () => {
                     ],
                 },
             }),
+            {},
         );
     });
 
@@ -207,6 +209,7 @@ describe('AWS Resource Mappings', () => {
                     ],
                 },
             }),
+            {},
         );
 
         expect(aws.sqs.QueuePolicy).toHaveBeenCalledWith(
@@ -224,6 +227,7 @@ describe('AWS Resource Mappings', () => {
                     ],
                 },
             }),
+            {},
         );
     });
 

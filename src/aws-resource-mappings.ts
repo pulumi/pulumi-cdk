@@ -93,10 +93,14 @@ export function mapToAwsResource(
                 const id = i === 0 ? logicalId : `${logicalId}-policy-${i}`;
                 return {
                     logicalId: id,
-                    resource: new aws.sqs.QueuePolicy(id, {
-                        policy: rawProps.PolicyDocument,
-                        queueUrl: q,
-                    }),
+                    resource: new aws.sqs.QueuePolicy(
+                        id,
+                        {
+                            policy: rawProps.PolicyDocument,
+                            queueUrl: q,
+                        },
+                        options,
+                    ),
                 };
             });
         }
@@ -113,10 +117,14 @@ export function mapToAwsResource(
                 const id = i === 0 ? logicalId : `${logicalId}-policy-${i}`;
                 return {
                     logicalId: id,
-                    resource: new aws.sns.TopicPolicy(id, {
-                        policy: rawProps.PolicyDocument,
-                        arn,
-                    }),
+                    resource: new aws.sns.TopicPolicy(
+                        id,
+                        {
+                            policy: rawProps.PolicyDocument,
+                            arn,
+                        },
+                        options,
+                    ),
                 };
             });
         }
