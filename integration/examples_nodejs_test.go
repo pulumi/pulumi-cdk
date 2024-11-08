@@ -59,6 +59,15 @@ func TestRoute53(t *testing.T) {
 				"aws:region":        "us-east-1",
 				"aws-native:region": "us-east-1",
 			},
+    })
+
+	integration.ProgramTest(t, &test)
+}
+
+func TestKms(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "kms"),
 		})
 
 	integration.ProgramTest(t, &test)
