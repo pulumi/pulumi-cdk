@@ -32,8 +32,15 @@ const SECRETS_MANAGER_DYNAMIC_REGEX =
     //                            secret-id        secret-string  json-key    version-stage version-id
     /\{\{resolve:secretsmanager:([^:]+(?::[^:]+)*?)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?\}\}/;
 
-const SECRETS_MANAGER_DYNAMIC_REGEX_END = /(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?\}\}/;
-export interface SecretsManagerDynamicReferenceEnd {
+export interface SecretsManagerDynamicReference {
+    /**
+     * The name or ARN of the secret.
+     *
+     * To access a secret in your AWS account, you need only specify the secret name.
+     * To access a secret in a different AWS account, specify the complete ARN of the secret.
+     */
+    secretId: string;
+
     /**
      * Currently, the only supported value is SecretString. The default is SecretString.
      */
@@ -65,15 +72,6 @@ export interface SecretsManagerDynamicReferenceEnd {
      */
     versionId?: string;
 }
-export interface SecretsManagerDynamicReference extends SecretsManagerDynamicReferenceEnd {
-    /**
-     * The name or ARN of the secret.
-     *
-     * To access a secret in your AWS account, you need only specify the secret name.
-     * To access a secret in a different AWS account, specify the complete ARN of the secret.
-     */
-    secretId: string;
-}
 
 /**
  * Parses a secretsmanager dynamic reference into its components. This function should be used to resolve
@@ -97,41 +95,6 @@ export function parseDynamicSecretReference(secret: string): SecretsManagerDynam
         };
     }
     throw new Error(`Invalid Secrets Manager dynamic reference: value: ${secret}`);
-}
-
-/**
- * Parses a secretsmanager dynamic reference into its components. This function should be used to resolve
- * the end part of the reference string from the :secret-string onwards
- *
- * This is useful in cases where the full reference contains unresolved values, e.g.
- *
- *   "MasterUserPassword": {
- *    "Fn::Join": [
- *     "",
- *     [
- *      "{{resolve:secretsmanager:",
- *      {
- *       "Ref": "teststackInstanceSecret9DA5226D3fdaad7efa858a3daf9490cf0a702aeb"
- *      },
- *      ":SecretString:password::}}"
- *     ]
- *    ]
- *   },
- * @param referencePart - The dynamic reference end part, i.e. :secret-string:json-key:version-stage:version-id}}
- * @returns the matched secret reference
- */
-export function parseDynamicSecretReferenceInfo(referencePart: string): SecretsManagerDynamicReferenceEnd {
-    const match = referencePart.match(SECRETS_MANAGER_DYNAMIC_REGEX_END);
-    if (match) {
-        const [_, secretString, jsonKey, versionStage, versionId] = match;
-        return {
-            secretString: secretString || undefined,
-            jsonKey: jsonKey || undefined,
-            versionStage: versionStage || undefined,
-            versionId: versionId || undefined,
-        };
-    }
-    throw new Error(`Invalid Secrets Manager dynamic reference: value: ${referencePart}`);
 }
 
 /**
@@ -434,7 +397,7 @@ export class StackConverter extends ArtifactConverter {
      * @param secret - The complete secret reference string
      * @returns The secretsmanager secret value
      */
-    private resolveSecretsManagerDynamicReferenceString(secret: string): pulumi.Output<any> {
+    private resolveSecretsManagerDynamicReference(secret: string): pulumi.Output<any> {
         // This shouldn't happen because we currently only call this where we know we have a string
         // but adding this for completeness
         if (containsEventuals(secret)) {
@@ -450,34 +413,6 @@ export class StackConverter extends ArtifactConverter {
         );
     }
 
-    /**
-     * Used to resolve Secrets Manager dynamic references that contain an `Fn::Join`
-     * e.g.
-     *
-     * "Fn::Join": [
-     *   "",
-     *   [
-     *     "{{resolve:secretsmanager:",
-     *     {
-     *       "Ref": "teststackInstanceSecret9DA5226D3fdaad7efa858a3daf9490cf0a702aeb"
-     *     },
-     *     ":SecretString:password::}}"
-     *   ]
-     * ]
-     *
-     * CDK will either reference secrets using the complete string or using an array with the `Fn::Join` intrinsic
-     *
-     * @param secret - The secret reference array that is part of the `Fn::Join` intrinsic
-     * @returns The secretsmanager secret value
-     */
-    private resolveSecretsManagerDynamicReferenceArray(secret: string[]): pulumi.Output<any>[] {
-        const ref = secret[1];
-        const secretInfo = secret[2];
-        const arn = this.processIntrinsics(ref);
-        const info = parseDynamicSecretReferenceInfo(secretInfo);
-        return [getSecretVersionOutput(arn, info.versionId, info.versionStage, info.jsonKey, this.stackResource)];
-    }
-
     public processIntrinsics(obj: any): any {
         try {
             debug(`Processing intrinsics for ${JSON.stringify(obj)}`);
@@ -485,9 +420,6 @@ export class StackConverter extends ArtifactConverter {
             // just don't log
         }
         if (typeof obj === 'string') {
-            if (obj.startsWith('{{resolve:secretsmanager:')) {
-                return this.resolveSecretsManagerDynamicReferenceString(obj);
-            }
             return obj;
         }
 
@@ -496,9 +428,6 @@ export class StackConverter extends ArtifactConverter {
         }
 
         if (Array.isArray(obj)) {
-            if (obj[0] === '{{resolve:secretsmanager:' && obj.length === 3) {
-                return this.resolveSecretsManagerDynamicReferenceArray(obj);
-            }
             return obj.filter((x) => !this.isNoValue(x)).map((x) => this.processIntrinsics(x));
         }
 
@@ -512,9 +441,41 @@ export class StackConverter extends ArtifactConverter {
             return this.resolveIntrinsic(keys[0], obj[keys[0]]);
         }
 
+        // This is where we can do any final processing on the resolved value
+        // For example, if we have a value that contains intrinsics and refs, like:
+        // "Fn::Join": [
+        //    "",
+        //    [
+        //      "{{resolve:secretsmanager:",
+        //      {
+        //        "Ref": "somesecretlogicalId"
+        //      },
+        //      ":SecretString:password:AWSCURRENT}}"
+        //    ]
+        // ]
+        //
+        // Then we will recurse through that object resolving the ref and the join
+        // and eventually get to the point where we have a string that looks like:
+        // "{{resolve:secretsmanager:arn:aws:secretsmanager:us-east-2:12345678910:secret:somesecretid-abcd:SecretString:password:AWSCURRENT}}"
         return Object.entries(obj)
             .filter(([_, v]) => !this.isNoValue(v))
-            .reduce((result, [k, v]) => ({ ...result, [k]: this.processIntrinsics(v) }), {});
+            .reduce((result, [k, v]) => {
+                let value = this.processIntrinsics(v);
+                if (pulumi.Output.isInstance(value)) {
+                    value = value.apply((v) => {
+                        if (typeof v === 'string' && v.startsWith('{{resolve:secretsmanager:')) {
+                            return this.resolveSecretsManagerDynamicReference(v);
+                        }
+                        return v;
+                    });
+                } else if (typeof value === 'string' && value.startsWith('{{resolve:secretsmanager:')) {
+                    value = this.resolveSecretsManagerDynamicReference(value);
+                }
+                return {
+                    ...result,
+                    [k]: value,
+                };
+            }, {});
     }
 
     private isNoValue(obj: any): boolean {

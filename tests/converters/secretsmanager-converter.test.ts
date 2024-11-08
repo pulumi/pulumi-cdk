@@ -1,8 +1,4 @@
-import {
-    StackConverter,
-    parseDynamicSecretReference,
-    parseDynamicSecretReferenceInfo,
-} from '../../src/converters/app-converter';
+import { StackConverter, parseDynamicSecretReference } from '../../src/converters/app-converter';
 import * as native from '@pulumi/aws-native';
 import { MockAppComponent, promiseOf, setMocks } from '../mocks';
 import { StackManifest } from '../../src/assembly';
@@ -12,53 +8,6 @@ let resources: MockResourceArgs[] = [];
 beforeAll(() => {
     resources = [];
     setMocks(resources);
-});
-
-describe('parseDynamicSecretReferenceParts', () => {
-    test('basic', () => {
-        expect(parseDynamicSecretReferenceInfo('}}')).toEqual({
-            secretString: undefined,
-            jsonKey: undefined,
-            versionStage: undefined,
-            versionId: undefined,
-        });
-    });
-
-    test('basic with colons', () => {
-        expect(parseDynamicSecretReferenceInfo('::::}}')).toEqual({
-            secretString: undefined,
-            jsonKey: undefined,
-            versionStage: undefined,
-            versionId: undefined,
-        });
-    });
-
-    test('with secretId as arn and jsonKey', () => {
-        expect(parseDynamicSecretReferenceInfo(':SecretString:password::}}')).toEqual({
-            secretString: 'SecretString',
-            jsonKey: 'password',
-            versionStage: undefined,
-            versionId: undefined,
-        });
-    });
-
-    test('with jsonKey and versionStage', () => {
-        expect(parseDynamicSecretReferenceInfo(':SecretString:password:AWSPREVIOUS}}')).toEqual({
-            secretString: 'SecretString',
-            jsonKey: 'password',
-            versionStage: 'AWSPREVIOUS',
-            versionId: undefined,
-        });
-    });
-
-    test('with versionId', () => {
-        expect(parseDynamicSecretReferenceInfo(':SecretString:password::AWSPREVIOUS}}')).toEqual({
-            secretString: 'SecretString',
-            jsonKey: 'password',
-            versionId: 'AWSPREVIOUS',
-            versionStage: undefined,
-        });
-    });
 });
 
 describe('parseDynamicSecretReference', () => {
