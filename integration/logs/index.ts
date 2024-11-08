@@ -52,14 +52,6 @@ class LogsStack extends pulumicdk.Stack {
     }
 }
 
-new pulumicdk.App(
-    'app',
-    (scope: pulumicdk.App) => {
-        new LogsStack(scope, 'teststack');
-    },
-    {
-        // appOptions: {
-        //     remapCloudControlResource: (logicalId, typeName, props, options) => {},
-        // },
-    },
-);
+new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    new LogsStack(scope, 'teststack');
+});
