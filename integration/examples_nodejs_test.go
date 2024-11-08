@@ -45,7 +45,7 @@ func TestSecretsManager(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "secretsmanager"),
-      })
+		})
 
 	integration.ProgramTest(t, &test)
 }

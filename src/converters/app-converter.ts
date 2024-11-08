@@ -3,7 +3,7 @@ import * as pulumi from '@pulumi/pulumi';
 import { AssemblyManifestReader, StackManifest } from '../assembly';
 import { ConstructInfo, Graph, GraphBuilder, GraphNode } from '../graph';
 import { ArtifactConverter } from './artifact-converter';
-import { lift, Mapping, AppComponent, containsEventuals } from '../types';
+import { lift, Mapping, AppComponent } from '../types';
 import { CdkConstruct, ResourceAttributeMapping, ResourceMapping } from '../interop';
 import { debug } from '@pulumi/pulumi/log';
 import {
@@ -15,87 +15,13 @@ import {
     getSsmParameterString,
     getUrlSuffix,
 } from '@pulumi/aws-native';
-import * as aws from '@pulumi/aws';
 import { mapToAwsResource } from '../aws-resource-mappings';
 import { attributePropertyName, mapToCfnResource } from '../cfn-resource-mappings';
 import { CloudFormationResource, getDependsOn } from '../cfn';
 import { OutputMap, OutputRepr } from '../output-map';
 import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
-
-/**
- * The regular expression used to match a Secrets Manager dynamic reference.
- *
- * @see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/dynamic-references-secretsmanager.html
- */
-const SECRETS_MANAGER_DYNAMIC_REGEX =
-    //                            secret-id        secret-string  json-key    version-stage version-id
-    /\{\{resolve:secretsmanager:([^:]+(?::[^:]+)*?)(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?(?::([^:]*))?\}\}/;
-
-export interface SecretsManagerDynamicReference {
-    /**
-     * The name or ARN of the secret.
-     *
-     * To access a secret in your AWS account, you need only specify the secret name.
-     * To access a secret in a different AWS account, specify the complete ARN of the secret.
-     */
-    secretId: string;
-
-    /**
-     * Currently, the only supported value is SecretString. The default is SecretString.
-     */
-    secretString?: string;
-
-    /**
-     * The key name of the key-value pair whose value you want to retrieve.
-     * If you don't specify a json-key, CloudFormation retrieves the entire secret text.
-     *
-     * This segment may not include the colon character ( :).
-     */
-    jsonKey?: string;
-
-    /**
-     * The staging label of the version of the secret to use.
-     * If you use version-stage then don't specify version-id.
-     * If you don't specify either version-stage or version-id, then the default is the AWSCURRENT version.
-     *
-     * This segment may not include the colon character ( :).
-     */
-    versionStage?: string;
-
-    /**
-     * The unique identifier of the version of the secret to use.
-     * If you specify version-id, then don't specify version-stage.
-     * If you don't specify either version-stage or version-id, then the default is the AWSCURRENT version.
-     *
-     * This segment may not include the colon character ( :).
-     */
-    versionId?: string;
-}
-
-/**
- * Parses a secretsmanager dynamic reference into its components. This function should be used to resolve
- * references that are complete strings, i.e. no unresolved values
- *
- * @see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/dynamic-references-secretsmanager.html
- *
- * @param secret - The secretsmanager dynamic reference, i.e. {{resolve:secretsmanager:secret-id:secret-string:json-key:version-stage:version-id}}
- * @returns the matched secret reference
- */
-export function parseDynamicSecretReference(secret: string): SecretsManagerDynamicReference {
-    const match = secret.match(SECRETS_MANAGER_DYNAMIC_REGEX);
-    if (match) {
-        const [_, secretId, secretString, jsonKey, versionStage, versionId] = match;
-        return {
-            secretId,
-            secretString: secretString || undefined,
-            jsonKey: jsonKey || undefined,
-            versionStage: versionStage || undefined,
-            versionId: versionId || undefined,
-        };
-    }
-    throw new Error(`Invalid Secrets Manager dynamic reference: value: ${secret}`);
-}
+import { processSecretsManagerReferenceValue, resolveSecretsManagerDynamicReference } from './secrets-manager-dynamic';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -390,29 +316,6 @@ export class StackConverter extends ArtifactConverter {
         return this.processIntrinsics(value) as T;
     }
 
-    /**
-     * Used to resolve Secrets Manager dynamic references in the form of {{resolve:secretsmanager:secret-id:secret-string:json-key:version-stage:version-id}}
-     * This will only work for references that are complete strings, i.e. no unresolved values
-     *
-     * @param secret - The complete secret reference string
-     * @returns The secretsmanager secret value
-     */
-    private resolveSecretsManagerDynamicReference(secret: string): pulumi.Output<any> {
-        // This shouldn't happen because we currently only call this where we know we have a string
-        // but adding this for completeness
-        if (containsEventuals(secret)) {
-            throw new Error('Secrets Manager dynamic references cannot contain unresolved values');
-        }
-        const parts = parseDynamicSecretReference(secret);
-        return getSecretVersionOutput(
-            parts.secretId,
-            parts.versionId,
-            parts.versionStage,
-            parts.jsonKey,
-            this.stackResource,
-        );
-    }
-
     public processIntrinsics(obj: any): any {
         try {
             debug(`Processing intrinsics for ${JSON.stringify(obj)}`);
@@ -461,16 +364,7 @@ export class StackConverter extends ArtifactConverter {
             .filter(([_, v]) => !this.isNoValue(v))
             .reduce((result, [k, v]) => {
                 let value = this.processIntrinsics(v);
-                if (pulumi.Output.isInstance(value)) {
-                    value = value.apply((v) => {
-                        if (typeof v === 'string' && v.startsWith('{{resolve:secretsmanager:')) {
-                            return this.resolveSecretsManagerDynamicReference(v);
-                        }
-                        return v;
-                    });
-                } else if (typeof value === 'string' && value.startsWith('{{resolve:secretsmanager:')) {
-                    value = this.resolveSecretsManagerDynamicReference(value);
-                }
+                value = processSecretsManagerReferenceValue(this.stackResource, value);
                 return {
                     ...result,
                     [k]: value,
@@ -642,39 +536,4 @@ export class StackConverter extends ArtifactConverter {
         }
         return d.value;
     }
-}
-
-/**
- * Gets a secret value from AWS Secrets Manager.
- *
- * @param secretId - The name or ARN of the secret.
- * @param versionId - The unique identifier of the version of the secret to use.
- * @param versionStage - The staging label of the version of the secret to use.
- * @param jsonKey - The key name of the key-value pair whose value you want to retrieve.
- * @param parent - The parent resource for the secret.
- * @returns The secret value.
- */
-function getSecretVersionOutput(
-    secretId: string,
-    versionId?: string,
-    versionStage?: string,
-    jsonKey?: string,
-    parent?: pulumi.Resource,
-): pulumi.Output<any> {
-    return aws.secretsmanager
-        .getSecretVersionOutput(
-            {
-                secretId,
-                versionId,
-                versionStage,
-            },
-            { parent },
-        )
-        .apply((v) => {
-            if (jsonKey) {
-                const json = JSON.parse(v.secretString);
-                return pulumi.secret(json[jsonKey]);
-            }
-            return pulumi.secret(v.secretString);
-        });
 }

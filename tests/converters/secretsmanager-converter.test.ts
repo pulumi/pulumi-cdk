@@ -1,4 +1,9 @@
-import { StackConverter, parseDynamicSecretReference } from '../../src/converters/app-converter';
+import * as pulumi from '@pulumi/pulumi';
+import { StackConverter } from '../../src/converters/app-converter';
+import {
+    parseDynamicSecretReference,
+    processSecretsManagerReferenceValue,
+} from '../../src/converters/secrets-manager-dynamic';
 import * as native from '@pulumi/aws-native';
 import { MockAppComponent, promiseOf, setMocks } from '../mocks';
 import { StackManifest } from '../../src/assembly';
@@ -68,6 +73,37 @@ describe('parseDynamicSecretReference', () => {
             versionId: 'AWSPREVIOUS',
             versionStage: undefined,
         });
+    });
+});
+
+describe('process reference value', () => {
+    test('string secretsmanager value', async () => {
+        const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
+        const value = processSecretsManagerReferenceValue(parent, '{{resolve:secretsmanager:MySecret}}');
+        await expect(pulumi.isSecret(value)).resolves.toBe(true);
+        const secretValue = await promiseOf(pulumi.unsecret(value));
+        expect(secretValue).toEqual('abcd');
+    });
+
+    test('output secretsmanager value', async () => {
+        const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
+        const outputValue = pulumi.output('{{resolve:secretsmanager:MySecret}}');
+        const value = processSecretsManagerReferenceValue(parent, outputValue);
+        const secretValue = await promiseOf(pulumi.unsecret(value));
+        expect(secretValue).toEqual('abcd');
+    });
+
+    test('output normal value', async () => {
+        const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
+        const outputValue = pulumi.output('somevalue');
+        const value = await promiseOf(processSecretsManagerReferenceValue(parent, outputValue));
+        expect(value).toEqual('somevalue');
+    });
+
+    test('normal value', async () => {
+        const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
+        const value = processSecretsManagerReferenceValue(parent, 'somevalue');
+        expect(value).toEqual('somevalue');
     });
 });
 
