@@ -1,0 +1,3 @@
+name: pulumi-aws-cloudfront
+runtime: nodejs
+description: cloudfront integration test
