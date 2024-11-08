@@ -1,11 +1,9 @@
-import * as aws from '@pulumi/aws';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as secrets from 'aws-cdk-lib/aws-secretsmanager';
 import * as pulumicdk from '@pulumi/cdk';
-import { CfnOutput, SecretValue } from 'aws-cdk-lib';
 
 class SecretsManagerStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
@@ -50,35 +48,6 @@ class SecretsManagerStack extends pulumicdk.Stack {
     }
 }
 
-new pulumicdk.App(
-    'app',
-    (scope: pulumicdk.App) => {
-        new SecretsManagerStack(scope, 'teststack');
-    },
-    {
-        appOptions: {
-            remapCloudControlResource: (logicalId, typeName, props, options) => {
-                if (typeName === 'AWS::SecretsManager::RotationSchedule') {
-                    if (props.HostedRotationLambda) {
-                        throw new Error('Hosted Rotation is not supported');
-                    }
-                    return new aws.secretsmanager.SecretRotation(
-                        logicalId,
-                        {
-                            secretId: props.SecretId,
-                            rotationRules: {
-                                duration: props.RotationRules.Duration,
-                                scheduleExpression: props.RotationRules.ScheduleExpression,
-                                automaticallyAfterDays: props.RotationRules.AutomaticallyAfterDays,
-                            },
-                            rotateImmediately: props.RotateImmediatelyOnUpdate,
-                            rotationLambdaArn: props.RotationLambdaARN,
-                        },
-                        options,
-                    );
-                }
-                return undefined;
-            },
-        },
-    },
-);
+new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    new SecretsManagerStack(scope, 'teststack');
+});

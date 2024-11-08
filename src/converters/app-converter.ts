@@ -441,22 +441,13 @@ export class StackConverter extends ArtifactConverter {
             throw new Error('Secrets Manager dynamic references cannot contain unresolved values');
         }
         const parts = parseDynamicSecretReference(secret);
-        return aws.secretsmanager
-            .getSecretVersionOutput(
-                {
-                    secretId: parts.secretId,
-                    versionId: parts.versionId,
-                    versionStage: parts.versionStage,
-                },
-                { parent: this.stackResource },
-            )
-            .apply((v) => {
-                if (parts.jsonKey) {
-                    const json = JSON.parse(v.secretString);
-                    return pulumi.secret(json[parts.jsonKey]);
-                }
-                return pulumi.secret(v.secretString);
-            });
+        return getSecretVersionOutput(
+            parts.secretId,
+            parts.versionId,
+            parts.versionStage,
+            parts.jsonKey,
+            this.stackResource,
+        );
     }
 
     /**
@@ -484,24 +475,7 @@ export class StackConverter extends ArtifactConverter {
         const secretInfo = secret[2];
         const arn = this.processIntrinsics(ref);
         const info = parseDynamicSecretReferenceInfo(secretInfo);
-        return [
-            aws.secretsmanager
-                .getSecretVersionOutput(
-                    {
-                        secretId: arn,
-                        versionId: info.versionId,
-                        versionStage: info.versionStage,
-                    },
-                    { parent: this.stackResource },
-                )
-                .apply((v) => {
-                    if (info.jsonKey) {
-                        const json = JSON.parse(v.secretString);
-                        return pulumi.secret(json[info.jsonKey]);
-                    }
-                    return pulumi.secret(v.secretString);
-                }),
-        ];
+        return [getSecretVersionOutput(arn, info.versionId, info.versionStage, info.jsonKey, this.stackResource)];
     }
 
     public processIntrinsics(obj: any): any {
@@ -657,9 +631,9 @@ export class StackConverter extends ArtifactConverter {
             case 'AWS::NotificationARNs':
             case 'AWS::StackId':
             case 'AWS::StackName':
+                // These are typically used in things like names or descriptions so I think
+                // the stack node id is a good substitute.
                 return this.cdkStack.node.id;
-            // // Can't support these
-            // throw new Error(`reference to unsupported pseudo parameter ${target}`);
         }
 
         const mapping = this.lookup(target);
@@ -707,4 +681,39 @@ export class StackConverter extends ArtifactConverter {
         }
         return d.value;
     }
+}
+
+/**
+ * Gets a secret value from AWS Secrets Manager.
+ *
+ * @param secretId - The name or ARN of the secret.
+ * @param versionId - The unique identifier of the version of the secret to use.
+ * @param versionStage - The staging label of the version of the secret to use.
+ * @param jsonKey - The key name of the key-value pair whose value you want to retrieve.
+ * @param parent - The parent resource for the secret.
+ * @returns The secret value.
+ */
+function getSecretVersionOutput(
+    secretId: string,
+    versionId?: string,
+    versionStage?: string,
+    jsonKey?: string,
+    parent?: pulumi.Resource,
+): pulumi.Output<any> {
+    return aws.secretsmanager
+        .getSecretVersionOutput(
+            {
+                secretId,
+                versionId,
+                versionStage,
+            },
+            { parent },
+        )
+        .apply((v) => {
+            if (jsonKey) {
+                const json = JSON.parse(v.secretString);
+                return pulumi.secret(json[jsonKey]);
+            }
+            return pulumi.secret(v.secretString);
+        });
 }
