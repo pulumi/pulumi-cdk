@@ -22,6 +22,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,6 +98,10 @@ func TestCloudFront(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "cloudfront-lambda-urls"),
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				bucketName := stack.Outputs["bucketName"].(string)
+				assert.Containsf(t, bucketName, "bucket83908e77", "Bucket name should contain 'bucket'")
+			},
 		})
 
 	integration.ProgramTest(t, &test)

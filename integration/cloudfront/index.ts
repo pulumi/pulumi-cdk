@@ -1,3 +1,4 @@
+import * as pulumi from '@pulumi/pulumi';
 import * as kinesis from 'aws-cdk-lib/aws-kinesis';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
@@ -6,9 +7,11 @@ import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import { Duration } from 'aws-cdk-lib';
 
 class CloudFrontStack extends pulumicdk.Stack {
+    public readonly bucketName: pulumi.Output<string>;
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);
         const bucket = new s3.Bucket(this, 'Bucket');
+        this.bucketName = this.asOutput(bucket.bucketName);
         const cachePolicy = new cloudfront.CachePolicy(this, 'CachePolicy', {
             maxTtl: Duration.days(1),
             minTtl: Duration.minutes(1),
@@ -114,6 +117,11 @@ class CloudFrontStack extends pulumicdk.Stack {
     }
 }
 
-new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new CloudFrontStack(scope, 'teststack');
+const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    const stack = new CloudFrontStack(scope, 'teststack');
+    return {
+        bucketName: stack.bucketName,
+    };
 });
+
+export const bucketName = app.outputs['bucketName'];
