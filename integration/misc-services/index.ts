@@ -1,3 +1,4 @@
+import * as pulumi from '@pulumi/pulumi';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -9,10 +10,12 @@ import { SecretValue } from 'aws-cdk-lib';
 import { AwsCliLayer } from 'aws-cdk-lib/lambda-layer-awscli';
 
 class MiscServicesStack extends pulumicdk.Stack {
+    public readonly repoName: pulumi.Output<string>;
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);
         const repo = new ecr.Repository(this, 'testrepo');
         repo.grantPull(new iam.ServicePrincipal('lambda.amazonaws.com'));
+        this.repoName = this.asOutput(repo.repositoryName);
 
         new ssm.StringParameter(this, 'testparam', {
             stringValue: 'testvalue',
@@ -82,6 +85,10 @@ class MiscServicesStack extends pulumicdk.Stack {
     }
 }
 
-new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new MiscServicesStack(scope, 'teststack');
+const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    const stack = new MiscServicesStack(scope, 'teststack');
+    return {
+        repoName: stack.repoName,
+    };
 });
+export const repoName = app.outputs['repoName'];

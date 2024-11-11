@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestApiGateway(t *testing.T) {
@@ -86,6 +87,10 @@ func TestMisc(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "misc-services"),
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				repoName := stack.Outputs["repoName"].(string)
+				assert.Containsf(t, "testrepob5dda46f", repoName, "Expected repoName to contain 'testrepob5dda46f'; got %s", repoName)
+			},
 		})
 
 	integration.ProgramTest(t, &test)
