@@ -109,6 +109,10 @@ func TestCloudFront(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "cloudfront"),
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				bucketName := stack.Outputs["bucketName"].(string)
+				assert.Containsf(t, bucketName, "bucket83908e77", "Bucket name should contain 'bucket'")
+			},
 		})
 
 	integration.ProgramTest(t, &test)
