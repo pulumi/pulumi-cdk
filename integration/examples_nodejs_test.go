@@ -89,7 +89,7 @@ func TestMisc(t *testing.T) {
 			Dir: filepath.Join(getCwd(t), "misc-services"),
 			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
 				repoName := stack.Outputs["repoName"].(string)
-				assert.Containsf(t, "testrepob5dda46f", repoName, "Expected repoName to contain 'testrepob5dda46f'; got %s", repoName)
+				assert.Containsf(t, repoName, "testrepob5dda46f", "Expected repoName to contain 'testrepob5dda46f'; got %s", repoName)
 			},
 		})
 
