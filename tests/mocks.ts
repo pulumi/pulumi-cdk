@@ -65,6 +65,10 @@ export function setMocks(resources?: MockResourceArgs[]) {
                     return {
                         accountId: '12345678910',
                     };
+                case 'aws:index/getPartition:getPartition':
+                    return {
+                        partition: 'aws',
+                    };
                 case 'aws:index/getRegion:getRegion':
                     return {
                         name: 'us-east-2',

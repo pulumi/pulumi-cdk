@@ -1,9 +1,18 @@
 import { mapToAwsResource } from '../src/aws-resource-mappings';
-import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as aws from '@pulumi/aws';
 
 jest.mock('@pulumi/aws', () => {
     return {
+        getRegionOutput: jest.fn().mockImplementation(() => {
+            return {
+                name: 'us-east-1',
+            };
+        }),
+        getPartitionOutput: jest.fn().mockImplementation(() => {
+            return {
+                partition: 'aws',
+            };
+        }),
         apigatewayv2: {
             Integration: jest.fn().mockImplementation(() => {
                 return {};
@@ -16,6 +25,11 @@ jest.mock('@pulumi/aws', () => {
         },
         sns: {
             TopicPolicy: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+        },
+        cloudwatch: {
+            EventBusPolicy: jest.fn().mockImplementation(() => {
                 return {};
             }),
         },
@@ -41,11 +55,13 @@ jest.mock('@pulumi/aws', () => {
     };
 });
 
-afterEach(() => {
+afterAll(() => {
     jest.resetAllMocks();
 });
 
-beforeAll(() => {});
+beforeEach(() => {
+    jest.clearAllMocks();
+});
 
 describe('AWS Resource Mappings', () => {
     test('maps iam.Policy', () => {
@@ -367,6 +383,54 @@ describe('AWS Resource Mappings', () => {
                 ],
                 multivalueAnswerRoutingPolicy: true,
             }),
+            {},
+        );
+    });
+
+    test('successfully maps EventBusPolicy resource', () => {
+        // GIVEN
+        const cfnType = 'AWS::Events::EventBusPolicy';
+        const logicalId = 'my-resource';
+        const cfnProps = {
+            EventBusName: 'eventBus',
+            Action: 'events:PutEvents',
+            Principal: '123456789012',
+            StatementId: 'MyStatement',
+        };
+        // WHEN
+        mapToAwsResource(logicalId, cfnType, cfnProps, {});
+        // THEN
+        expect(aws.cloudwatch.EventBusPolicy).toHaveBeenCalledWith(
+            logicalId,
+            {
+                eventBusName: 'eventBus',
+                policy: expect.anything(),
+            },
+            {},
+        );
+    });
+
+    test('successfully maps EventBusPolicy resource when statement provided', () => {
+        // GIVEN
+        const cfnType = 'AWS::Events::EventBusPolicy';
+        const logicalId = 'my-resource';
+        const cfnProps = {
+            EventBusName: 'eventBus',
+            Statement: {
+                Effect: 'Allow',
+                Principal: '123456789012',
+                Action: 'events:PutEvents',
+            },
+        };
+        // WHEN
+        mapToAwsResource(logicalId, cfnType, cfnProps, {});
+        // THEN
+        expect(aws.cloudwatch.EventBusPolicy).toHaveBeenCalledWith(
+            logicalId,
+            {
+                eventBusName: 'eventBus',
+                policy: expect.anything(),
+            },
             {},
         );
     });
