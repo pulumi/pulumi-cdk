@@ -1054,6 +1054,13 @@
     mime "^2.0.0"
     resolve "^1.7.1"
 
+"@pulumi/docker-build@^0.0.7":
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/@pulumi/docker-build/-/docker-build-0.0.7.tgz#c56582dbc2d6f6a07ceebb9201a7904cd2278e6e"
+  integrity sha512-yiPvQefRS3Z+5NtG5VK2pYTds0pCQh21INpoWY8gKFrqs166ZFVrPrMXelmsjABnmkG5ZNlkHanU7HqAExn55Q==
+  dependencies:
+    "@pulumi/pulumi" "^3.136.0"
+
 "@pulumi/docker@^4.5.0":
   version "4.5.7"
   resolved "https://registry.yarnpkg.com/@pulumi/docker/-/docker-4.5.7.tgz#56ec0782a1a52b5a1dc16230dcd7e07c0b94be01"

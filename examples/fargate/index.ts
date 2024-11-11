@@ -1,11 +1,13 @@
+import * as path from 'path';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 
-import { Duration } from 'aws-cdk-lib';
+import { AssetStaging, Duration } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
 import { CfnTargetGroup } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 
 class FargateStack extends pulumicdk.Stack {
     loadBalancerDNS: pulumi.Output<string>;
@@ -22,7 +24,13 @@ class FargateStack extends pulumicdk.Stack {
         const fargateService = new ecs_patterns.NetworkLoadBalancedFargateService(this, 'sample-app', {
             cluster,
             taskImageOptions: {
-                image: ecs.ContainerImage.fromRegistry('amazon/amazon-ecs-sample'),
+                // image: ecs.ContainerImage.fromRegistry('amazon/amazon-ecs-sample'),
+                image: ecs.ContainerImage.fromAsset(path.join(__dirname, './'), {
+                    file: 'app/Dockerfile',
+                    exclude: ['cdk.out', 'node_modules'],
+                    assetName: 'cdk-fargate-example',
+                    platform: Platform.LINUX_AMD64,
+                }),
             },
         });
 
@@ -51,10 +59,29 @@ class FargateStack extends pulumicdk.Stack {
 
 class MyApp extends pulumicdk.App {
     constructor() {
-        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new FargateStack(scope, 'fargatestack');
-            return { loadBalancerURL: stack.loadBalancerDNS };
-        });
+        super(
+            'app',
+            (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+                const stack = new FargateStack(scope, 'fargatestack');
+                return { loadBalancerURL: stack.loadBalancerDNS };
+            },
+            {
+                // TODO[pulumi/aws-native#1318]
+                transforms: [
+                    (args: pulumi.ResourceTransformArgs): pulumi.ResourceTransformResult => {
+                        if (args.type === 'aws-native:ecs:TaskDefinition') {
+                            args.opts.replaceOnChanges = ['containerDefinitions'];
+                        }
+                        return {
+                            opts: {
+                                ...args.opts,
+                            },
+                            props: args.props,
+                        };
+                    },
+                ],
+            },
+        );
     }
 }
 

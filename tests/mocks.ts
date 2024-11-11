@@ -101,6 +101,11 @@ export function setMocks(resources?: MockResourceArgs[]) {
                                   })
                                 : 'abcd',
                     };
+                case 'aws:ecr/getCredentials:getCredentials':
+                    return {
+                        authorizationToken: btoa('user:password'),
+                        proxyEndpoint: 'https://12345678910.dkr.ecr.us-east-1.amazonaws.com',
+                    };
                 default:
                     return {};
             }
@@ -117,6 +122,26 @@ export function setMocks(resources?: MockResourceArgs[]) {
                     return { id: '', state: {} };
                 case 'cdk:index:Component':
                     return { id: '', state: {} };
+                case 'docker-build:index:Image':
+                    resources?.push(args);
+                    return {
+                        id: args.inputs.name + '_id',
+                        state: {
+                            ...args.inputs,
+                            id: args.inputs.name + '_id',
+                            ref: args.inputs.tags[0] + '@sha256:abcdefghijk1023',
+                        },
+                    };
+                case 'aws:ecr/repository:Repository':
+                    resources?.push(args);
+                    return {
+                        id: args.inputs.name + '_id',
+                        state: {
+                            ...args.inputs,
+                            arn: args.name + '_arn',
+                            repositoryUrl: '12345678910.dkr.ecr.us-east-1.amazonaws.com/' + args.inputs.name,
+                        },
+                    };
                 default:
                     resources?.push(args);
                     return {

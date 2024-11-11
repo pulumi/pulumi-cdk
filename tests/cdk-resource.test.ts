@@ -1,3 +1,5 @@
+import * as path from 'path';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -169,5 +171,29 @@ describe('CDK Construct tests', () => {
                 Version: '2012-10-17',
             }),
         );
+    });
+
+    test('task definition references image ref', async () => {
+        await testApp((scope: Construct) => {
+            const taskDef = new ecs.FargateTaskDefinition(scope, 'Task');
+            taskDef.addContainer('app', {
+                image: ecs.ContainerImage.fromAsset(path.join(__dirname, 'test-data', 'app'), {
+                    assetName: 'testapp',
+                }),
+            });
+        });
+        const task = resources.find((res) => res.type === 'aws-native:ecs:TaskDefinition');
+        const image = resources.find((res) => res.type === 'docker-build:index:Image');
+        expect(image).toBeDefined();
+        expect(task).toBeDefined();
+        expect(task?.inputs).toMatchObject({
+            containerDefinitions: expect.arrayContaining([
+                expect.objectContaining({
+                    image: expect.stringMatching(
+                        /^12345678910.dkr.ecr.us-east-1.amazonaws.com\/project-stack\/testapp:[a-z0-9]+@sha256:abcdefghijk1023$/,
+                    ),
+                }),
+            ]),
+        });
     });
 });

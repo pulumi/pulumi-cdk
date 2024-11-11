@@ -3,8 +3,11 @@ import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 import { setMocks, testApp } from './mocks';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { CfnBucket } from 'aws-cdk-lib/aws-s3';
+import { asNetworkMode } from '../src/synthesizer';
+import { NetworkMode } from '@pulumi/docker-build';
+import { DockerImageAsset, Platform, NetworkMode as Network } from 'aws-cdk-lib/aws-ecr-assets';
 
-describe('Synthesizer', () => {
+describe('Synthesizer File Assets', () => {
     test('no assets = no staging resources', async () => {
         const resources: MockResourceArgs[] = [];
         setMocks(resources);
@@ -91,5 +94,213 @@ describe('Synthesizer', () => {
                 }),
             ]),
         );
+    });
+
+    test('asNetworkMode', () => {
+        expect(asNetworkMode('host')).toEqual(NetworkMode.Host);
+    });
+});
+
+describe('Synthesizer Docker Assets', () => {
+    test('basic', async () => {
+        const resources: MockResourceArgs[] = [];
+        setMocks(resources);
+
+        await testApp((scope) => {
+            new CfnBucket(scope, 'Bucket');
+            new DockerImageAsset(scope, 'asset', {
+                directory: path.join(__dirname, 'test-data', 'app'),
+                assetName: 'test-asset',
+            });
+        });
+
+        expect(resources).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'staging-stack-project-stack',
+                    type: 'cdk:construct:StagingStack',
+                }),
+                expect.objectContaining({
+                    name: 'project-stack/test-asset',
+                    type: 'aws:ecr/repository:Repository',
+                }),
+                expect.objectContaining({
+                    name: 'lifecycle-policy',
+                    type: 'aws:ecr/lifecyclePolicy:LifecyclePolicy',
+                }),
+                expect.objectContaining({
+                    name: 'staging-stack-project-stack/test-asset',
+                    type: 'docker-build:index:Image',
+                    inputs: {
+                        buildOnPreview: true,
+                        context: {
+                            location: expect.stringMatching(/.*\/asset.[a-z0-9]+$/),
+                        },
+                        dockerfile: {
+                            location: expect.stringMatching(/.*\/asset.[a-z0-9]+\/Dockerfile$/),
+                        },
+                        network: 'default',
+                        push: true,
+                        registries: [
+                            {
+                                address: 'https://12345678910.dkr.ecr.us-east-1.amazonaws.com',
+                                password: 'password',
+                                username: 'user',
+                            },
+                        ],
+                        tags: [
+                            expect.stringMatching(
+                                /^12345678910.dkr.ecr.us-east-1.amazonaws.com\/project-stack\/test-asset:[a-z0-9]+/,
+                            ),
+                        ],
+                    },
+                }),
+            ]),
+        );
+    });
+
+    test('all configs', async () => {
+        const resources: MockResourceArgs[] = [];
+        setMocks(resources);
+
+        await testApp((scope) => {
+            new CfnBucket(scope, 'Bucket');
+            new DockerImageAsset(scope, 'asset', {
+                directory: path.join(__dirname, 'test-data'),
+                assetName: 'test-asset',
+                file: 'app/Dockerfile',
+                target: 'target',
+                cacheTo: {
+                    type: 'registry',
+                    params: {
+                        ref: '12345678910.dkr.ecr.us-east-1.amazonaws.com/project-stack/test-asset:cache',
+                    },
+                },
+                outputs: ['output'],
+                buildSsh: 'ssh',
+                platform: Platform.LINUX_AMD64,
+                cacheFrom: [
+                    {
+                        type: 'inline',
+                        params: {},
+                    },
+                ],
+                buildArgs: {
+                    key: 'value',
+                },
+                networkMode: Network.HOST,
+                buildSecrets: {
+                    secret: 'value',
+                },
+            });
+        });
+
+        expect(resources).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'staging-stack-project-stack',
+                    type: 'cdk:construct:StagingStack',
+                }),
+                expect.objectContaining({
+                    name: 'project-stack/test-asset',
+                    type: 'aws:ecr/repository:Repository',
+                }),
+                expect.objectContaining({
+                    name: 'lifecycle-policy',
+                    type: 'aws:ecr/lifecyclePolicy:LifecyclePolicy',
+                }),
+                expect.objectContaining({
+                    name: 'staging-stack-project-stack/test-asset',
+                    type: 'docker-build:index:Image',
+                    inputs: {
+                        buildArgs: {
+                            key: 'value',
+                        },
+                        buildOnPreview: true,
+                        cacheFrom: [
+                            {
+                                inline: {},
+                            },
+                        ],
+                        cacheTo: [
+                            {
+                                registry: {
+                                    ref: '12345678910.dkr.ecr.us-east-1.amazonaws.com/project-stack/test-asset:cache',
+                                },
+                            },
+                        ],
+                        context: {
+                            location: expect.stringMatching(/.*\/asset.[a-z0-9]+$/),
+                        },
+                        dockerfile: {
+                            location: expect.stringMatching(/.*\/asset.[a-z0-9]+\/app\/Dockerfile$/),
+                        },
+                        network: 'host',
+                        platforms: ['linux/amd64'],
+                        push: true,
+                        registries: [
+                            {
+                                address: 'https://12345678910.dkr.ecr.us-east-1.amazonaws.com',
+                                password: 'password',
+                                username: 'user',
+                            },
+                        ],
+                        secrets: {
+                            secret: 'value',
+                        },
+                        ssh: [
+                            {
+                                id: 'default',
+                                paths: ['ssh'],
+                            },
+                        ],
+                        tags: [
+                            expect.stringMatching(
+                                /^12345678910.dkr.ecr.us-east-1.amazonaws.com\/project-stack\/test-asset:[a-z0-9]+/,
+                            ),
+                        ],
+                        target: 'target',
+                    },
+                }),
+            ]),
+        );
+    });
+
+    test('images are deduplicated', async () => {
+        const resources: MockResourceArgs[] = [];
+        setMocks(resources);
+
+        await testApp((scope) => {
+            new CfnBucket(scope, 'Bucket');
+            new DockerImageAsset(scope, 'asset', {
+                directory: path.join(__dirname, 'test-data', 'app'),
+                assetName: 'test-asset',
+            });
+            new DockerImageAsset(scope, 'asset2', {
+                directory: path.join(__dirname, 'test-data', 'app'),
+                assetName: 'test-asset',
+            });
+        });
+        const images = resources.filter((r) => r.type === 'docker-build:index:Image');
+        expect(images.length).toEqual(1);
+    });
+
+    test('images with different assetNames are not deduplicated', async () => {
+        const resources: MockResourceArgs[] = [];
+        setMocks(resources);
+
+        await testApp((scope) => {
+            new CfnBucket(scope, 'Bucket');
+            new DockerImageAsset(scope, 'asset', {
+                directory: path.join(__dirname, 'test-data', 'app'),
+                assetName: 'test-asset',
+            });
+            new DockerImageAsset(scope, 'asset2', {
+                directory: path.join(__dirname, 'test-data', 'app'),
+                assetName: 'test-asset-2',
+            });
+        });
+        const images = resources.filter((r) => r.type === 'docker-build:index:Image');
+        expect(images.length).toEqual(2);
     });
 });

@@ -16,12 +16,15 @@ package examples
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,6 +73,19 @@ func TestFargate(t *testing.T) {
 			Dir:              filepath.Join(getCwd(t), "fargate"),
 			NoParallel:       true,
 			RetryFailedSteps: true, // Workaround for https://github.com/pulumi/pulumi-aws-native/issues/1186
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				url := stack.Outputs["loadBalancerURL"].(string)
+
+				resp, err := http.Get(url)
+				assert.NoError(t, err)
+				defer resp.Body.Close()
+
+				body, err := io.ReadAll(resp.Body)
+				assert.NoError(t, err)
+
+				assert.Equal(t, 200, resp.StatusCode)
+				assert.Equal(t, "Hello, world!", string(body))
+			},
 		})
 
 	integration.ProgramTest(t, &test)
