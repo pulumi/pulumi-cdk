@@ -1,32 +1,13 @@
 import { AppConverter, StackConverter } from '../../src/converters/app-converter';
 import * as native from '@pulumi/aws-native';
-import { Stack } from 'aws-cdk-lib/core';
-import { AppComponent, AppOptions } from '../../src/types';
 import * as path from 'path';
 import * as mockfs from 'mock-fs';
 import * as pulumi from '@pulumi/pulumi';
 import { BucketPolicy } from '@pulumi/aws-native/s3';
 import { createStackManifest } from '../utils';
-import { promiseOf, setMocks } from '../mocks';
-import { CdkConstruct } from '../../src/interop';
+import { promiseOf, setMocks, MockAppComponent } from '../mocks';
 import { StackManifest } from '../../src/assembly';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
-
-class MockAppComponent extends pulumi.ComponentResource implements AppComponent {
-    public readonly name = 'stack';
-    public readonly assemblyDir: string;
-    stacks: { [artifactId: string]: Stack } = {};
-    dependencies: CdkConstruct[] = [];
-
-    component: pulumi.ComponentResource;
-    public stack: Stack;
-    public appOptions?: AppOptions | undefined;
-    constructor(dir: string) {
-        super('cdk:index:App', 'stack');
-        this.assemblyDir = dir;
-        this.registerOutputs();
-    }
-}
 
 let resources: MockResourceArgs[] = [];
 beforeAll(() => {
@@ -186,7 +167,7 @@ describe('App Converter', () => {
     afterEach(() => {
         mockfs.restore();
     });
-    test('can convert', async () => {
+    test('can convert app', async () => {
         const mockStackComponent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
         const converter = new AppConverter(mockStackComponent);
         converter.convert();

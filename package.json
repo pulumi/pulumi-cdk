@@ -21,16 +21,16 @@
     }
   },
   "resolutions": {
-    "@pulumi/pulumi": "3.121.0", 
+    "@pulumi/pulumi": "3.136.0", 
     "wrap-ansi": "7.0.0",
     "string-width": "4.1.0"
   },
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
-    "@pulumi/aws": "^6.32.0",
+    "@pulumi/aws": "^6.56.0",
     "@pulumi/aws-native": "^1.6.0",
     "@pulumi/docker": "^4.5.0",
-    "@pulumi/pulumi": "3.121.0",
+    "@pulumi/pulumi": "3.136.0",
     "@types/archiver": "^6.0.2",
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.2",
@@ -50,10 +50,10 @@
     "typescript-eslint": "^7.16.1"
   },
   "peerDependencies": {
-    "@pulumi/aws": "^6.32.0",
-    "@pulumi/aws-native": "^1.0.0",
+    "@pulumi/aws": "^6.56.0",
+    "@pulumi/aws-native": "^1.6.0",
     "@pulumi/docker": "^4.5.0",
-    "@pulumi/pulumi": "^3.117.0",
+    "@pulumi/pulumi": "^3.136.0",
     "aws-cdk-lib": "^2.20.0",
     "constructs": "^10.0.111"
   },

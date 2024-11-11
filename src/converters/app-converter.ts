@@ -21,6 +21,7 @@ import { CloudFormationResource, getDependsOn } from '../cfn';
 import { OutputMap, OutputRepr } from '../output-map';
 import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
+import { processSecretsManagerReferenceValue, resolveSecretsManagerDynamicReference } from './secrets-manager-dynamic';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -343,9 +344,32 @@ export class StackConverter extends ArtifactConverter {
             return this.resolveIntrinsic(keys[0], obj[keys[0]]);
         }
 
+        // This is where we can do any final processing on the resolved value
+        // For example, if we have a value that contains intrinsics and refs, like:
+        // "Fn::Join": [
+        //    "",
+        //    [
+        //      "{{resolve:secretsmanager:",
+        //      {
+        //        "Ref": "somesecretlogicalId"
+        //      },
+        //      ":SecretString:password:AWSCURRENT}}"
+        //    ]
+        // ]
+        //
+        // Then we will recurse through that object resolving the ref and the join
+        // and eventually get to the point where we have a string that looks like:
+        // "{{resolve:secretsmanager:arn:aws:secretsmanager:us-east-2:12345678910:secret:somesecretid-abcd:SecretString:password:AWSCURRENT}}"
         return Object.entries(obj)
             .filter(([_, v]) => !this.isNoValue(v))
-            .reduce((result, [k, v]) => ({ ...result, [k]: this.processIntrinsics(v) }), {});
+            .reduce((result, [k, v]) => {
+                let value = this.processIntrinsics(v);
+                value = processSecretsManagerReferenceValue(this.stackResource, value);
+                return {
+                    ...result,
+                    [k]: value,
+                };
+            }, {});
     }
 
     private isNoValue(obj: any): boolean {
@@ -462,8 +486,9 @@ export class StackConverter extends ArtifactConverter {
             case 'AWS::NotificationARNs':
             case 'AWS::StackId':
             case 'AWS::StackName':
-                // Can't support these
-                throw new Error(`reference to unsupported pseudo parameter ${target}`);
+                // These are typically used in things like names or descriptions so I think
+                // the stack node id is a good substitute.
+                return this.cdkStack.node.id;
         }
 
         const mapping = this.lookup(target);

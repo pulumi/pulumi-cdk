@@ -1,4 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
+import { CdkConstruct } from '../src/interop';
+import { Stack as CdkStack } from 'aws-cdk-lib/core';
+import { AppComponent, AppOptions } from '../src/types';
 import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Construct } from 'constructs';
 import { App, Stack } from '../src/stack';
@@ -6,6 +9,22 @@ import { App, Stack } from '../src/stack';
 // Convert a pulumi.Output to a promise of the same type.
 export function promiseOf<T>(output: pulumi.Output<T>): Promise<T> {
     return new Promise((resolve) => output.apply(resolve));
+}
+
+export class MockAppComponent extends pulumi.ComponentResource implements AppComponent {
+    public readonly name = 'stack';
+    public readonly assemblyDir: string;
+    stacks: { [artifactId: string]: CdkStack } = {};
+    dependencies: CdkConstruct[] = [];
+
+    component: pulumi.ComponentResource;
+    public stack: Stack;
+    public appOptions?: AppOptions | undefined;
+    constructor(dir: string) {
+        super('cdk:index:App', 'stack');
+        this.assemblyDir = dir;
+        this.registerOutputs();
+    }
 }
 
 export async function testApp(fn: (scope: Construct) => void) {
@@ -69,6 +88,15 @@ export function setMocks(resources?: MockResourceArgs[]) {
                     return {
                         name: 'us-east-2',
                     };
+                case 'aws:secretsmanager/getSecretVersion:getSecretVersion':
+                    return {
+                        secretString:
+                            args.inputs.secretId === 'json'
+                                ? JSON.stringify({
+                                      password: 'abcd',
+                                  })
+                                : 'abcd',
+                    };
                 default:
                     return {};
             }
@@ -88,9 +116,10 @@ export function setMocks(resources?: MockResourceArgs[]) {
                 default:
                     resources?.push(args);
                     return {
-                        id: args.name + '_id',
+                        id: args.inputs.description ?? args.name + '_id',
                         state: {
                             ...args.inputs,
+                            id: args.inputs.description ?? args.name + '_id',
                             arn: args.name + '_arn',
                         },
                     };
