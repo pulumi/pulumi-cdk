@@ -260,6 +260,46 @@ export function mapToAwsResource(
             );
         }
 
+        case 'AWS::Events::EventBusPolicy': {
+            let props: aws.cloudwatch.EventBusPolicyArgs;
+            if (rawProps.Statement && (rawProps.Principal || rawProps.Action || rawProps.Condition)) {
+                throw new Error(
+                    'EventBusPolicy args invalid. Only Statement or StatementId, Principal, Action, and Condition are allowed',
+                );
+            } else if (rawProps.Statement) {
+                props = {
+                    policy: pulumi.jsonStringify({
+                        Statement: [rawProps.Statement],
+                        Version: '2012-10-17',
+                    }),
+                    eventBusName: rawProps.EventBusName,
+                };
+            } else {
+                const region = aws.getRegionOutput({}, options).name;
+                const partition = aws.getPartitionOutput({}, options).partition;
+                const busName = rawProps.EventBusName ?? 'default';
+                const arn = pulumi.interpolate`arn:${partition}:events:${region}:${rawProps.Principal}:event-bus/${busName}`;
+                props = {
+                    policy: pulumi.jsonStringify({
+                        Statement: [
+                            {
+                                Sid: rawProps.StatementId,
+                                Principal: {
+                                    AWS: rawProps.Principal,
+                                },
+                                Action: rawProps.Action,
+                                Effect: 'Allow',
+                                Resource: arn,
+                                Condition: rawProps.Condition,
+                            },
+                        ],
+                        Version: '2012-10-17',
+                    }),
+                    eventBusName: rawProps.EventBusName,
+                };
+            }
+            return new aws.cloudwatch.EventBusPolicy(logicalId, props, options);
+        }
         default:
             return undefined;
     }

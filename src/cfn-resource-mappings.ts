@@ -34,6 +34,11 @@ export function mapToCfnResource(
             // lowercase letters.
             return new aws.s3.Bucket(logicalId.toLowerCase(), props, options);
 
+        case 'AWS::ECR::Repository':
+            // Lowercase the repository name to comply with the Repository resource's naming constraints, which only allow
+            // lowercase letters.
+            return new aws.ecr.Repository(logicalId.toLowerCase(), props, options);
+
         // A couple of ApiGateway resources suffer from https://github.com/pulumi/pulumi-cdk/issues/173
         // These are very popular resources so handling the workaround here since we can remove these
         // manual mappings once the issue has been fixed without breaking users

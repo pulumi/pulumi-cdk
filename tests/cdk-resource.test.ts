@@ -1,4 +1,6 @@
 import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { TableArgs } from '@pulumi/aws-native/dynamodb';
 import { Key } from 'aws-cdk-lib/aws-kms';
@@ -108,5 +110,64 @@ describe('CDK Construct tests', () => {
         const txt = resources.find((res) => res.type === 'aws:route53/record:Record');
         expect(txt).toBeDefined();
         expect(txt?.inputs.records).toEqual(['hello'.repeat(51), 'hello']);
+    });
+
+    test('EventBusPolicy correctly maps statement', async () => {
+        await testApp((scope: Construct) => {
+            const eventBus = new events.EventBus(scope, 'testbus');
+            eventBus.addToResourcePolicy(
+                new iam.PolicyStatement({
+                    sid: 'testsid',
+                    actions: ['events:PutEvents'],
+                    principals: [new iam.AccountRootPrincipal()],
+                    resources: [eventBus.eventBusArn],
+                }),
+            );
+        });
+        const policy = resources.find((res) => res.type === 'aws:cloudwatch/eventBusPolicy:EventBusPolicy');
+        expect(policy).toBeDefined();
+        expect(policy?.inputs.policy).toEqual(
+            JSON.stringify({
+                Statement: [
+                    {
+                        Action: 'events:PutEvents',
+                        Effect: 'Allow',
+                        Principal: { AWS: 'arn:aws:iam::12345678912:root' },
+                        Resource: 'testbus9BA9ECFC_arn',
+                        Sid: 'cdk-testsid',
+                    },
+                ],
+                Version: '2012-10-17',
+            }),
+        );
+    });
+
+    test('EventBusPolicy correctly maps props', async () => {
+        await testApp((scope: Construct) => {
+            // This type of event bus policy is created for cross account access
+            new events.CfnEventBusPolicy(scope, 'buspolicy', {
+                action: 'events:PutEvents',
+                statementId: 'statement-id',
+                principal: '123456789012',
+            });
+        });
+        const policy = resources.find(
+            (res) => res.type === 'aws:cloudwatch/eventBusPolicy:EventBusPolicy' && res.name === 'buspolicy',
+        );
+        expect(policy).toBeDefined();
+        expect(policy?.inputs.policy).toEqual(
+            JSON.stringify({
+                Statement: [
+                    {
+                        Sid: 'statement-id',
+                        Principal: { AWS: '123456789012' },
+                        Action: 'events:PutEvents',
+                        Effect: 'Allow',
+                        Resource: 'arn:aws:events:us-east-2:123456789012:event-bus/default',
+                    },
+                ],
+                Version: '2012-10-17',
+            }),
+        );
     });
 });

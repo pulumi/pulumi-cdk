@@ -1,8 +1,6 @@
 import { CustomResource } from '@pulumi/pulumi';
-import { setMocks } from './mocks';
 import { mapToCfnResource } from '../src/cfn-resource-mappings';
 import * as aws from '@pulumi/aws-native';
-import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 
 class MockResource {
     constructor(args: { [key: string]: any }) {
@@ -25,6 +23,11 @@ jest.mock('@pulumi/aws-native', () => {
                 return {};
             }),
             Bucket: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+        },
+        ecr: {
+            Repository: jest.fn().mockImplementation(() => {
                 return {};
             }),
         },
@@ -80,6 +83,17 @@ describe('Cfn Resource Mappings', () => {
         mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
         expect(aws.s3.Bucket).toHaveBeenCalledWith('my-resource', {}, {});
+    });
+
+    test('lowercase ecr.Repository name', () => {
+        // GIVEN
+        const cfnType = 'AWS::ECR::Repository';
+        const logicalId = 'My-resource';
+        const cfnProps = {};
+        // WHEN
+        mapToCfnResource(logicalId, cfnType, cfnProps, {});
+        // THEN
+        expect(aws.ecr.Repository).toHaveBeenCalledWith('my-resource', {}, {});
     });
 
     test('maps s3objectlambda.AccessPoint props', () => {
