@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 
-import { AssetStaging, Duration } from 'aws-cdk-lib';
+import { Duration } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
@@ -24,10 +24,10 @@ class FargateStack extends pulumicdk.Stack {
         const fargateService = new ecs_patterns.NetworkLoadBalancedFargateService(this, 'sample-app', {
             cluster,
             taskImageOptions: {
-                // image: ecs.ContainerImage.fromRegistry('amazon/amazon-ecs-sample'),
                 image: ecs.ContainerImage.fromAsset(path.join(__dirname, './'), {
                     file: 'app/Dockerfile',
                     exclude: ['cdk.out', 'node_modules'],
+                    // assetName is now required and is used in the name of the ecr repository that is created
                     assetName: 'cdk-fargate-example',
                     platform: Platform.LINUX_AMD64,
                 }),

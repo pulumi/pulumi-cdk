@@ -6,7 +6,6 @@ import { translateCfnTokenToAssetToken } from 'aws-cdk-lib/core/lib/helpers-inte
 import * as aws from '@pulumi/aws';
 import { CdkConstruct } from './interop';
 import { zipDirectory } from './zip';
-import { warn } from '@pulumi/pulumi/log';
 import { asString } from './output';
 
 /**
@@ -73,6 +72,18 @@ export interface PulumiSynthesizerOptions {
     readonly autoDeleteStagingAssets?: boolean;
 
     /**
+     * The maximum number of image versions to store in a repository.
+     *
+     * Previous versions of an image can be stored for rollback purposes.
+     * Once a repository has more than 3 image versions stored, the oldest
+     * version will be discarded. This allows for sensible garbage collection
+     * while maintaining a few previous versions for rollback scenarios.
+     *
+     * @default - up to 3 versions stored
+     */
+    readonly imageAssetVersionCount?: number;
+
+    /**
      * The parent resource for any Pulumi resources created by the Synthesizer
      */
     readonly parent?: pulumi.Resource;
@@ -91,8 +102,18 @@ export abstract class PulumiSynthesizerBase extends cdk.StackSynthesizer {
     public abstract readonly stagingStack: CdkConstruct;
 }
 
+/**
+ * Information on the created ECR repository
+ */
 interface CreateRepoResponse {
+    /**
+     * The name of the created repository
+     */
     repoName: string;
+
+    /**
+     * The ECR repository that was created
+     */
     repo: aws.ecr.Repository;
 }
 
@@ -134,6 +155,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      */
     private readonly _stagingBucketName?: string;
     private readonly autoDeleteStagingAssets: boolean;
+    private readonly imageAssetVersionCount: number;
 
     /**
      * The final CDK name of the asset S3 bucket. This may contain CDK tokens
@@ -186,7 +208,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
     private readonly seenFileAssets = new Set<string>();
 
     /**
-     * List of asset hashes that have already been uploaded.
+     * Map of `${assetName}:${assetHash}` to docker.Image that have already been created.
      * The same asset could be registered multiple times, but we
      * only want to upload it a single time
      */
@@ -198,6 +220,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         this._stagingBucketName = props.stagingBucketName;
         this.autoDeleteStagingAssets = props.autoDeleteStagingAssets ?? true;
         this.appId = this.validateAppId(props.appId);
+        this.imageAssetVersionCount = props.imageAssetVersionCount ?? 3;
 
         const account = aws.getCallerIdentity({}, { parent: props.parent }).then((id) => id.accountId);
         this.pulumiAccount = pulumi.output(account);
@@ -227,6 +250,13 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         return id;
     }
 
+    /**
+     * This will create a unique ECR repository for each asset. Creating a separate repository for each
+     * asset allows us to have a lifecycle policy on the repository to delete old images.
+     *
+     * @param asset - The cdk asset to create a repo for
+     * @returns Information about the created repo
+     */
     private getCreateRepo(asset: cdk.DockerImageAssetSource): CreateRepoResponse {
         if (!asset.assetName) {
             throw new Error("Docker image assets must include 'assetName' in the asset source definition");
@@ -238,6 +268,8 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
                 repoName,
                 {
                     name: repoName,
+                    // prevents you from pushing an image with a tag that already exists in the repository
+                    // @see https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-tag-mutability.html
                     imageTagMutability: 'IMMUTABLE',
                     forceDelete: this.autoDeleteStagingAssets,
                 },
@@ -252,7 +284,11 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
                     rules: [
                         {
                             action: { type: 'expire' },
-                            selection: { countType: 'imageCountMoreThan', tagStatus: 'any', countNumber: 3 },
+                            selection: {
+                                countType: 'imageCountMoreThan',
+                                tagStatus: 'any',
+                                countNumber: this.imageAssetVersionCount,
+                            },
                             rulePriority: 1,
                             description: 'Garbage collect old image versions',
                         },
@@ -499,6 +535,15 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         });
     }
 
+    /**
+     * This method is called by CDK constructs to add an image asset to the stack
+     * Usually the default synthesizers will then take the data and add it to the asset manifest
+     * for the stack. In our case we can just directly push the images and then we don't have to
+     * later post-process the assets from the manifest
+     *
+     * @param asset - The cdk asset to add
+     * @returns The location of the asset. This will be the reference to the image ref
+     */
     addDockerImageAsset(asset: cdk.DockerImageAssetSource): cdk.DockerImageAssetLocation {
         assertBound(this.outdir);
         if (asset.executable || !asset.directoryName) {
@@ -638,6 +683,10 @@ export function asNetworkMode(networkMode?: string): docker.NetworkMode | undefi
         return undefined;
     }
 
+    // docker.NetworkMode is a `type` and I can't find a way to compare a string value to a type
+    // without hardcoding the possible values (which we would then have to keep updated).
+    // This workaround gets the types to work and then if the value is not one of the supported values
+    // it will fail at deployment
     return networkMode as docker.NetworkMode;
 }
 
@@ -651,5 +700,10 @@ export function asPlatforms(platform?: string): docker.Platform[] | undefined {
     if (!platform) {
         return undefined;
     }
+    //
+    // docker.Platform is a `type` and I can't find a way to compare a string value to a type
+    // without hardcoding the possible values (which we would then have to keep updated).
+    // This workaround gets the types to work and then if the value is not one of the supported values
+    // it will fail at deployment
     return [platform as docker.Platform];
 }
