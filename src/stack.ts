@@ -152,15 +152,13 @@ export class App
                 const message = e.message as string;
                 const messageParts = message.split('Context lookups have been disabled. ');
                 const missingParts = messageParts[1].split('Missing context keys: ');
-                error(
+                throw new Error(
                     'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". \n' +
                         'Missing context keys: ' +
                         missingParts[1],
-                    this,
                 );
-            } else {
-                error(e, this);
             }
+            throw e;
         }
 
         const converter = new AppConverter(this);

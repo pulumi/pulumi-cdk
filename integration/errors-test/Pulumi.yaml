@@ -1,0 +1,3 @@
+name: pulumi-aws-errors
+runtime: nodejs
+description: errors integration test
