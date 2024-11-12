@@ -296,5 +296,6 @@ function generateAppId(): string {
     return `${project}${stack}`
         .toLowerCase()
         .replace(/[^a-z0-9-.]/g, '-')
+        .replace('--', '-')
         .slice(-17);
 }
