@@ -17,7 +17,6 @@ import { AppComponent, AppOptions, AppResourceOptions } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
-import { error } from '@pulumi/pulumi/log';
 import { CdkConstruct } from './interop';
 
 export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
