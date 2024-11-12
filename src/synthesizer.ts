@@ -261,7 +261,11 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         if (!asset.assetName) {
             throw new Error("Docker image assets must include 'assetName' in the asset source definition");
         }
-        const repoName = `${this.appId}/${asset.assetName}`.toLocaleLowerCase().replace('.', '-');
+        const repoName = `${this.appId}/${asset.assetName}`
+            .toLocaleLowerCase()
+            .replace('.', '-')
+            // it can only start with letters or numbers
+            .replace(/[^a-z0-9]/, '');
 
         if (!this.stagingRepos[repoName]) {
             const repo = new aws.ecr.Repository(
