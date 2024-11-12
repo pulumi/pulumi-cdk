@@ -17,7 +17,6 @@ import { AppComponent, AppOptions, AppResourceOptions } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
-import { error } from '@pulumi/pulumi/log';
 import { CdkConstruct } from './interop';
 
 export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
@@ -152,15 +151,13 @@ export class App
                 const message = e.message as string;
                 const messageParts = message.split('Context lookups have been disabled. ');
                 const missingParts = messageParts[1].split('Missing context keys: ');
-                error(
+                throw new Error(
                     'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". \n' +
                         'Missing context keys: ' +
                         missingParts[1],
-                    this,
                 );
-            } else {
-                error(e, this);
             }
+            throw e;
         }
 
         const converter = new AppConverter(this);

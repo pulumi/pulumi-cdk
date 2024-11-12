@@ -15,6 +15,7 @@
 package examples
 
 import (
+	"bytes"
 	"path/filepath"
 	"testing"
 
@@ -116,6 +117,19 @@ func TestCloudFront(t *testing.T) {
 		})
 
 	integration.ProgramTest(t, &test)
+}
+
+func TestErrors(t *testing.T) {
+	var buf bytes.Buffer
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir:           filepath.Join(getCwd(t), "errors-test"),
+			Stderr:        &buf,
+			ExpectFailure: true,
+		})
+
+	integration.ProgramTest(t, &test)
+	assert.Containsf(t, buf.String(), "Error: Event Bus policy statements must have a sid", "Expected error message not found in pulumi up output")
 }
 
 func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {
