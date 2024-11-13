@@ -3,8 +3,8 @@ import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 import { setMocks, testApp } from './mocks';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { CfnBucket } from 'aws-cdk-lib/aws-s3';
-import { asNetworkMode } from '../src/synthesizer';
-import { NetworkMode } from '@pulumi/docker-build';
+import { asNetworkMode, asPlatforms } from '../src/synthesizer';
+import { NetworkMode, Platform as DockerPlatform } from '@pulumi/docker-build';
 import { DockerImageAsset, Platform, NetworkMode as Network } from 'aws-cdk-lib/aws-ecr-assets';
 
 describe('Synthesizer File Assets', () => {
@@ -96,8 +96,24 @@ describe('Synthesizer File Assets', () => {
         );
     });
 
-    test('asNetworkMode', () => {
+    test('asNetworkMode works', () => {
         expect(asNetworkMode('host')).toEqual(NetworkMode.Host);
+    });
+
+    test('asNetworkMode throws', () => {
+        expect(() => {
+            asNetworkMode('abc');
+        }).toThrow(/Unsupported network mode: abc/);
+    });
+
+    test('asPlatforms works', () => {
+        expect(asPlatforms('linux/amd64')).toEqual([DockerPlatform.Linux_amd64]);
+    });
+
+    test('asPlatforms throws', () => {
+        expect(() => {
+            asPlatforms('abc');
+        }).toThrow(/Unsupported platform: abc/);
     });
 });
 

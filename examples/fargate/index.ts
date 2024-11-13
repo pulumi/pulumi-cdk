@@ -86,4 +86,4 @@ class MyApp extends pulumicdk.App {
 }
 
 const app = new MyApp();
-export const loadBalancerURL = app.outputs['loadBalancerURL'];
+export const loadBalancerURL = pulumi.interpolate`${app.outputs['loadBalancerURL']}/`;

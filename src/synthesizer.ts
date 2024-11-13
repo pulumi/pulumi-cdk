@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as docker from '@pulumi/docker-build';
+import { NetworkMode } from '@pulumi/docker-build';
 import * as pulumi from '@pulumi/pulumi';
 import * as cdk from 'aws-cdk-lib/core';
 import { translateCfnTokenToAssetToken } from 'aws-cdk-lib/core/lib/helpers-internal';
@@ -265,7 +266,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
             .toLocaleLowerCase()
             .replace('.', '-')
             // it can only start with letters or numbers
-            .replace(/[^a-z0-9]/, '');
+            .replace(/^[^a-z0-9]+/, '');
 
         if (!this.stagingRepos[repoName]) {
             const repo = new aws.ecr.Repository(
@@ -282,23 +283,27 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
                     parent: this.stagingStack,
                 },
             );
-            new aws.ecr.LifecyclePolicy('lifecycle-policy', {
-                repository: repo.name,
-                policy: {
-                    rules: [
-                        {
-                            action: { type: 'expire' },
-                            selection: {
-                                countType: 'imageCountMoreThan',
-                                tagStatus: 'any',
-                                countNumber: this.imageAssetVersionCount,
+            new aws.ecr.LifecyclePolicy(
+                'lifecycle-policy',
+                {
+                    repository: repo.name,
+                    policy: {
+                        rules: [
+                            {
+                                action: { type: 'expire' },
+                                selection: {
+                                    countType: 'imageCountMoreThan',
+                                    tagStatus: 'any',
+                                    countNumber: this.imageAssetVersionCount,
+                                },
+                                rulePriority: 1,
+                                description: 'Garbage collect old image versions',
                             },
-                            rulePriority: 1,
-                            description: 'Garbage collect old image versions',
-                        },
-                    ],
+                        ],
+                    },
                 },
-            });
+                { parent: this.stagingStack },
+            );
             this.stagingRepos[repoName] = repo;
         }
         return {
@@ -686,12 +691,12 @@ export function asNetworkMode(networkMode?: string): docker.NetworkMode | undefi
     if (networkMode === undefined) {
         return undefined;
     }
+    const acceptedModes = Object.values(NetworkMode) as string[];
+    if (!acceptedModes.includes(networkMode)) {
+        throw new Error(`Unsupported network mode: ${networkMode}`);
+    }
 
-    // docker.NetworkMode is a `type` and I can't find a way to compare a string value to a type
-    // without hardcoding the possible values (which we would then have to keep updated).
-    // This workaround gets the types to work and then if the value is not one of the supported values
-    // it will fail at deployment
-    return networkMode as docker.NetworkMode;
+    return networkMode as NetworkMode;
 }
 
 /**
@@ -704,10 +709,11 @@ export function asPlatforms(platform?: string): docker.Platform[] | undefined {
     if (!platform) {
         return undefined;
     }
-    //
-    // docker.Platform is a `type` and I can't find a way to compare a string value to a type
-    // without hardcoding the possible values (which we would then have to keep updated).
-    // This workaround gets the types to work and then if the value is not one of the supported values
-    // it will fail at deployment
+
+    const acceptedPlatforms = Object.values(docker.Platform) as string[];
+    if (!acceptedPlatforms.includes(platform)) {
+        throw new Error(`Unsupported platform: ${platform}`);
+    }
+
     return [platform as docker.Platform];
 }
