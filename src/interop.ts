@@ -13,9 +13,8 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { debug } from '@pulumi/pulumi/log';
 import { normalizeObject } from './pulumi-metadata';
-import { toSdkName, typeToken } from './naming';
+import { toSdkName } from './naming';
 import { PulumiProvider } from './types';
 import { PulumiResourceType } from './graph';
 
@@ -83,31 +82,6 @@ export type ResourceAttributeMapping = {
 export type ResourceAttributeMappingArray = (ResourceAttributeMapping & { logicalId: string })[];
 
 export type ResourceMapping = ResourceAttributeMapping | pulumi.Resource | ResourceAttributeMappingArray;
-
-export class CfnResource extends pulumi.CustomResource {
-    constructor(
-        name: string,
-        type: string,
-        properties: any,
-        attributes: string[],
-        opts?: pulumi.CustomResourceOptions,
-    ) {
-        const resourceName = typeToken(type);
-
-        debug(`Constructing CfnResource ${name} of type ${resourceName} with attributes=${JSON.stringify(attributes)}`);
-        const propertiesDebugString = pulumi.output(properties).apply(JSON.stringify);
-        pulumi.interpolate`CfnResource ${name} input properties: ${propertiesDebugString}`.apply(debug);
-
-        // Prepare an args bag with placeholders for output attributes.
-        const args: any = {};
-        for (const k of attributes) {
-            args[k] = undefined;
-        }
-        Object.assign(args, properties);
-
-        super(resourceName, name, args, opts);
-    }
-}
 
 export class CdkConstruct extends pulumi.ComponentResource {
     constructor(public readonly name: PulumiResourceType, type?: string, options?: pulumi.ComponentResourceOptions) {

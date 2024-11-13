@@ -17,8 +17,6 @@ import * as aws from '@pulumi/aws-native';
 import { ResourceMapping, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
 import { toSdkName, typeName as pulumiTypeName, moduleName } from './naming';
-import { Metadata } from './pulumi-metadata';
-import { PulumiProvider } from './types';
 
 export function mapToCfnResource(
     logicalId: string,
