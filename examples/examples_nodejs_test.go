@@ -71,7 +71,7 @@ func TestFargate(t *testing.T) {
 			NoParallel:       true,
 			RetryFailedSteps: true, // Workaround for https://github.com/pulumi/pulumi-aws-native/issues/1186
 			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
-				integration.AssertHTTPResultWithRetry(t, stack.Outputs["url"], nil, time.Duration(time.Minute*1), func(s string) bool {
+				integration.AssertHTTPResultWithRetry(t, stack.Outputs["loadBalancerURL"], nil, time.Duration(time.Minute*1), func(s string) bool {
 					return s == "Hello, world!"
 				})
 			},
