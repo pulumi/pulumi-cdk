@@ -1,10 +1,13 @@
 import * as path from 'path';
+import * as docker from '@pulumi/docker-build';
+import { NetworkMode } from '@pulumi/docker-build';
 import * as pulumi from '@pulumi/pulumi';
 import * as cdk from 'aws-cdk-lib/core';
 import { translateCfnTokenToAssetToken } from 'aws-cdk-lib/core/lib/helpers-internal';
 import * as aws from '@pulumi/aws';
 import { CdkConstruct } from './interop';
 import { zipDirectory } from './zip';
+import { asString } from './output';
 
 /**
  * Deploy time assets will be put in this S3 bucket prefix
@@ -70,6 +73,18 @@ export interface PulumiSynthesizerOptions {
     readonly autoDeleteStagingAssets?: boolean;
 
     /**
+     * The maximum number of image versions to store in a repository.
+     *
+     * Previous versions of an image can be stored for rollback purposes.
+     * Once a repository has more than 3 image versions stored, the oldest
+     * version will be discarded. This allows for sensible garbage collection
+     * while maintaining a few previous versions for rollback scenarios.
+     *
+     * @default - up to 3 versions stored
+     */
+    readonly imageAssetVersionCount?: number;
+
+    /**
      * The parent resource for any Pulumi resources created by the Synthesizer
      */
     readonly parent?: pulumi.Resource;
@@ -86,6 +101,21 @@ export abstract class PulumiSynthesizerBase extends cdk.StackSynthesizer {
      * stack to ensure the staging assets are created first
      */
     public abstract readonly stagingStack: CdkConstruct;
+}
+
+/**
+ * Information on the created ECR repository
+ */
+interface CreateRepoResponse {
+    /**
+     * The name of the created repository
+     */
+    repoName: string;
+
+    /**
+     * The ECR repository that was created
+     */
+    repo: aws.ecr.Repository;
 }
 
 /**
@@ -126,6 +156,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      */
     private readonly _stagingBucketName?: string;
     private readonly autoDeleteStagingAssets: boolean;
+    private readonly imageAssetVersionCount: number;
 
     /**
      * The final CDK name of the asset S3 bucket. This may contain CDK tokens
@@ -177,12 +208,20 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      */
     private readonly seenFileAssets = new Set<string>();
 
+    /**
+     * Map of `${assetName}:${assetHash}` to docker.Image that have already been created.
+     * The same asset could be registered multiple times, but we
+     * only want to upload it a single time
+     */
+    private readonly seenImageAssets = new Map<string, docker.Image>();
+
     constructor(props: PulumiSynthesizerOptions) {
         super();
         const stackPrefix = props.stagingStackNamePrefix ?? 'staging-stack';
         this._stagingBucketName = props.stagingBucketName;
         this.autoDeleteStagingAssets = props.autoDeleteStagingAssets ?? true;
         this.appId = this.validateAppId(props.appId);
+        this.imageAssetVersionCount = props.imageAssetVersionCount ?? 3;
 
         const account = aws.getCallerIdentity({}, { parent: props.parent }).then((id) => id.accountId);
         this.pulumiAccount = pulumi.output(account);
@@ -210,6 +249,67 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
             throw new Error([`appId ${id} has errors:`, ...errors].join('\n'));
         }
         return id;
+    }
+
+    /**
+     * This will create a unique ECR repository for each asset. Creating a separate repository for each
+     * asset allows us to have a lifecycle policy on the repository to delete old images.
+     *
+     * @param asset - The cdk asset to create a repo for
+     * @returns Information about the created repo
+     */
+    private getCreateRepo(asset: cdk.DockerImageAssetSource): CreateRepoResponse {
+        if (!asset.assetName) {
+            throw new Error("Docker image assets must include 'assetName' in the asset source definition");
+        }
+        const repoName = `${this.appId}/${asset.assetName}`
+            .toLocaleLowerCase()
+            .replace('.', '-')
+            // it can only start with letters or numbers
+            .replace(/^[^a-z0-9]+/, '');
+
+        if (!this.stagingRepos[repoName]) {
+            const repo = new aws.ecr.Repository(
+                repoName,
+                {
+                    name: repoName,
+                    // prevents you from pushing an image with a tag that already exists in the repository
+                    // @see https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-tag-mutability.html
+                    imageTagMutability: 'IMMUTABLE',
+                    forceDelete: this.autoDeleteStagingAssets,
+                },
+                {
+                    retainOnDelete: !this.autoDeleteStagingAssets,
+                    parent: this.stagingStack,
+                },
+            );
+            new aws.ecr.LifecyclePolicy(
+                'lifecycle-policy',
+                {
+                    repository: repo.name,
+                    policy: {
+                        rules: [
+                            {
+                                action: { type: 'expire' },
+                                selection: {
+                                    countType: 'imageCountMoreThan',
+                                    tagStatus: 'any',
+                                    countNumber: this.imageAssetVersionCount,
+                                },
+                                rulePriority: 1,
+                                description: 'Garbage collect old image versions',
+                            },
+                        ],
+                    },
+                },
+                { parent: this.stagingStack },
+            );
+            this.stagingRepos[repoName] = repo;
+        }
+        return {
+            repoName,
+            repo: this.stagingRepos[repoName],
+        };
     }
 
     /**
@@ -417,8 +517,116 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         return this.cloudFormationLocationFromFileAsset(location);
     }
 
+    /**
+     * Gets registry credentials for the given ECR repository
+     *
+     * @param repo - The ECR repository to get the credentials for
+     * @returns The registry credentials for the ECR repository
+     */
+    private getEcrCredentialsOutput(repo: aws.ecr.Repository): docker.types.input.RegistryArgs {
+        const ecrCredentials = aws.ecr.getCredentialsOutput(
+            {
+                registryId: repo.registryId,
+            },
+            { parent: this.stagingStack },
+        );
+        return ecrCredentials.authorizationToken.apply((token) => {
+            const decodedCredentials = Buffer.from(token, 'base64').toString();
+            const [username, password] = decodedCredentials.split(':');
+            if (!password || !username) {
+                throw new Error('Invalid credentials');
+            }
+            return {
+                address: ecrCredentials.proxyEndpoint,
+                username: username,
+                password: password,
+            };
+        });
+    }
+
+    /**
+     * This method is called by CDK constructs to add an image asset to the stack
+     * Usually the default synthesizers will then take the data and add it to the asset manifest
+     * for the stack. In our case we can just directly push the images and then we don't have to
+     * later post-process the assets from the manifest
+     *
+     * @param asset - The cdk asset to add
+     * @returns The location of the asset. This will be the reference to the image ref
+     */
     addDockerImageAsset(asset: cdk.DockerImageAssetSource): cdk.DockerImageAssetLocation {
-        throw new Error('Docker image assets are not supported yet');
+        assertBound(this.outdir);
+        if (asset.executable || !asset.directoryName) {
+            throw new Error(`Docker image assets produced by commands are not yet supported`);
+        }
+
+        const { repoName, repo } = this.getCreateRepo(asset);
+        const imageTag = asset.sourceHash;
+        const canonicalImageName = pulumi.interpolate`${repo.repositoryUrl}:${imageTag}`;
+        const context = path.join(this.outdir, asset.directoryName);
+        const dockerFile = path.join(context, asset.dockerFile ?? 'Dockerfile');
+        const assetKey = `${asset.assetName}:${asset.sourceHash}`;
+
+        // Assets can be registered multiple times, but we should only create the resource once
+        if (this.seenImageAssets.has(assetKey)) {
+            return {
+                repositoryName: repoName,
+                imageUri: asString(this.seenImageAssets.get(assetKey)!.ref),
+            };
+        }
+
+        const registryCredentials = this.getEcrCredentialsOutput(repo);
+
+        const cacheFrom = fromCdkCacheFrom(asset.dockerCacheFrom);
+        const cacheTo = fromCdkCacheTo(asset.dockerCacheTo);
+
+        const image = new docker.Image(
+            `${this.stagingStack.name}/${asset.assetName}`,
+            {
+                cacheFrom,
+                cacheTo,
+                push: true,
+                dockerfile: {
+                    location: dockerFile,
+                },
+                network: asNetworkMode(asset.networkMode),
+                ssh: asset.dockerBuildSsh
+                    ? [
+                          {
+                              id: 'default',
+                              paths: [asset.dockerBuildSsh],
+                          },
+                      ]
+                    : undefined,
+                target: asset.dockerBuildTarget,
+                platforms: asPlatforms(asset.platform),
+                // TODO: add support for dockerOutputs
+                // this will require parsing strings into the export type
+                // exports: asset.dockerOutputs,
+                secrets: asset.dockerBuildSecrets,
+                tags: [canonicalImageName],
+                buildArgs: asset.dockerBuildArgs,
+                noCache: asset.dockerCacheDisabled,
+                context: {
+                    location: context,
+                },
+                registries: [registryCredentials],
+            },
+            {
+                parent: this.stagingStack,
+                // we have a lifecycle policy on the ECR repository to delete old images
+                retainOnDelete: true,
+            },
+        );
+
+        this.assetManifest.defaultAddDockerImageAsset(this.boundStack, asset, {
+            repositoryName: repoName,
+        });
+        this.seenImageAssets.set(assetKey, image);
+
+        return {
+            repositoryName: repoName,
+            imageUri: asString(image.ref),
+        };
     }
 
     /**
@@ -447,4 +655,65 @@ function assertBound<A>(x: A | undefined): asserts x is NonNullable<A> {
     if (x === null && x === undefined) {
         throw new Error('You must call bindStack() first');
     }
+}
+
+/**
+ * Converts the CDK DockerCacheOption to the Pulumi Docker.CacheToArgs
+ */
+function fromCdkCacheTo(cacheTo?: cdk.DockerCacheOption): docker.types.input.CacheToArgs[] | undefined {
+    if (!cacheTo) {
+        return undefined;
+    }
+    return [{ [cacheTo.type]: cacheTo.params }];
+}
+
+/**
+ * Converts the CDK DockerCacheOption to the Pulumi Docker.CacheFromArgs
+ */
+function fromCdkCacheFrom(cacheFrom?: cdk.DockerCacheOption[]): docker.types.input.CacheFromArgs[] | undefined {
+    if (!cacheFrom) {
+        return undefined;
+    }
+    return cacheFrom.map((cache) => {
+        return {
+            [cache.type]: cache.params,
+        };
+    });
+}
+
+/**
+ * Converts the CDK NetworkMode to the Pulumi Docker.NetworkMode
+ *
+ * @param networkMode - The cdk network mode
+ * @returns The docker network mode
+ */
+export function asNetworkMode(networkMode?: string): docker.NetworkMode | undefined {
+    if (networkMode === undefined) {
+        return undefined;
+    }
+    const acceptedModes = Object.values(NetworkMode) as string[];
+    if (!acceptedModes.includes(networkMode)) {
+        throw new Error(`Unsupported network mode: ${networkMode}`);
+    }
+
+    return networkMode as NetworkMode;
+}
+
+/**
+ * Converts the CDK Platform to the Pulumi Docker.Platform
+ *
+ * @param platform - The cdk platform
+ * @returns The docker platform
+ */
+export function asPlatforms(platform?: string): docker.Platform[] | undefined {
+    if (!platform) {
+        return undefined;
+    }
+
+    const acceptedPlatforms = Object.values(docker.Platform) as string[];
+    if (!acceptedPlatforms.includes(platform)) {
+        throw new Error(`Unsupported platform: ${platform}`);
+    }
+
+    return [platform as docker.Platform];
 }
