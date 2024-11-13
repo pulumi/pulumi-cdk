@@ -277,6 +277,36 @@ export class Stack extends cdk.Stack {
         // provider or would require unintuitive options in order to produce the expected result).
         return pulumi.output(this.converter.then((converter) => converter.asOutputValue(v)));
     }
+
+    /**
+     * Returns the naming scheme used to allocate logical IDs. This overrides the default method
+     *
+     * If the "human" part of the ID exceeds 240 characters, we simply trim it so
+     * the total ID doesn't exceed CloudFormation's 255 character limit.
+     *
+     * When Pulumi auto names the resource it will add an 8 character random identifier to the end
+     *
+     * Special cases:
+     *
+     * - For aesthetic reasons, if the last components of the path are the same
+     *   (i.e. `L1/L2/Pipeline/Pipeline`), they will be de-duplicated to make the
+     *   resulting human portion of the ID more pleasing: `L1L2Pipeline`
+     *   instead of `L1L2PipelinePipeline`
+     * - If a component is named "Default" it will be omitted from the path. This
+     *   allows refactoring higher level abstractions around constructs without affecting
+     *   the IDs of already deployed resources.
+     * - If a component is named "Resource" it will be omitted from the user-visible
+     *   path. This reduces visual noise in the human readable
+     *   part of the identifier.
+     *
+     * @param cfnElement The element for which the logical ID is allocated.
+     */
+    protected allocateLogicalId(cfnElement: cdk.CfnElement): string {
+        const scopes = cfnElement.node.scopes;
+        const stackIndex = scopes.indexOf(cfnElement.stack);
+        const pathComponents = scopes.slice(stackIndex + 1).map((x) => x.node.id);
+        return makeUniqueId(pathComponents);
+    }
 }
 
 /**
@@ -294,4 +324,75 @@ function generateAppId(): string {
         .toLowerCase()
         .replace(/[^a-z0-9-.]/g, '-')
         .slice(-17);
+}
+
+/**
+ * Resources with this ID are hidden from humans
+ *
+ * They do not appear in the human-readable part of the logical ID
+ */
+const HIDDEN_FROM_HUMAN_ID = 'Resource';
+
+/**
+ * Resources with this ID are complete hidden from the logical ID calculation.
+ */
+const HIDDEN_ID = 'Default';
+const MAX_HUMAN_LEN = 240; // this is the value in CDK and seems like a good default to keep
+
+/**
+ * Calculates a unique ID for a set of textual components.
+ *
+ * This is forked from the internal cdk implementation with the removal of the hash suffix.
+ * We remove the hash from the CDK logical ID calculation because Pulumi already handles
+ * adding a unique random suffix and we do not want to end up with a double hash.
+ * @see https://github.com/aws/aws-cdk/blob/ccab485b87a7090ddf0773508d7b8ee84ff654b0/packages/aws-cdk-lib/core/lib/private/uniqueid.ts?plain=1#L32
+ *
+ * @param components The path components
+ * @returns a unique alpha-numeric identifier with a maximum length of 255
+ */
+function makeUniqueId(components: string[]) {
+    components = components.filter((x) => x !== HIDDEN_ID);
+
+    if (components.length === 0) {
+        throw new Error('Unable to calculate a unique id for an empty set of components');
+    }
+
+    // Lazy require in order to break a module dependency cycle
+    const unresolvedTokens = components.filter((c) => cdk.Token.isUnresolved(c));
+    if (unresolvedTokens.length > 0) {
+        throw new Error(`ID components may not include unresolved tokens: ${unresolvedTokens.join(',')}`);
+    }
+
+    const human = removeDupes(components)
+        .filter((x) => x !== HIDDEN_FROM_HUMAN_ID)
+        .map(removeNonAlphanumeric)
+        .join('')
+        .slice(0, MAX_HUMAN_LEN);
+
+    return human;
+}
+
+/**
+ * Remove duplicate "terms" from the path list
+ *
+ * If the previous path component name ends with this component name, skip the
+ * current component.
+ */
+function removeDupes(path: string[]): string[] {
+    const ret = new Array<string>();
+
+    for (const component of path) {
+        if (ret.length === 0 || !ret[ret.length - 1].endsWith(component)) {
+            ret.push(component);
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * Removes all non-alphanumeric characters in a string.
+ */
+function removeNonAlphanumeric(s: string) {
+    return s.replace(/[^A-Za-z0-9]/g, '');
 }

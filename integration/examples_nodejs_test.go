@@ -103,7 +103,7 @@ func TestMisc(t *testing.T) {
 			Dir: filepath.Join(getCwd(t), "misc-services"),
 			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
 				repoName := stack.Outputs["repoName"].(string)
-				assert.Containsf(t, repoName, "testrepob5dda46f", "Expected repoName to contain 'testrepob5dda46f'; got %s", repoName)
+				assert.Containsf(t, repoName, "testrepo", "Expected repoName to contain 'testrepo'; got %s", repoName)
 			},
 		})
 
@@ -116,7 +116,7 @@ func TestCloudFront(t *testing.T) {
 			Dir: filepath.Join(getCwd(t), "cloudfront"),
 			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
 				bucketName := stack.Outputs["bucketName"].(string)
-				assert.Containsf(t, bucketName, "bucket83908e77", "Bucket name should contain 'bucket'")
+				assert.Containsf(t, bucketName, "bucket", "Bucket name should contain 'bucket'")
 			},
 		})
 
