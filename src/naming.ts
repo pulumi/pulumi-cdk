@@ -24,7 +24,7 @@ export function moduleName(resourceType: string): string {
     return lowerAcronyms(mName);
 }
 
-function typeName(typ: string): string {
+export function typeName(typ: string): string {
     const resourceTypeComponents = typ.split('::');
     if (resourceTypeComponents.length !== 3) {
         throw new Error(`expected three parts in type ${resourceTypeComponents}`);

@@ -132,6 +132,21 @@ func TestErrors(t *testing.T) {
 	assert.Containsf(t, buf.String(), "Error: Event Bus policy statements must have a sid", "Expected error message not found in pulumi up output")
 }
 
+func TestReplaceOnChanges(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "replace-on-changes"),
+			EditDirs: []integration.EditDir{
+				{
+					Dir:      filepath.Join(getCwd(t), "replace-on-changes/step2"),
+					Additive: true,
+				},
+			},
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {
 	base := getBaseOptions(t)
 	baseJS := base.With(integration.ProgramTestOptions{
