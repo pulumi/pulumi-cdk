@@ -45,7 +45,7 @@ class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
             const stack = new S3DeploymentStack(scope, 's3deployment', {
-                // configure the environment to prevent the bucket from using the unsupported FindInMap intrinsic
+                // configure the environment to prevent the bucket from using the unsupported FindInMap intrinsic (TODO[pulumi/pulumi-cdk#187])
                 props: {
                     env: {
                         account: accountId,

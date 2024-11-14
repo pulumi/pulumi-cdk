@@ -16,7 +16,7 @@ import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws-native';
 import { ResourceMapping } from './interop';
 import { Stack } from 'aws-cdk-lib/core';
-import { DEPLOY_TIME_PREFIX, isPulumiSynthesizer } from './synthesizer';
+import { PulumiSynthesizerBase } from './synthesizer';
 import { debug } from '@pulumi/pulumi/log';
 
 export function mapToCustomResource(
@@ -30,45 +30,45 @@ export function mapToCustomResource(
 
     if (isCustomResource(typeName)) {
         const synth = stack.synthesizer;
-        if (!isPulumiSynthesizer(synth)) {
-            // todo better error msg
-            throw new Error('The stack synthesizer must be a PulumiSynthesizer');
+        if (!(synth instanceof PulumiSynthesizerBase)) {
+            throw new Error(`Synthesizer of stack ${stack.node.id} does not support custom resources. It must inherit from ${PulumiSynthesizerBase.name}.`);
         }
 
-        const stagingBucket = synth.getStagingBucket().bucket;
+        const stagingBucket = synth.getStagingBucket();
+        const stackId = stack.node.id;
 
         return new aws.cloudformation.CustomResourceEmulator(logicalId, {
             stackId: stack.node.id,
             bucketName: stagingBucket,
-            bucketKeyPrefix: `${DEPLOY_TIME_PREFIX}pulumi/custom-resources/${logicalId}/`,
+            bucketKeyPrefix: `${synth.getDeployTimePrefix()}pulumi/custom-resources/${stackId}/${logicalId}`,
             serviceToken: rawProps.ServiceToken,
             resourceType: typeName,
             customResourceProperties: rawProps,
         }, {
             ...options,
-            customTimeouts: {
-                create: convertToGoDuration(rawProps.ServiceTimeout),
-                update: convertToGoDuration(rawProps.ServiceTimeout),
-                delete: convertToGoDuration(rawProps.ServiceTimeout),
-            },
+            customTimeouts: convertToCustomTimeouts(rawProps.ServiceTimeout),
         });
     }
     
     return undefined;
 }
 
-function convertToGoDuration(seconds?: number): string | undefined {
+function convertToCustomTimeouts(seconds?: number): pulumi.CustomTimeouts | undefined {
     if (seconds === undefined) {
         return undefined;
     }
-    return `${seconds}s`;
+    const duration = `${seconds}s`;
+    return {
+        create: duration,
+        update: duration,
+        delete: duration,
+    };
 }
 
 /**
  * Determines if the given type name corresponds to a custom resource.
  * Custom resources either use AWS::CloudFormation::CustomResource or Custom::MyCustomResourceTypeName for the type.
- * @internal
  */
-export function isCustomResource(typeName: string): boolean {
+function isCustomResource(typeName: string): boolean {
     return typeName === 'AWS::CloudFormation::CustomResource' || typeName.startsWith('Custom::');
 }

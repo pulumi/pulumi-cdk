@@ -136,6 +136,9 @@ func TestErrors(t *testing.T) {
 	assert.Containsf(t, buf.String(), "Error: Event Bus policy statements must have a sid", "Expected error message not found in pulumi up output")
 }
 
+// TestCustomResource tests that CloudFormation Custom Resources work as expected. The test deploys two custom resources. One for cleaning the
+// S3 bucket on delete and another for uploading the index.html file for a static website to the bucket.
+// The test validates that the website is deployed, displays the expected content and gets cleaned up on delete.
 func TestCustomResource(t *testing.T) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -155,7 +158,6 @@ func TestCustomResource(t *testing.T) {
 			// Workaround until TODO[pulumi/pulumi-aws-native#1816] is resolved.
 			Env: []string{"PULUMI_CDK_EXPERIMENTAL_MAX_NAME_LENGTH=56"},
 			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
-				t.Helper()
 				t.Logf("Outputs: %v", stack.Outputs)
 				url := stack.Outputs["websiteUrl"].(string)
 				assert.NotEmpty(t, url)
@@ -169,8 +171,6 @@ func TestCustomResource(t *testing.T) {
 				objectKeys := stack.Outputs["objectKeys"].([]interface{})
 				assert.NotEmpty(t, objectKeys)
 			},
-			// UpdateCommandlineFlags: []string{"--attach-debugger"},
-			Verbose: 			  true,
 		})
 
 	integration.ProgramTest(t, &test)

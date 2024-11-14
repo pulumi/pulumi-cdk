@@ -10,7 +10,7 @@ import { zipDirectory } from './zip';
  * Deploy time assets will be put in this S3 bucket prefix
  * so that separate lifecycle rules can apply
  */
-export const DEPLOY_TIME_PREFIX = 'deploy-time/';
+const DEPLOY_TIME_PREFIX = 'deploy-time/';
 
 export interface PulumiSynthesizerOptions {
     /**
@@ -86,6 +86,20 @@ export abstract class PulumiSynthesizerBase extends cdk.StackSynthesizer {
      * stack to ensure the staging assets are created first
      */
     public abstract readonly stagingStack: CdkConstruct;
+
+    /**
+     * Returns the name of the staging bucket that will be used to store assets
+     * and custom resource responses.
+     */
+    public abstract getStagingBucket(): pulumi.Input<string>;
+
+
+    /**
+     * Returns the S3 key prefix that will be used for deploy time assets.
+     */
+    public getDeployTimePrefix(): string {
+        return DEPLOY_TIME_PREFIX;
+    }
 }
 
 /**
@@ -321,18 +335,10 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         return this.stagingBucket;
     }
 
-    /**
-     * Retrieves the staging S3 bucket.
-     * 
-     * This method ensures that the staging bucket is created and bound before returning it.
-     * 
-     * @returns {aws.s3.BucketV2} The staging S3 bucket.
-     * @throws {Error} If the staging bucket is not properly bound.
-     */
-    public getStagingBucket(): aws.s3.BucketV2 {
+    public getStagingBucket(): pulumi.Input<string> {
         const bucket = this.getCreateBucket();
         assertBound(bucket);
-        return bucket;
+        return bucket.bucket;
     }
 
     /**
@@ -461,8 +467,4 @@ function assertBound<A>(x: A | undefined): asserts x is NonNullable<A> {
     if (x === null && x === undefined) {
         throw new Error('You must call bindStack() first');
     }
-}
-
-export function isPulumiSynthesizer(x: cdk.IStackSynthesizer): x is PulumiSynthesizer {
-    return x instanceof PulumiSynthesizer;
 }
