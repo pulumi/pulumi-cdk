@@ -3,15 +3,14 @@ import * as pulumicdk from '@pulumi/cdk';
 
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 
 class S3DeploymentStack extends pulumicdk.Stack {
     bucketWebsiteUrl: pulumi.Output<string>;
     bucketObjectKeys: pulumi.Output<string[]>;
 
-    constructor(id: string, options?: pulumicdk.StackOptions) {
-        super(id, options);
+    constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
+        super(app, id, options);
 
         const bucket = new s3.Bucket(this, 'WebsiteBucket', {
             websiteIndexDocument: 'index.html',
@@ -29,39 +28,39 @@ class S3DeploymentStack extends pulumicdk.Stack {
 
         this.bucketWebsiteUrl = this.asOutput(bucket.bucketWebsiteUrl);
 
-        const role = new iam.Role(this, 'DeploymentRole', {
-            assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-            managedPolicies: [
-                iam.ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaVPCAccessExecutionRole"),
-                iam.ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole")
-            ]
-        });
-        bucket.grantReadWrite(role);
-
         const deploy = new s3deploy.BucketDeployment(this, 'DeployWebsite', {
             sources: [s3deploy.Source.data('index.html', 'Hello, World!')],
             destinationBucket: bucket,
-            role: role,
         });
 
         this.bucketObjectKeys = this.asOutput(deploy.objectKeys);
-
-        // Finalize the stack and deploy its resources.
-        this.synth();
     }
 }
 
 
 const cfg = new pulumi.Config();
 const accountId = cfg.require('accountId');
-const stack = new S3DeploymentStack('s3deployment', {
-    // configure the environment to prevent the bucket from using the unsupported FindInMap intrinsic
-    props: {
-        env: {
-            account: accountId,
-            region: process.env.AWS_REGION,
-        }
+
+class MyApp extends pulumicdk.App {
+    constructor() {
+        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+            const stack = new S3DeploymentStack(scope, 's3deployment', {
+                // configure the environment to prevent the bucket from using the unsupported FindInMap intrinsic
+                props: {
+                    env: {
+                        account: accountId,
+                        region: process.env.AWS_REGION,
+                    }
+                }
+            });
+            return {
+                bucketWebsiteUrl: stack.bucketWebsiteUrl,
+                bucketObjectKeys: stack.bucketObjectKeys
+            };
+        });
     }
-});
-export const websiteUrl = stack.bucketWebsiteUrl;
-export const objectKeys = stack.bucketObjectKeys;
+}
+
+const app = new MyApp();
+export const websiteUrl = app.outputs['bucketWebsiteUrl'];
+export const objectKeys = app.outputs['bucketObjectKeys'];

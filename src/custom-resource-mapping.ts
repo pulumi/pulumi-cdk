@@ -13,12 +13,11 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import * as aws from '@pulumi/aws';
+import * as aws from '@pulumi/aws-native';
 import { ResourceMapping } from './interop';
 import { Stack } from 'aws-cdk-lib/core';
-import { isPulumiSynthesizer } from './synthesizer';
+import { DEPLOY_TIME_PREFIX, isPulumiSynthesizer } from './synthesizer';
 import { debug } from '@pulumi/pulumi/log';
-import { CfnCustomResource } from './custom-resource/custom-resource-emulator'
 
 export function mapToCustomResource(
     logicalId: string,
@@ -26,7 +25,7 @@ export function mapToCustomResource(
     rawProps: any,
     options: pulumi.ResourceOptions,
     stack: Stack,
-): ResourceMapping[] | undefined {
+): ResourceMapping | undefined {
     debug(`mapToCustomResource typeName: ${typeName} props: ${JSON.stringify(rawProps)}`);
 
     if (isCustomResource(typeName)) {
@@ -38,39 +37,32 @@ export function mapToCustomResource(
 
         const stagingBucket = synth.getStagingBucket().bucket;
 
-        return [new CfnCustomResource(logicalId, {
+        return new aws.cloudformation.CustomResourceEmulator(logicalId, {
             stackId: stack.node.id,
-            stagingBucket: stagingBucket,
-            // todo assert those are set
-            lambdaArn: rawProps.ServiceToken,
-            timeout: rawProps.ServiceTimeout,
+            bucketName: stagingBucket,
+            bucketKeyPrefix: `${DEPLOY_TIME_PREFIX}pulumi/custom-resources/${logicalId}/`,
+            serviceToken: rawProps.ServiceToken,
             resourceType: typeName,
-            logicalId: logicalId,
-            // CloudFormation passes all properties as strings, so we need to do that as well
-            properties: pulumi.output(rawProps).apply(props => {
-                delete props.ServiceToken;
-                delete props.ServiceTimeout;
-                return convertScalarsToString(props);
-            }),
-        }, options)];
+            customResourceProperties: rawProps,
+        }, {
+            ...options,
+            customTimeouts: {
+                create: convertToGoDuration(rawProps.ServiceTimeout),
+                update: convertToGoDuration(rawProps.ServiceTimeout),
+                delete: convertToGoDuration(rawProps.ServiceTimeout),
+            },
+        });
     }
     
     return undefined;
 }
 
-function convertScalarsToString(obj: any): any {
-    if (Array.isArray(obj)) {
-        return obj.map(convertScalarsToString);
-    } else if (typeof obj === 'object' && obj !== null) {
-        return Object.fromEntries(
-            Object.entries(obj).map(([key, value]) => [key, convertScalarsToString(value)])
-        );
-    } else if (typeof obj === 'number' || typeof obj === 'boolean' || typeof obj === 'string') {
-        return String(obj);
+function convertToGoDuration(seconds?: number): string | undefined {
+    if (seconds === undefined) {
+        return undefined;
     }
-    return obj; // For other types like functions or undefined, return as is
+    return `${seconds}s`;
 }
-
 
 /**
  * Determines if the given type name corresponds to a custom resource.

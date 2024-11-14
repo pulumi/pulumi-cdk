@@ -18,9 +18,13 @@ import (
 	"bytes"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestApiGateway(t *testing.T) {
@@ -130,6 +134,46 @@ func TestErrors(t *testing.T) {
 
 	integration.ProgramTest(t, &test)
 	assert.Containsf(t, buf.String(), "Error: Event Bus policy statements must have a sid", "Expected error message not found in pulumi up output")
+}
+
+func TestCustomResource(t *testing.T) {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+	svc := sts.New(sess)
+
+	result, err := svc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	require.NoError(t, err, "Failed to get AWS account ID")
+	accountId := *result.Account
+
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "custom-resource"),
+			Config: map[string]string{
+				"accountId": accountId,
+			},
+			// Workaround until TODO[pulumi/pulumi-aws-native#1816] is resolved.
+			Env: []string{"PULUMI_CDK_EXPERIMENTAL_MAX_NAME_LENGTH=56"},
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				t.Helper()
+				t.Logf("Outputs: %v", stack.Outputs)
+				url := stack.Outputs["websiteUrl"].(string)
+				assert.NotEmpty(t, url)
+
+				// Validate that the index.html file is deployed
+				integration.AssertHTTPResultWithRetry(t, url, nil, 60*time.Second, func(body string) bool {
+					return assert.Equal(t, "Hello, World!", body, "Body should equal 'Hello, World!', got %s", body)
+				})
+
+				// This uses GetAtt to get the objectKeys from the custom resource
+				objectKeys := stack.Outputs["objectKeys"].([]interface{})
+				assert.NotEmpty(t, objectKeys)
+			},
+			// UpdateCommandlineFlags: []string{"--attach-debugger"},
+			Verbose: 			  true,
+		})
+
+	integration.ProgramTest(t, &test)
 }
 
 func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {

@@ -105,8 +105,15 @@ export class CfnResource extends pulumi.CustomResource {
         }
         Object.assign(args, properties);
 
-        // todo: this is a hack to get around the fact that we can't have a resource name that is too long
-        name = name.length > 54 ? name.substring(0, 54) : name;
+        // Workaround until TODO[pulumi/pulumi-aws-native#1816] is resolved.
+        // Not expected to be exposed to users
+        const maxNameLength = process.env.PULUMI_CDK_EXPERIMENTAL_MAX_NAME_LENGTH;
+        if (maxNameLength) {
+            const maxLength = parseInt(maxNameLength, 10);
+            if (name.length > maxLength) {
+                name = name.substring(0, maxLength);
+            }
+        }
 
         super(resourceName, name, args, opts);
     }

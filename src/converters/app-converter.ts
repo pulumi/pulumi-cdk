@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib/core';
+import * as aws from '@pulumi/aws-native'
 import * as pulumi from '@pulumi/pulumi';
 import { AssemblyManifestReader, StackManifest } from '../assembly';
 import { ConstructInfo, Graph, GraphBuilder, GraphNode } from '../graph';
@@ -22,8 +23,7 @@ import { OutputMap, OutputRepr } from '../output-map';
 import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
-import { CfnCustomResource } from '../custom-resource/custom-resource-emulator';
-import { processSecretsManagerReferenceValue, resolveSecretsManagerDynamicReference } from './secrets-manager-dynamic';
+import { processSecretsManagerReferenceValue } from './secrets-manager-dynamic';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -145,14 +145,6 @@ export class StackConverter extends ArtifactConverter {
 
                 const mapped = this.mapResource(n.logicalId, cfn.Type, props, options);
                 this.registerResource(mapped, n);
-
-                let attributes: { [key: string]: pulumi.Input<any> } | undefined;
-                let customResourceAttributes: pulumi.Output<{ [key: string]: any }> | undefined;
-                if (CfnCustomResource.isInstance(resource)) {
-                    customResourceAttributes = resource.attributes;
-                } else {
-                    attributes = pulumi.Resource.isInstance(m) ? undefined : m.attributes;
-                }
 
                 debug(`Done creating resource for ${n.logicalId}`);
                 // TODO: process template conditions
@@ -298,7 +290,7 @@ export class StackConverter extends ArtifactConverter {
             return awsMapping;
         }
 
-        const customResourceMapping = mapToCustomResource(logicalId, typeName, props, options, this.stackComponent.stack);
+        const customResourceMapping = mapToCustomResource(logicalId, typeName, props, options, this.cdkStack);
         if (customResourceMapping !== undefined) {
             debug(`mapped ${logicalId} to custom resource(s)`);
             return customResourceMapping;
@@ -517,7 +509,7 @@ export class StackConverter extends ArtifactConverter {
         const map = <Mapping<pulumi.Resource>>mapping;
         if (map.attributes && 'id' in map.attributes) {
             return map.attributes.id;
-        } else if (CfnCustomResource.isInstance(map.resource)) {
+        } else if (aws.cloudformation.CustomResourceEmulator.isInstance(map.resource)) {
             // Custom resources have a `physicalResourceId` that is used for Ref
             return map.resource.physicalResourceId;
         }
@@ -548,11 +540,8 @@ export class StackConverter extends ArtifactConverter {
         // If this resource has explicit attribute mappings, those mappings will use PascalCase, not camelCase.
         const propertyName = mapping.attributes !== undefined ? attribute : attributePropertyName(attribute);
 
-        // Custom resource attributes are stored in a separate output
-        if (mapping.customResourceAttributes) {
-            // If the custom resource attributes are present, we can use them to look up the attribute
-            return mapping.customResourceAttributes.apply((attrs) => {
-                // todo refactor
+        if (aws.cloudformation.CustomResourceEmulator.isInstance(mapping.resource)) {
+            return mapping.resource.data.apply((attrs) => {
                 const descs = Object.getOwnPropertyDescriptors(attrs);
                 const d = descs[attribute];
                 if (!d) {
