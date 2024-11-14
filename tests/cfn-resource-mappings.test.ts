@@ -1,6 +1,7 @@
 import { CustomResource } from '@pulumi/pulumi';
 import { mapToCfnResource } from '../src/cfn-resource-mappings';
 import * as aws from '@pulumi/aws-native';
+import { moduleName, typeName } from '../src/naming';
 
 class MockResource {
     constructor(args: { [key: string]: any }) {
@@ -28,6 +29,27 @@ jest.mock('@pulumi/aws-native', () => {
         },
         ecr: {
             Repository: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+        },
+        apprunner: {
+            Service: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+        },
+        ecs: {
+            Cluster: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+            TaskDefinition: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+            Service: jest.fn().mockImplementation(() => {
+                return {};
+            }),
+        },
+        ec2: {
+            Vpc: jest.fn().mockImplementation(() => {
                 return {};
             }),
         },
@@ -118,8 +140,7 @@ describe('Cfn Resource Mappings', () => {
         // WHEN
         mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
-        expect(CustomResource).toHaveBeenCalledWith(
-            'aws-native:s3objectlambda:AccessPoint',
+        expect(aws.s3objectlambda.AccessPoint).toHaveBeenCalledWith(
             logicalId,
             {
                 objectLambdaConfiguration: {
@@ -154,8 +175,7 @@ describe('Cfn Resource Mappings', () => {
         // WHEN
         mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
-        expect(CustomResource).toHaveBeenCalledWith(
-            'aws-native:lambda:Function',
+        expect(aws.lambda.Function).toHaveBeenCalledWith(
             logicalId,
             {
                 environment: {
@@ -207,8 +227,7 @@ describe('Cfn Resource Mappings', () => {
         // WHEN
         mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
-        expect(CustomResource).toHaveBeenCalledWith(
-            'aws-native:iam:Role',
+        expect(aws.iam.Role).toHaveBeenCalledWith(
             logicalId,
             {
                 description: 'desc',
@@ -268,8 +287,7 @@ describe('Cfn Resource Mappings', () => {
         // WHEN
         mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
-        expect(CustomResource).toHaveBeenCalledWith(
-            'aws-native:s3:AccessPoint',
+        expect(aws.s3.AccessPoint).toHaveBeenCalledWith(
             logicalId,
             {
                 policy: {
@@ -300,8 +318,7 @@ describe('Cfn Resource Mappings', () => {
         // WHEN
         mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
-        expect(CustomResource).toHaveBeenCalledWith(
-            'aws-native:ec2:Vpc',
+        expect(aws.ec2.Vpc).toHaveBeenCalledWith(
             logicalId,
             {
                 cidrBlock: '10.0.0.0/16',
@@ -367,10 +384,10 @@ describe('Cfn Resource Mappings', () => {
     });
 
     test.each([
-        ['AWS::AppRunner::Service', 'aws-native:apprunner:Service'],
-        ['AWS::ECS::Cluster', 'aws-native:ecs:Cluster'],
-        ['AWS::ECS::TaskDefinition', 'aws-native:ecs:TaskDefinition'],
-    ])('successfully maps %p to %p', (cfnType, pulumiType) => {
+        ['AWS::AppRunner::Service', aws.apprunner.Service],
+        ['AWS::ECS::Cluster', aws.ecs.Cluster],
+        ['AWS::ECS::TaskDefinition', aws.ecs.TaskDefinition],
+    ])('successfully maps %p to %p', (cfnType, called) => {
         // GIVEN
         const logicalId = 'my-resource';
         const cfnProps = {};
@@ -379,7 +396,7 @@ describe('Cfn Resource Mappings', () => {
         mapToCfnResource(logicalId, cfnType, cfnProps, {});
 
         // THEN
-        expect(CustomResource).toHaveBeenCalledWith(pulumiType, logicalId, {}, {});
+        expect(called).toHaveBeenCalledWith(logicalId, {}, {});
     });
 
     test('successfully maps ECS Service resource', () => {
@@ -404,8 +421,7 @@ describe('Cfn Resource Mappings', () => {
         // WHEN
         mapToCfnResource(logicalId, cfnType, cfnProps, {});
         // THEN
-        expect(CustomResource).toHaveBeenCalledWith(
-            'aws-native:ecs:Service',
+        expect(aws.ecs.Service).toHaveBeenCalledWith(
             logicalId,
             {
                 tags: [

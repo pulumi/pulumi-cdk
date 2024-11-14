@@ -289,6 +289,7 @@ export class Stack extends cdk.Stack {
 function generateAppId(): string {
     const stack = pulumi.runtime.getStack();
     const project = pulumi.runtime.getProject();
+
     return `${project}-${stack}`
         .toLowerCase()
         .replace(/[^a-z0-9-.]/g, '-')
