@@ -9,7 +9,7 @@ class ReplaceOnChangesStack extends pulumicdk.Stack {
             default: true,
         }).id;
         const azs = aws.getAvailabilityZonesOutput({}).names;
-        new ec2.SecurityGroup(this, 'sg', {
+        new ec2.SecurityGroup(this, 'security-group', {
             // description is a createOnlyProperty which means this would fail
             // if `replaceOnChanges` was not working
             description: 'Some New Description',
