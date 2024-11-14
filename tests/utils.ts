@@ -42,7 +42,10 @@ export function createStackManifest(
                 },
                 resource2: {
                     Type: 'AWS::S3::BucketPolicy',
-                    Properties: resource2Props,
+                    Properties: {
+                        policyDocument: {},
+                        ...resource2Props,
+                    },
                     DependsOn: resource2DependsOn,
                 },
             },

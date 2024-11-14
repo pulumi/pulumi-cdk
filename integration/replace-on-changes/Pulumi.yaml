@@ -1,0 +1,3 @@
+name: pulumi-aws-replaceOnChanges
+runtime: nodejs
+description: replaceOnChanges integration test

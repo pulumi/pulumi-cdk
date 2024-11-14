@@ -114,6 +114,7 @@ describe('App Converter', () => {
                     examplebucketPolicyE09B485E: {
                         Type: 'AWS::S3::BucketPolicy',
                         Properties: {
+                            PolicyDocument: {},
                             Bucket: {
                                 Ref: 'examplebucketC9DFA43E',
                             },
@@ -310,6 +311,7 @@ describe('Stack Converter', () => {
                     other: {
                         Type: 'AWS::EC2::Subnet',
                         Properties: {
+                            VpcId: { Ref: 'vpc' },
                             Ipv6CidrBlock: { 'Fn::Select': [0, { 'Fn::GetAtt': ['vpc', 'Ipv6CidrBlocks'] }] },
                         },
                     },
@@ -404,6 +406,7 @@ describe('Stack Converter', () => {
                     other: {
                         Type: 'AWS::EC2::Subnet',
                         Properties: {
+                            VpcId: { Ref: 'vpc' },
                             Ipv6CidrBlock: { 'Fn::Select': [0, { 'Fn::GetAtt': ['vpc', 'Ipv6CidrBlocks'] }] },
                         },
                     },
@@ -421,6 +424,7 @@ describe('Stack Converter', () => {
                     other2: {
                         Type: 'AWS::EC2::Subnet',
                         Properties: {
+                            VpcId: { Ref: 'vpc2' },
                             Ipv6CidrBlock: { 'Fn::Select': [0, { 'Fn::GetAtt': ['vpc2', 'Ipv6CidrBlocks'] }] },
                         },
                     },
