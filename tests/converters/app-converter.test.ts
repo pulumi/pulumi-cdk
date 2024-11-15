@@ -193,64 +193,222 @@ describe('App Converter', () => {
     });
 
     test.each([
-        ['ref', createStackManifest({ Bucket: { Ref: 'resource1' } }), 'resource1_id'],
+        ['ref', createStackManifest({ resource2Props: { Bucket: { Ref: 'resource1' } } }), 'resource1_id', undefined],
         [
             'GetAtt',
             createStackManifest({
-                Bucket: { 'Fn::GetAtt': ['resource1', 'Arn'] },
+                resource2Props: {
+                    Bucket: { 'Fn::GetAtt': ['resource1', 'Arn'] },
+                },
             }),
             'resource1_arn',
+            undefined,
         ],
         [
             'Join-Ref',
             createStackManifest({
-                Bucket: { 'Fn::Join': ['', ['arn:', { Ref: 'resource1' }]] },
+                resource2Props: {
+                    Bucket: { 'Fn::Join': ['', ['arn:', { Ref: 'resource1' }]] },
+                },
             }),
             'arn:resource1_id',
+            undefined,
         ],
         [
             'Split-Select-Ref',
             createStackManifest({
-                Bucket: { 'Fn::Select': ['1', { 'Fn::Split': ['_', { Ref: 'resource1' }] }] },
+                resource2Props: {
+                    Bucket: { 'Fn::Select': ['1', { 'Fn::Split': ['_', { Ref: 'resource1' }] }] },
+                },
             }),
             'id',
+            undefined,
         ],
         [
             'Base64-Ref',
             createStackManifest({
-                Bucket: { 'Fn::Base64': { Ref: 'resource1' } },
+                resource2Props: {
+                    Bucket: { 'Fn::Base64': { Ref: 'resource1' } },
+                },
             }),
             Buffer.from('resource1_id').toString('base64'),
+            undefined,
         ],
         [
             'GetAZs-Select-Ref',
             createStackManifest({
-                Bucket: { 'Fn::Select': ['1', { 'Fn::GetAZs': 'us-east-1' }] },
+                resource2Props: {
+                    Bucket: { 'Fn::Select': ['1', { 'Fn::GetAZs': 'us-east-1' }] },
+                },
             }),
             'us-east-1b',
+            undefined,
         ],
         [
             'Sub-Ref',
             createStackManifest({
-                Bucket: { 'Fn::Sub': 'www.${resource1}-${AWS::Region}-${AWS::AccountId}' },
+                resource2Props: {
+                    Bucket: { 'Fn::Sub': 'www.${resource1}-${AWS::Region}-${AWS::AccountId}' },
+                },
             }),
             'www.resource1_id-us-east-2-12345678910',
+            undefined,
+        ],
+        [
+            'FindInMap',
+            createStackManifest({
+                resource2Props: {
+                    Bucket: { 'Fn::FindInMap': ['Map', 'Key', 'Value'] },
+                },
+                mappings: {
+                    Map: {
+                        Key: {
+                            Value: 'result',
+                        },
+                    },
+                },
+            }),
+            'result',
+            undefined,
+        ],
+        [
+            'FindInMap-Ref',
+            createStackManifest({
+                resource2Props: {
+                    Bucket: { 'Fn::FindInMap': ['Map', { Ref: 'AWS::Region' }, 'Value'] },
+                },
+                mappings: {
+                    Map: {
+                        ['us-east-2']: {
+                            Value: 'result',
+                        },
+                    },
+                },
+            }),
+            'result',
+            undefined,
+        ],
+        [
+            'Split-FindInMap-Ref',
+            createStackManifest({
+                resource2Props: {
+                    Bucket: {
+                        'Fn::Select': [
+                            '1',
+                            {
+                                'Fn::Split': [
+                                    ',',
+                                    {
+                                        'Fn::FindInMap': ['Map', { Ref: 'AWS::Region' }, 'Value'],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+                mappings: {
+                    Map: {
+                        ['us-east-2']: {
+                            Value: 'result1,result2',
+                        },
+                    },
+                },
+            }),
+            'result2',
+            undefined,
+        ],
+        [
+            'FindInMap-id-error',
+            createStackManifest({
+                resource2Props: {
+                    Bucket: { 'Fn::FindInMap': ['Map', 'Key', 'Value'] },
+                },
+                mappings: {
+                    OtherMap: {
+                        Key: {
+                            Value: 'result',
+                        },
+                    },
+                },
+            }),
+            'result',
+            'Mapping Map not found in mappings. Available mappings are OtherMap',
+        ],
+        [
+            'FindInMap-mappings-error',
+            createStackManifest({
+                resource2Props: {
+                    Bucket: { 'Fn::FindInMap': ['Map', 'Key', 'Value'] },
+                },
+            }),
+            'result',
+            'No mappings found in stack',
+        ],
+        [
+            'FindInMap-mappings-input-error',
+            createStackManifest({
+                resource2Props: {
+                    Bucket: { 'Fn::FindInMap': ['Map', 'Value'] },
+                },
+            }),
+            'result',
+            'Fn::FindInMap requires exactly 3 parameters, got 2',
+        ],
+        [
+            'FindInMap-topLevel-error',
+            createStackManifest({
+                resource2Props: {
+                    Bucket: { 'Fn::FindInMap': ['Map', 'OtherKey', 'Value'] },
+                },
+                mappings: {
+                    Map: {
+                        Key: {
+                            Value: 'result',
+                        },
+                    },
+                },
+            }),
+            'result',
+            'Key OtherKey not found in mapping Map. Available keys are Key',
+        ],
+        [
+            'FindInMap-secondLevel-error',
+            createStackManifest({
+                resource2Props: {
+                    Bucket: { 'Fn::FindInMap': ['Map', 'Key', 'OtherValue'] },
+                },
+                mappings: {
+                    Map: {
+                        Key: {
+                            Value: 'result',
+                        },
+                    },
+                },
+            }),
+            'result',
+            'Key OtherValue not found in mapping Map.Key. Available keys are Value',
         ],
     ])(
         'intrinsics %s',
-        async (_name, stackManifest, expected) => {
+        async (_name, stackManifest, expected, expectedError) => {
             const mockStackComponent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
             const converter = new StackConverter(mockStackComponent, stackManifest);
-            converter.convert(new Set());
-            const promises = Array.from(converter.resources.values()).flatMap((res) => promiseOf(res.resource.urn));
-            await Promise.all(promises);
-            const bucket = converter.resources.get('resource1');
-            expect(bucket).toBeDefined();
-            const policy = converter.resources.get('resource2');
-            expect(policy).toBeDefined();
-            const policyResource = policy!.resource as BucketPolicy;
-            const policyBucket = await promiseOf(policyResource.bucket);
-            expect(policyBucket).toEqual(expected);
+            if (expectedError) {
+                expect(() => {
+                    converter.convert(new Set());
+                }).toThrow(expectedError);
+            } else {
+                converter.convert(new Set());
+                const promises = Array.from(converter.resources.values()).flatMap((res) => promiseOf(res.resource.urn));
+                await Promise.all(promises);
+                const bucket = converter.resources.get('resource1');
+                expect(bucket).toBeDefined();
+                const policy = converter.resources.get('resource2');
+                expect(policy).toBeDefined();
+                const policyResource = policy!.resource as BucketPolicy;
+                const policyBucket = await promiseOf(policyResource.bucket);
+                expect(policyBucket).toEqual(expected);
+            }
         },
         10_000,
     );
@@ -448,15 +606,15 @@ describe('Stack Converter', () => {
         const stackManifestPath = path.join(__dirname, '../test-data/custom-resource-stack/stack-manifest.json');
         const props: StackManifestProps = JSON.parse(fs.readFileSync(stackManifestPath, 'utf-8'));
         const manifest = new StackManifest(props);
-        const app = new MockAppComponent('/tmp/foo/bar/does/not/exist')
-        const stagingBucket = "my-bucket";
-        const customResourcePrefix = "my-prefix";
+        const app = new MockAppComponent('/tmp/foo/bar/does/not/exist');
+        const stagingBucket = 'my-bucket';
+        const customResourcePrefix = 'my-prefix';
         app.stacks[manifest.id] = {
             synthesizer: new MockSynth(stagingBucket, customResourcePrefix),
             node: {
                 id: 'my-stack',
-            }
-        } as unknown as CdkStack
+            },
+        } as unknown as CdkStack;
 
         const converter = new StackConverter(app, manifest);
         converter.convert(new Set());
@@ -464,7 +622,7 @@ describe('Stack Converter', () => {
         const customResource = converter.resources.get('DeployWebsiteCustomResourceD116527B');
         expect(customResource).toBeDefined();
 
-        const customResourceEmulator = customResource?.resource! as native.cloudformation.CustomResourceEmulator;
+        const customResourceEmulator = customResource!.resource! as native.cloudformation.CustomResourceEmulator;
         expect(customResourceEmulator.bucket).toBeDefined();
         expect(customResourceEmulator.data).toBeDefined();
         expect(customResourceEmulator.serviceToken).toBeDefined();

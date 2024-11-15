@@ -24,10 +24,16 @@ export interface CloudFormationResource {
     readonly DependsOn?: string | string[];
 }
 
+export type CloudFormationMapping = { [mappingLogicalName: string]: TopLevelMapping };
+export type CloudFormationMappingValue = string | string[];
+export type TopLevelMapping = { [key: string]: SecondLevelMapping };
+export type SecondLevelMapping = { [key: string]: CloudFormationMappingValue };
+
 export interface CloudFormationTemplate {
     Parameters?: { [id: string]: CloudFormationParameter };
     Resources?: { [id: string]: CloudFormationResource };
     Conditions?: { [id: string]: any };
+    Mappings?: CloudFormationMapping;
     Outputs?: { [id: string]: any };
 }
 

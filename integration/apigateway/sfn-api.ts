@@ -1,4 +1,4 @@
-import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
@@ -15,8 +15,13 @@ export class SfnApi extends Construct {
             stateMachineType: sfn.StateMachineType.EXPRESS,
         });
 
+        // TODO[pulumi/pulumi-cdk#62] The auto created role has too long name
+        const role = new iam.Role(this, 'StartRole', {
+            assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+        });
         const api = new apigw.StepFunctionsRestApi(this, 'StepFunctionsRestApi', {
             deploy: false,
+            role,
             stateMachine: stateMachine,
             headers: true,
             path: false,
