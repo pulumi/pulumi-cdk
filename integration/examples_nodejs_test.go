@@ -20,11 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestApiGateway(t *testing.T) {
@@ -140,21 +137,9 @@ func TestErrors(t *testing.T) {
 // S3 bucket on delete and another for uploading the index.html file for a static website to the bucket.
 // The test validates that the website is deployed, displays the expected content and gets cleaned up on delete.
 func TestCustomResource(t *testing.T) {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	svc := sts.New(sess)
-
-	result, err := svc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-	require.NoError(t, err, "Failed to get AWS account ID")
-	accountId := *result.Account
-
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "custom-resource"),
-			Config: map[string]string{
-				"accountId": accountId,
-			},
 			// Workaround until TODO[pulumi/pulumi-aws-native#1816] is resolved.
 			Env: []string{"PULUMI_CDK_EXPERIMENTAL_MAX_NAME_LENGTH=56"},
 			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {

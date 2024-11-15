@@ -26,7 +26,6 @@ class S3DeploymentStack extends pulumicdk.Stack {
             autoDeleteObjects: true,
         });
 
-
         this.bucketWebsiteUrl = this.asOutput(bucket.bucketWebsiteUrl);
 
         const deploy = new s3deploy.BucketDeployment(this, 'DeployWebsite', {
@@ -41,7 +40,7 @@ class S3DeploymentStack extends pulumicdk.Stack {
         new iam.Role(this, 'CustomResourceRole', {
             assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
             inlinePolicies: {
-                'CustomResourcePolicy': new iam.PolicyDocument({
+                CustomResourcePolicy: new iam.PolicyDocument({
                     statements: [
                         new iam.PolicyStatement({
                             actions: ['s3:GetObject'],
@@ -49,29 +48,18 @@ class S3DeploymentStack extends pulumicdk.Stack {
                         }),
                     ],
                 }),
-            }
+            },
         });
     }
 }
 
-const cfg = new pulumi.Config();
-const accountId = cfg.require('accountId');
-
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new S3DeploymentStack(scope, 's3deployment', {
-                // configure the environment to prevent the bucket from using the unsupported FindInMap intrinsic (TODO[pulumi/pulumi-cdk#187])
-                props: {
-                    env: {
-                        account: accountId,
-                        region: process.env.AWS_REGION,
-                    }
-                }
-            });
+            const stack = new S3DeploymentStack(scope, 's3deployment');
             return {
                 bucketWebsiteUrl: stack.bucketWebsiteUrl,
-                bucketObjectKeys: stack.bucketObjectKeys
+                bucketObjectKeys: stack.bucketObjectKeys,
             };
         });
     }

@@ -1,11 +1,15 @@
 import { StackManifest } from '../src/assembly';
+import { CloudFormationMapping } from '../src/cfn';
 
-export function createStackManifest(
-    resource2Props: any,
-    resource1Props?: any,
-    resource2DependsOn?: string | string[],
-    resource1DependsOn?: string | string[],
-): StackManifest {
+export interface CreateStackManifestProps {
+    resource1Props?: any;
+    resource2Props: any;
+    resource1DependsOn?: string | string[];
+    resource2DependsOn?: string | string[];
+    mappings?: CloudFormationMapping;
+}
+
+export function createStackManifest(props: CreateStackManifestProps): StackManifest {
     return new StackManifest({
         id: 'stack',
         templatePath: 'template',
@@ -34,19 +38,20 @@ export function createStackManifest(
             },
         },
         template: {
+            Mappings: props.mappings,
             Resources: {
                 resource1: {
                     Type: 'AWS::S3::Bucket',
-                    Properties: resource1Props ?? {},
-                    DependsOn: resource1DependsOn,
+                    Properties: props.resource1Props ?? {},
+                    DependsOn: props.resource1DependsOn,
                 },
                 resource2: {
                     Type: 'AWS::S3::BucketPolicy',
                     Properties: {
                         policyDocument: {},
-                        ...resource2Props,
+                        ...props.resource2Props,
                     },
-                    DependsOn: resource2DependsOn,
+                    DependsOn: props.resource2DependsOn,
                 },
             },
         },

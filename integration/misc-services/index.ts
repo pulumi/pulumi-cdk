@@ -82,6 +82,14 @@ class MiscServicesStack extends pulumicdk.Stack {
                 }),
             ],
         });
+
+        new lambda.Function(this, 'FindInMapFunc', {
+            runtime: lambda.Runtime.NODEJS_LATEST,
+            handler: 'index.handler',
+            code: lambda.Code.fromInline('def handler(event, context): return {}'),
+            // this adds a Fn::FindInMap
+            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_317_0,
+        });
     }
 }
 

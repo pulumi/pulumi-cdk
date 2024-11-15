@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib/core';
-import * as aws from '@pulumi/aws-native'
+import * as aws from '@pulumi/aws-native';
 import * as pulumi from '@pulumi/pulumi';
 import { AssemblyManifestReader, StackManifest } from '../assembly';
 import { ConstructInfo, Graph, GraphBuilder, GraphNode } from '../graph';
@@ -18,7 +18,7 @@ import {
 } from '@pulumi/aws-native';
 import { mapToAwsResource } from '../aws-resource-mappings';
 import { attributePropertyName, mapToCfnResource } from '../cfn-resource-mappings';
-import { CloudFormationResource, getDependsOn } from '../cfn';
+import { CloudFormationMapping, CloudFormationResource, getDependsOn } from '../cfn';
 import { OutputMap, OutputRepr } from '../output-map';
 import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
@@ -468,6 +468,43 @@ export class StackConverter extends ArtifactConverter {
                 // This is related to the Export Name from outputs https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html
                 // We might revisit this once the CDKTF supports cross stack references
                 throw new Error(`Fn::ImportValue is not yet supported.`);
+            }
+
+            case 'Fn::FindInMap': {
+                return lift(([mappingLogicalName, topLevelKey, secondLevelKey]) => {
+                    if (params.length !== 3) {
+                        throw new Error(`Fn::FindInMap requires exactly 3 parameters, got ${params.length}`);
+                    }
+                    if (!this.stack.mappings) {
+                        throw new Error(`No mappings found in stack`);
+                    }
+                    if (!(mappingLogicalName in this.stack.mappings)) {
+                        throw new Error(
+                            `Mapping ${mappingLogicalName} not found in mappings. Available mappings are ${Object.keys(
+                                this.stack.mappings,
+                            )}`,
+                        );
+                    }
+                    const topLevelMapping = this.stack.mappings[mappingLogicalName];
+                    if (!(topLevelKey in topLevelMapping)) {
+                        throw new Error(
+                            `Key ${topLevelKey} not found in mapping ${mappingLogicalName}. Available keys are ${Object.keys(
+                                topLevelMapping,
+                            )}`,
+                        );
+                    }
+                    const secondLevelMapping = topLevelMapping[topLevelKey];
+                    if (!(secondLevelKey in secondLevelMapping)) {
+                        throw new Error(
+                            `Key ${secondLevelKey} not found in mapping ${mappingLogicalName}.${topLevelKey}. Available keys are ${Object.keys(
+                                secondLevelMapping,
+                            )}`,
+                        );
+                    }
+
+                    const value = secondLevelMapping[secondLevelKey];
+                    return value;
+                }, this.processIntrinsics(params));
             }
 
             default:

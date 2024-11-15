@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { DestinationIdentifier, FileManifestEntry } from 'cdk-assets';
-import { CloudFormationParameter, CloudFormationResource, CloudFormationTemplate } from '../cfn';
+import { CloudFormationMapping, CloudFormationParameter, CloudFormationResource, CloudFormationTemplate } from '../cfn';
 import { ConstructTree, StackMetadata } from './types';
 import { FileAssetPackaging, FileDestination } from 'aws-cdk-lib/cloud-assembly-schema';
 
@@ -110,6 +110,12 @@ export class StackManifest {
     private readonly resources: { [logicalId: string]: CloudFormationResource };
 
     /**
+     * The Mappings from the CFN Stack
+     * @see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/mappings-section-structure.html
+     */
+    public readonly mappings?: CloudFormationMapping;
+
+    /**
      *
      */
     private readonly metadata: StackMetadata;
@@ -118,6 +124,7 @@ export class StackManifest {
         this.dependencies = props.dependencies;
         this.outputs = props.template.Outputs;
         this.parameters = props.template.Parameters;
+        this.mappings = props.template.Mappings;
         this.metadata = props.metadata;
         this.templatePath = props.templatePath;
         this.id = props.id;

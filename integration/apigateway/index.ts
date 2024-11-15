@@ -9,8 +9,7 @@ class ApiGatewayStack extends pulumicdk.Stack {
         this.node.setContext('@aws-cdk/aws-apigateway:disableCloudWatchRole', 'true');
 
         new RestApi(this, 'test-api');
-        // TODO[pulumi/pulumi-cdk#187]
-        // new SfnApi(this, 'test-sfn-api');
+        new SfnApi(this, 'test-sfn-api');
         new SpecRestApi(this, 'test-spec-api');
     }
 }
