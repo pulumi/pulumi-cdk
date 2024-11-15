@@ -22,13 +22,51 @@ describe('Fn::If', () => {
     test('errors if condition evaluates to a non-boolean', async () => {
         const tc = new TestContext({conditions: {'MyCondition': 'OOPS'}});
         const result = runIntrinsic(intrinsics.fnIf, tc, ['MyCondition', 'yes', 'no']);
-        expect(result).toEqual(failed(`Expected condition 'MyCondition' to evaluate to a boolean, got string`));
+        expect(result).toEqual(failed(`Expected a boolean, got string`));
     });
 });
 
+describe('Fn::Or', () => {
+    test('picks true', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnOr, tc, [true, false, true]);
+        expect(result).toEqual(ok(true));
+    });
+
+    test('picks false', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnOr, tc, [false, false, false]);
+        expect(result).toEqual(ok(false));
+    });
+
+    test('picks true from inner Condition', async () => {
+        const tc = new TestContext({conditions: {'MyCondition': true}});
+        const result = runIntrinsic(intrinsics.fnOr, tc, [false, {'Condition': 'MyCondition'}]);
+        expect(result).toEqual(ok(true));
+    });
+
+    test('picks false with inner Condition', async () => {
+        const tc = new TestContext({conditions: {'MyCondition': false}});
+        const result = runIntrinsic(intrinsics.fnOr, tc, [false, {'Condition': 'MyCondition'}]);
+        expect(result).toEqual(ok(false));
+    });
+
+    test('has to have at least two arguments', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnOr, tc, [false]);
+        expect(result).toEqual(failed(`Fn::Or expects at least 2 params, got 1`));
+    });
+
+    test('short-cirtcuits evaluation if true is found', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnOr, tc, [true, {'Condition': 'DoesNotExist'}]);
+        expect(result).toEqual(ok(true));
+    });
+})
+
 
 function runIntrinsic(fn: intrinsics.Intrinsic, tc: TestContext, args: intrinsics.Expression[]): TestResult<any> {
-    const result: TestResult<any> = <any>(intrinsics.fnIf.evaluate(tc, args));
+    const result: TestResult<any> = <any>(fn.evaluate(tc, args));
     return result;
 };
 

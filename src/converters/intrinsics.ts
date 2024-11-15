@@ -120,7 +120,7 @@ export const fnOr: Intrinsic = {
                 return evaluateConditionOrExpression(ctx, expr);
             }
         })
-        return params.reduce(reducer, ctx.succeed(true));
+        return params.reduce(reducer, ctx.succeed(false));
     }
 }
 
