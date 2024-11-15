@@ -18,6 +18,7 @@ import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
 import { CdkConstruct } from './interop';
+import { makeUniqueId } from './cdk-logical-id';
 
 export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
 
@@ -276,6 +277,36 @@ export class Stack extends cdk.Stack {
         // than that used by the default provider--using a fake global context would necessarily use the default
         // provider or would require unintuitive options in order to produce the expected result).
         return pulumi.output(this.converter.then((converter) => converter.asOutputValue(v)));
+    }
+
+    /**
+     * Returns the naming scheme used to allocate logical IDs. This overrides the default method
+     *
+     * If the "human" part of the ID exceeds 240 characters, we simply trim it so
+     * the total ID doesn't exceed CloudFormation's 255 character limit.
+     *
+     * When Pulumi auto names the resource it will add an 8 character random identifier to the end
+     *
+     * Special cases:
+     *
+     * - For aesthetic reasons, if the last components of the path are the same
+     *   (i.e. `L1/L2/Pipeline/Pipeline`), they will be de-duplicated to make the
+     *   resulting human portion of the ID more pleasing: `L1L2Pipeline`
+     *   instead of `L1L2PipelinePipeline`
+     * - If a component is named "Default" it will be omitted from the path. This
+     *   allows refactoring higher level abstractions around constructs without affecting
+     *   the IDs of already deployed resources.
+     * - If a component is named "Resource" it will be omitted from the user-visible
+     *   path. This reduces visual noise in the human readable
+     *   part of the identifier.
+     *
+     * @param cfnElement The element for which the logical ID is allocated.
+     */
+    protected allocateLogicalId(cfnElement: cdk.CfnElement): string {
+        const scopes = cfnElement.node.scopes;
+        const stackIndex = scopes.indexOf(cfnElement.stack);
+        const pathComponents = scopes.slice(stackIndex + 1).map((x) => x.node.id);
+        return makeUniqueId(pathComponents);
     }
 }
 

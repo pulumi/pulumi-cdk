@@ -9,7 +9,7 @@ class ReplaceOnChangesStack extends pulumicdk.Stack {
             default: true,
         }).id;
         const azs = aws.getAvailabilityZonesOutput({}).names;
-        new ec2.SecurityGroup(this, 'sg', {
+        new ec2.SecurityGroup(this, 'security-group', {
             description: 'Some Description',
             vpc: ec2.Vpc.fromVpcAttributes(this, 'vpc', {
                 vpcId: pulumicdk.asString(vpc),

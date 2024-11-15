@@ -10,13 +10,12 @@ import { setMocks, testApp } from './mocks';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Construct } from 'constructs';
 
-let resources: MockResourceArgs[] = [];
-beforeAll(() => {
-    resources = [];
-    setMocks(resources);
-});
-
 describe('CDK Construct tests', () => {
+    let resources: MockResourceArgs[] = [];
+    beforeAll(() => {
+        resources = [];
+        setMocks(resources);
+    });
     // DynamoDB table was previously mapped to the `aws` provider
     // otherwise this level of testing wouldn't be necessary.
     // We also don't need to do this type of testing for _every_ resource
@@ -135,7 +134,7 @@ describe('CDK Construct tests', () => {
                         Action: 'events:PutEvents',
                         Effect: 'Allow',
                         Principal: { AWS: 'arn:aws:iam::12345678912:root' },
-                        Resource: 'testbus9BA9ECFC_arn',
+                        Resource: 'testbus_arn',
                         Sid: 'cdk-testsid',
                     },
                 ],
@@ -195,5 +194,84 @@ describe('CDK Construct tests', () => {
                 }),
             ]),
         });
+    });
+});
+
+describe('logicalId tests', () => {
+    let resources: MockResourceArgs[] = [];
+    beforeEach(() => {
+        resources = [];
+        setMocks(resources);
+    });
+    test('logicalId is generated without hash for resources', async () => {
+        await testApp((scope: Construct) => {
+            new dynamodb.Table(scope, 'Table', {
+                partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+            });
+        });
+        const table = resources.find((res) => res.type === 'aws-native:dynamodb:Table');
+        expect(table).toBeDefined();
+        expect(table!.name).toEqual('Table');
+    });
+
+    test('logicalId with nested constructs', async () => {
+        await testApp((scope: Construct) => {
+            const construct = new Construct(scope, 'MyConstruct');
+            new dynamodb.Table(construct, 'Table', {
+                partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+            });
+        });
+        const table = resources.find((res) => res.type === 'aws-native:dynamodb:Table');
+        expect(table).toBeDefined();
+        expect(table!.name).toEqual('MyConstructTable');
+    });
+
+    test('logicalId with nested constructs dedupped', async () => {
+        await testApp((scope: Construct) => {
+            const construct = new Construct(scope, 'MyConstruct');
+            const construct2 = new Construct(construct, 'MyConstruct');
+            new dynamodb.Table(construct2, 'Table', {
+                partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+            });
+        });
+        const table = resources.find((res) => res.type === 'aws-native:dynamodb:Table');
+        expect(table).toBeDefined();
+        expect(table!.name).toEqual('MyConstructTable');
+    });
+
+    test('logicalId with Resource', async () => {
+        await testApp((scope: Construct) => {
+            const construct = new Construct(scope, 'Resource');
+            new dynamodb.Table(construct, 'Table', {
+                partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+            });
+        });
+        const table = resources.find((res) => res.type === 'aws-native:dynamodb:Table');
+        expect(table).toBeDefined();
+        expect(table!.name).toEqual('Table');
+    });
+
+    test('logicalId with Default', async () => {
+        await testApp((scope: Construct) => {
+            const construct = new Construct(scope, 'Default');
+            new dynamodb.Table(construct, 'Table', {
+                partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+            });
+        });
+        const table = resources.find((res) => res.type === 'aws-native:dynamodb:Table');
+        expect(table).toBeDefined();
+        expect(table!.name).toEqual('Table');
+    });
+
+    test('logicalId with non-alphanumeric', async () => {
+        await testApp((scope: Construct) => {
+            const construct = new Construct(scope, 'MyConstruct-123');
+            new dynamodb.Table(construct, 'Table', {
+                partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+            });
+        });
+        const table = resources.find((res) => res.type === 'aws-native:dynamodb:Table');
+        expect(table).toBeDefined();
+        expect(table!.name).toEqual('MyConstruct123Table');
     });
 });
