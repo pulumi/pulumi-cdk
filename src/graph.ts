@@ -49,6 +49,13 @@ export interface ConstructInfo {
      * Will be undefined for the construct representing the `Stack`
      */
     parent?: ConstructInfo;
+
+    constructInfo?: ConstructMetadata;
+}
+
+export interface ConstructMetadata {
+    "fqn": string;
+    "version": string;
 }
 
 export interface GraphNode {
@@ -175,6 +182,7 @@ export class GraphBuilder {
             path: tree.path,
             type: tree.constructInfo ? typeFromFqn(tree.constructInfo.fqn) : tree.id,
             attributes: tree.attributes,
+            constructInfo: tree.constructInfo,
         };
         const node: GraphNode = {
             incomingEdges: new Set<GraphNode>(),
@@ -203,11 +211,31 @@ export class GraphBuilder {
             if (resource.Type === 'AWS::EC2::VPC') {
                 this.vpcNodes[node.logicalId] = { vpcNode: node, vpcCidrBlockNode: undefined };
             }
+        } else if (node.construct.constructInfo?.fqn === 'aws-cdk-lib.CfnResource') {
+            // If the construct is a CfnResource, then we need to treat it as a resource
+            const logicalId = this.stack.logicalIdForPath(tree.path);
+            const resource = this.stack.resourceWithLogicalId(logicalId);
+            node.resource = resource;
+            node.logicalId = logicalId;
+            this.cfnElementNodes.set(logicalId, node);
+
+            // Custom Resources do not map to types. E.g. Custom::Bucket should not map to Bucket
+            if (!GraphBuilder.isCustomResource(tree, parent)) {
+                node.construct.type = typeFromCfn(resource.Type);
+            }
         }
+
         this.constructNodes.set(construct, node);
         if (tree.children) {
             Object.values(tree.children).forEach((child) => this.parseTree(child, construct));
         }
+    }
+
+    private static isCustomResource(node: ConstructTree, parent?: ConstructInfo): boolean {
+        // CDK CustomResource are exposed as a CfnResource with the ID "Default"
+        // If the parent construct has the fqn of CustomResource and the current tree node is the "Default" node
+        // then we need to treat it as a Custom Resource
+        return parent?.constructInfo?.fqn === 'aws-cdk-lib.CustomResource' && node.id === 'Default'
     }
 
     private _build(): Graph {

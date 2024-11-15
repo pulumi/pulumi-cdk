@@ -101,6 +101,20 @@ export abstract class PulumiSynthesizerBase extends cdk.StackSynthesizer {
      * stack to ensure the staging assets are created first
      */
     public abstract readonly stagingStack: CdkConstruct;
+
+    /**
+     * Returns the name of the staging bucket that will be used to store assets
+     * and custom resource responses.
+     */
+    public abstract getStagingBucket(): pulumi.Input<string>;
+
+
+    /**
+     * Returns the S3 key prefix that will be used for deploy time assets.
+     */
+    public getDeployTimePrefix(): string {
+        return DEPLOY_TIME_PREFIX;
+    }
 }
 
 /**
@@ -419,6 +433,12 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
             this.fileDependencies.push(this.stagingBucket, encryption, versioning, lifecycle, policy);
         }
         return this.stagingBucket;
+    }
+
+    public getStagingBucket(): pulumi.Input<string> {
+        const bucket = this.getCreateBucket();
+        assertBound(bucket);
+        return bucket.bucket;
     }
 
     /**

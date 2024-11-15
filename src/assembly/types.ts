@@ -1,4 +1,3 @@
-import { ConstructInfo } from 'aws-cdk-lib/core/lib/private/runtime-info';
 import { Node } from 'aws-cdk-lib/core/lib/private/tree-metadata';
 import { DockerImageManifestEntry, FileManifestEntry } from 'cdk-assets';
 

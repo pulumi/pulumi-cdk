@@ -1,13 +1,15 @@
 import { AppConverter, StackConverter } from '../../src/converters/app-converter';
 import * as native from '@pulumi/aws-native';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as mockfs from 'mock-fs';
 import * as pulumi from '@pulumi/pulumi';
 import { BucketPolicy } from '@pulumi/aws-native/s3';
 import { createStackManifest } from '../utils';
-import { promiseOf, setMocks, MockAppComponent } from '../mocks';
-import { StackManifest } from '../../src/assembly';
+import { promiseOf, setMocks, MockAppComponent, MockSynth } from '../mocks';
+import { StackManifest, StackManifestProps } from '../../src/assembly';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
+import { Stack as CdkStack } from 'aws-cdk-lib/core';
 
 let resources: MockResourceArgs[] = [];
 beforeAll(() => {
@@ -440,6 +442,36 @@ describe('Stack Converter', () => {
         const subnet2 = converter.resources.get('other2')?.resource as native.ec2.Subnet;
         const cidrBlock2 = await promiseOf(subnet2.ipv6CidrBlock);
         expect(cidrBlock2).toEqual('cidr_ipv6AddressAttribute_2');
+    });
+
+    test('can convert with custom resources', async () => {
+        const stackManifestPath = path.join(__dirname, '../test-data/custom-resource-stack/stack-manifest.json');
+        const props: StackManifestProps = JSON.parse(fs.readFileSync(stackManifestPath, 'utf-8'));
+        const manifest = new StackManifest(props);
+        const app = new MockAppComponent('/tmp/foo/bar/does/not/exist')
+        const stagingBucket = "my-bucket";
+        const customResourcePrefix = "my-prefix";
+        app.stacks[manifest.id] = {
+            synthesizer: new MockSynth(stagingBucket, customResourcePrefix),
+            node: {
+                id: 'my-stack',
+            }
+        } as unknown as CdkStack
+
+        const converter = new StackConverter(app, manifest);
+        converter.convert(new Set());
+
+        const customResource = converter.resources.get('DeployWebsiteCustomResourceD116527B');
+        expect(customResource).toBeDefined();
+
+        const customResourceEmulator = customResource?.resource! as native.cloudformation.CustomResourceEmulator;
+        expect(customResourceEmulator.bucket).toBeDefined();
+        expect(customResourceEmulator.data).toBeDefined();
+        expect(customResourceEmulator.serviceToken).toBeDefined();
+
+        // This uses GetAtt to get the destination bucket from the custom resource
+        const customResourceRole = converter.resources.get('CustomResourceRoleAB1EF463');
+        expect(customResourceRole).toBeDefined();
     });
 });
 
