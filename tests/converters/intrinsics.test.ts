@@ -3,55 +3,45 @@ import * as intrinsics from '../../src/converters/intrinsics';
 describe('Fn::If', () => {
     test('picks true', async () => {
         const tc = new TestContext({conditions: {'MyCondition': true}});
-        const result = intrinsics.fnIf.evaluate(tc, ['MyCondition', 'yes', 'no']);
-        expect(result).toEqual(new TestSuccessResult<any>('yes'));
+        const result = runIntrinsic(intrinsics.fnIf, tc, ['MyCondition', 'yes', 'no']);
+        expect(result).toEqual(ok('yes'));
     });
 
     test('picks false', async () => {
         const tc = new TestContext({conditions: {'MyCondition': false}});
-        const result = intrinsics.fnIf.evaluate(tc, ['MyCondition', 'yes', 'no']);
-        expect(result).toEqual(new TestSuccessResult<any>('no'));
+        const result = runIntrinsic(intrinsics.fnIf, tc, ['MyCondition', 'yes', 'no']);
+        expect(result).toEqual(ok('no'));
     });
 
     test('errors if condition is not found', async () => {
         const tc = new TestContext({});
-        const result = intrinsics.fnIf.evaluate(tc, ['MyCondition', 'yes', 'no']);
-        expect(result).toEqual(new TestFailureResult<any>(`No condition "MyCondition" found`));
+        const result = runIntrinsic(intrinsics.fnIf, tc, ['MyCondition', 'yes', 'no']);
+        expect(result).toEqual(failed(`No condition 'MyCondition' found`));
     });
 
     test('errors if condition evaluates to a non-boolean', async () => {
         const tc = new TestContext({conditions: {'MyCondition': 'OOPS'}});
-        const result = intrinsics.fnIf.evaluate(tc, ['MyCondition', 'yes', 'no']);
-        expect(result).toEqual(new TestFailureResult<any>(`Expected condition \"MyCondition\" to evaluate to a boolean, got string`));
+        const result = runIntrinsic(intrinsics.fnIf, tc, ['MyCondition', 'yes', 'no']);
+        expect(result).toEqual(failed(`Expected condition 'MyCondition' to evaluate to a boolean, got string`));
     });
 });
 
-class TestSuccessResult<T> implements intrinsics.Result<T> {
-    state: 'success';
-    value: T;
 
-    constructor(value: T) {
-        this.state = 'success';
-        this.value = value;
-    }
-
-    apply<R>(f: (x: T) => intrinsics.Result<R>): intrinsics.Result<R> {
-        return f(this.value);
-    }
+function runIntrinsic(fn: intrinsics.Intrinsic, tc: TestContext, args: intrinsics.Expression[]): TestResult<any> {
+    const result: TestResult<any> = <any>(intrinsics.fnIf.evaluate(tc, args));
+    return result;
 };
 
-class TestFailureResult<T> implements intrinsics.Result<T> {
-    state: 'failure';
-    message: string;
+type TestResult<T> =
+    | {'ok': true, value: T}
+    | {'ok': false, errorMessage: string};
 
-    constructor(message: string) {
-        this.state = 'failure';
-        this.message = message;
-    }
+function ok<T>(result: T): TestResult<T> {
+    return {'ok': true, value: result};
+}
 
-    apply<R>(_: (x: T) => intrinsics.Result<R>): intrinsics.Result<R> {
-        return new TestFailureResult<R>(this.message);
-    }
+function failed<T>(errorMessage: string): TestResult<T> {
+    return {'ok': false, errorMessage: errorMessage};
 }
 
 class TestContext implements intrinsics.IntrinsicContext {
@@ -73,14 +63,26 @@ class TestContext implements intrinsics.IntrinsicContext {
 
     evaluate(expression: intrinsics.Expression): intrinsics.Result<any> {
         // Self-evaluate the expression. This is very incomplete.
-        return new TestSuccessResult<any>(expression);
+        const result: TestResult<any> = {'ok': true, value: expression};
+        return result;
+    }
+
+    apply<T, U>(result: intrinsics.Result<T>, fn: (x: T) => intrinsics.Result<U>): intrinsics.Result<U> {
+        const t: TestResult<T> = <any>result; // assume result is a TestResult
+        if (t.ok) {
+            return fn(t.value);
+        } else {
+            return {'ok': false, errorMessage: t.errorMessage};
+        }
     }
 
     fail(msg: string): intrinsics.Result<any> {
-        return new TestFailureResult<any>(msg);
+        const result: TestResult<any> = {'ok': false, errorMessage: msg};
+        return result;
     }
 
     succeed<T>(r: T): intrinsics.Result<T> {
-        return new TestSuccessResult<T>(r);
+        const result: TestResult<any> = {'ok': true, value: r};
+        return result;
     }
 }

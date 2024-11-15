@@ -22,13 +22,13 @@
  *
  * @internal
  */
-interface Intrinsic {
+export interface Intrinsic {
     name: string;
     evaluate(ctx: IntrinsicContext, params: Expression[]): Result<any>;
 }
 
 /**
- * Models a CF expression. Currently this is just "any" but eventually adding more structure and a separate
+ * Models a CF expression. Currently this is just 'any' but eventually adding more structure and a separate
  * parse/evaluate steps can help keeping the error messages tractable.
  *
  * See also CfnParse for inspiration:
@@ -40,14 +40,12 @@ interface Intrinsic {
 export interface Expression {}
 
 /**
- * Production code may have intermediate values wrapped in pulumi.Output<T>; this is currently somewhat difficult to test, so
- * the essentials of pulumi.Output<T> are abstracted into a Result<T>.
+ * Production code may have intermediate values occasionally wrapped in pulumi.Output<T>; this is currently somewhat
+ * difficult to test, so the essentials of pulumi.Output<T> are abstracted into a Result<T>.
  *
  * @internal
  */
-export interface Result<T> {
-    apply<R>(f: (x: T) => Result<R>): Result<R>;
-}
+export interface Result<T> {}
 
 /**
  * Context available when evaluating CF expressions.
@@ -57,6 +55,7 @@ export interface Result<T> {
 export interface IntrinsicContext {
     findCondition(conditionName: string): Expression|undefined;
     evaluate(expression: Expression): Result<any>;
+    apply<T,U>(result: Result<T>, fn: (value: U) => Result<U>): Result<U>;
     fail(msg: string): Result<any>;
     succeed<T>(r: T): Result<T>;
 }
@@ -69,21 +68,21 @@ export interface IntrinsicContext {
  * @internal
  */
 export const fnIf: Intrinsic = {
-    name: "Fn::If",
+    name: 'Fn::If',
     evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
         if (params.length !== 3) {
             return ctx.fail(`Expected 3 parameters, got ${ params.length }`);
         }
 
         if (typeof params[0] !== 'string') {
-            return ctx.fail("Expected the first parameter to be a condition name string literal");
+            return ctx.fail('Expected the first parameter to be a condition name string literal');
         }
 
         const conditionName: string = params[0];
         const exprIfTrue = params[1];
         const exprIfFalse = params[2];
 
-        return evaluateCondition(ctx, conditionName).apply(ok => {
+        return ctx.apply(evaluateCondition(ctx, conditionName), ok => {
             if (ok) {
                 return ctx.evaluate(exprIfTrue);
             } else {
@@ -96,13 +95,13 @@ export const fnIf: Intrinsic = {
 function evaluateCondition(ctx: IntrinsicContext, conditionName: string): Result<boolean> {
     const conditionExpr = ctx.findCondition(conditionName);
     if (conditionExpr === undefined) {
-        return ctx.fail(`No condition "${conditionName}" found`);
+        return ctx.fail(`No condition '${conditionName}' found`);
     }
-    return ctx.evaluate(conditionExpr).apply(result => {
+    return ctx.apply(ctx.evaluate(conditionExpr), result => {
         if (typeof result === 'boolean') {
             return ctx.succeed(result);
         } else {
-            return ctx.fail(`Expected condition "${conditionName}" to evaluate to a boolean, got ${typeof(result)}`)
+            return ctx.fail(`Expected condition '${conditionName}' to evaluate to a boolean, got ${typeof(result)}`)
         }
     });
 }

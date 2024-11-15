@@ -1,6 +1,12 @@
 import * as path from 'path';
 import { DestinationIdentifier, FileManifestEntry } from 'cdk-assets';
-import { CloudFormationMapping, CloudFormationParameter, CloudFormationResource, CloudFormationTemplate } from '../cfn';
+import {
+    CloudFormationMapping,
+    CloudFormationParameter,
+    CloudFormationResource,
+    CloudFormationTemplate,
+    CloudFormationCondition,
+} from '../cfn';
 import { ConstructTree, StackMetadata } from './types';
 import { FileAssetPackaging, FileDestination } from 'aws-cdk-lib/cloud-assembly-schema';
 
@@ -116,10 +122,15 @@ export class StackManifest {
     public readonly mappings?: CloudFormationMapping;
 
     /**
+     * CloudFormation conditions from the template.
      *
+     * @internal
      */
+    public readonly conditions?: { [id: string]: CloudFormationCondition };
+
     private readonly metadata: StackMetadata;
     public readonly dependencies: string[];
+
     constructor(props: StackManifestProps) {
         this.dependencies = props.dependencies;
         this.outputs = props.template.Outputs;
@@ -133,6 +144,7 @@ export class StackManifest {
             throw new Error('CloudFormation template has no resources!');
         }
         this.resources = props.template.Resources;
+        this.conditions = props.template.Conditions;
     }
 
     /**

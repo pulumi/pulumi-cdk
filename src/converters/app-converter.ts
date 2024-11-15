@@ -91,7 +91,7 @@ export class AppConverter {
 /**
  * StackConverter converts all of the resources in a CDK stack to Pulumi resources
  */
-export class StackConverter extends ArtifactConverter {
+export class StackConverter extends ArtifactConverter implements intrinsics.IntrinsicContext {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
@@ -544,12 +544,7 @@ export class StackConverter extends ArtifactConverter {
                 }, this.processIntrinsics(params));
 
             case 'Fn::If': {
-                return lift(params => {
-                    return params;
-                });
-                //
-                // check that params is an array of length 3
-                throw new Error("!");
+                return intrinsics.fnIf.evaluate(this, params);
             }
 
             default:
@@ -642,36 +637,28 @@ export class StackConverter extends ArtifactConverter {
         }
         return d.value;
     }
-}
-
-/*
- * Plumbing class to run intrinsic evaluators.
- *
- * @internal
- */
-class PulumiIntrinsicContext implements intrinsics.IntrinsicContext {
-    stackConverter: StackConverter;
-
-    constructor(stackConverter: StackConverter) {
-        this.stackConverter = stackConverter;
-    }
 
     findCondition(conditionName: string): intrinsics.Expression|undefined {
-        return undefined;
+        if ((this.stack.conditions||{}).hasOwnProperty(conditionName)) {
+            return this.stack.conditions![conditionName];
+        } else {
+            return undefined;
+        }
     }
 
     evaluate(expression: intrinsics.Expression): intrinsics.Result<any> {
-        throw new Error("!");
+        return this.processIntrinsics(expression);
     }
 
     fail(msg: string): intrinsics.Result<any> {
-        throw new Error("!");
+        throw new Error(msg);
     }
 
     succeed<T>(r: T): intrinsics.Result<T> {
-        // pulumi.output(r) includes Unwrap which is undesirable.
-        //
-        // TODO[pulumi/pulumi#17014] for an official combinator here.
-        return pulumi.output(1).apply(_ => r);
+        return <any>r;
+    }
+
+    apply<T,U>(result: intrinsics.Result<T>, fn: (value: U) => intrinsics.Result<U>): intrinsics.Result<U> {
+        return lift(fn, result);
     }
 }
