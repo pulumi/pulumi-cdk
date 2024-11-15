@@ -24,6 +24,7 @@ import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
 import { processSecretsManagerReferenceValue } from './secrets-manager-dynamic';
+import * as intrinsics from "./intrinsics";
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -541,10 +542,18 @@ export class StackConverter extends ArtifactConverter {
                     const value = secondLevelMapping[secondLevelKey];
                     return value;
                 }, this.processIntrinsics(params));
+
+            case 'Fn::If': {
+                return lift(params => {
+                    return params;
+                });
+                //
+                // check that params is an array of length 3
+                throw new Error("!");
             }
 
             default:
-                throw new Error(`unsupported intrinsic function ${fn} (params: ${JSON.stringify(params)})`);
+                throw new Error(`unsupported intrinsic function^^ ${fn} (params: ${JSON.stringify(params)})`);
         }
     }
 
@@ -632,5 +641,37 @@ export class StackConverter extends ArtifactConverter {
             throw new Error(`No property ${propertyName} for attribute ${attribute} on resource ${logicalId}`);
         }
         return d.value;
+    }
+}
+
+/*
+ * Plumbing class to run intrinsic evaluators.
+ *
+ * @internal
+ */
+class PulumiIntrinsicContext implements intrinsics.IntrinsicContext {
+    stackConverter: StackConverter;
+
+    constructor(stackConverter: StackConverter) {
+        this.stackConverter = stackConverter;
+    }
+
+    findCondition(conditionName: string): intrinsics.Expression|undefined {
+        return undefined;
+    }
+
+    evaluate(expression: intrinsics.Expression): intrinsics.Result<any> {
+        throw new Error("!");
+    }
+
+    fail(msg: string): intrinsics.Result<any> {
+        throw new Error("!");
+    }
+
+    succeed<T>(r: T): intrinsics.Result<T> {
+        // pulumi.output(r) includes Unwrap which is undesirable.
+        //
+        // TODO[pulumi/pulumi#17014] for an official combinator here.
+        return pulumi.output(1).apply(_ => r);
     }
 }
