@@ -64,6 +64,37 @@ describe('Fn::Or', () => {
     });
 })
 
+describe('Fn::Equals', () => {
+    test('detects equal strings', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnEquals, tc, ['a', 'a']);
+        expect(result).toEqual(ok(true));
+    });
+
+    test('detects unequal strings', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnEquals, tc, ['a', 'b']);
+        expect(result).toEqual(ok(false));
+    });
+
+    test('detects equal objects', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnEquals, tc, [{x: 'a'}, {'x': 'a'}]);
+        expect(result).toEqual(ok(true));
+    });
+
+    test('detects unequal objects', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnEquals, tc, [{x: 'a'}, {'x': 'b'}]);
+        expect(result).toEqual(ok(false));
+    });
+
+    test('insists on two arguments', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnEquals, tc, [1]);
+        expect(result).toEqual(failed(`Fn::Equals expects exactly 2 params, got 1`));
+    });
+})
 
 function runIntrinsic(fn: intrinsics.Intrinsic, tc: TestContext, args: intrinsics.Expression[]): TestResult<any> {
     const result: TestResult<any> = <any>(fn.evaluate(tc, args));

@@ -264,3 +264,16 @@ func bucketExists(ctx context.Context, client *s3.Client, bucketName string) (bo
 	}
 	return true, nil
 }
+
+func TestKinesis(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "kinesis"),
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				kinesisStreamName := stack.Outputs["kinesisStreamName"].(string)
+				assert.Containsf(t, kinesisStreamName, "mystream", "Kinesis stream name should contain 'mystream'")
+			},
+		})
+
+	integration.ProgramTest(t, &test)
+}

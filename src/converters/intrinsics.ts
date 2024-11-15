@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import * as equal from 'fast-deep-equal';
+
 /**
  * Models a CF Intrinsic Function.
  *
@@ -121,6 +123,31 @@ export const fnOr: Intrinsic = {
             }
         })
         return params.reduce(reducer, ctx.succeed(false));
+    }
+}
+
+/**
+ * From the docs: Compares if two values are equal. Returns true if the two values are equal or false if they aren't.
+ *
+ * Fn::Equals: [value_1, value_2]
+ *
+ * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html#intrinsic-function-reference-conditions-not
+ *
+ */
+export const fnEquals: Intrinsic = {
+    name: 'Fn::Equals',
+    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+        if (params.length != 2) {
+            return ctx.fail(`Fn::Equals expects exactly 2 params, got ${params.length}`)
+        }
+        return ctx.apply(ctx.evaluate(params[0]), x =>
+            ctx.apply(ctx.evaluate(params[1]), y => {
+                if (equal(x, y)) {
+                    return ctx.succeed(true);
+                } else {
+                    return ctx.succeed(false);
+                }
+            }));
     }
 }
 

@@ -543,6 +543,10 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                     return value;
                 }, this.processIntrinsics(params));
 
+            case 'Fn::Equals': {
+                return intrinsics.fnEquals.evaluate(this, params);
+            }
+
             case 'Fn::If': {
                 return intrinsics.fnIf.evaluate(this, params);
             }
