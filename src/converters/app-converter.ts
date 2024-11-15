@@ -540,6 +540,8 @@ export class StackConverter extends ArtifactConverter {
         // If this resource has explicit attribute mappings, those mappings will use PascalCase, not camelCase.
         const propertyName = mapping.attributes !== undefined ? attribute : attributePropertyName(attribute);
 
+        // CFN CustomResources have a `data` property that contains the attributes. It is part of the response
+        // of the Lambda Function backing the Custom Resource.
         if (aws.cloudformation.CustomResourceEmulator.isInstance(mapping.resource)) {
             return mapping.resource.data.apply((attrs) => {
                 const descs = Object.getOwnPropertyDescriptors(attrs);
