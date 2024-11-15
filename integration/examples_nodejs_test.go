@@ -167,7 +167,6 @@ func TestCustomResource(t *testing.T) {
 					return assert.Equal(t, "Hello, World!", body, "Body should equal 'Hello, World!', got %s", body)
 				})
 
-				// This uses GetAtt to get the objectKeys from the custom resource
 				objectKeys := stack.Outputs["objectKeys"].([]interface{})
 				assert.NotEmpty(t, objectKeys)
 			},

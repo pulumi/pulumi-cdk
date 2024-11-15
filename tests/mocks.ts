@@ -1,10 +1,11 @@
 import * as pulumi from '@pulumi/pulumi';
 import { CdkConstruct } from '../src/interop';
-import { Stack as CdkStack } from 'aws-cdk-lib/core';
+import { Stack as CdkStack, DockerImageAssetLocation, DockerImageAssetSource, FileAssetLocation, FileAssetSource, ISynthesisSession } from 'aws-cdk-lib/core';
 import { AppComponent, AppOptions } from '../src/types';
 import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Construct } from 'constructs';
 import { App, Stack } from '../src/stack';
+import { PulumiSynthesizerBase } from '../src/synthesizer';
 
 // Convert a pulumi.Output to a promise of the same type.
 export function promiseOf<T>(output: pulumi.Output<T>): Promise<T> {
@@ -142,6 +143,18 @@ export function setMocks(resources?: MockResourceArgs[]) {
                             repositoryUrl: '12345678910.dkr.ecr.us-east-1.amazonaws.com/' + args.inputs.name,
                         },
                     };
+                case 'aws-native:cloudformation:CustomResourceEmulator':
+                    resources?.push(args);
+                    return {
+                        id: args.inputs.logicalId + '_id',
+                        state: {
+                            ...args.inputs,
+                            id: args.inputs.logicalId + '_id',
+                            data: {
+                                "DestinationBucketArn": `arn:aws:s3:::${args.inputs.bucketName}`
+                            }
+                        },
+                    };
                 default:
                     resources?.push(args);
                     return {
@@ -158,3 +171,28 @@ export function setMocks(resources?: MockResourceArgs[]) {
 
     pulumi.runtime.setMocks(mocks, 'project', 'stack', false);
 }
+
+export class MockSynth extends PulumiSynthesizerBase {
+
+    constructor(readonly bucket: string, readonly prefix: string) {
+        super();
+    }
+    public stagingStack: CdkConstruct;
+    public getStagingBucket(): pulumi.Input<string> {
+        return this.bucket;
+    }
+    public getDeployTimePrefix(): string {
+        return this.prefix;
+    }
+
+    addFileAsset(asset: FileAssetSource): FileAssetLocation {
+        throw new Error('Method not implemented.');
+    }
+    addDockerImageAsset(asset: DockerImageAssetSource): DockerImageAssetLocation {
+        throw new Error('Method not implemented.');
+    }
+    synthesize(session: ISynthesisSession): void {
+        throw new Error('Method not implemented.');
+    }
+}
+

@@ -3,6 +3,7 @@ import * as pulumicdk from '@pulumi/cdk';
 
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 
 class S3DeploymentStack extends pulumicdk.Stack {
@@ -34,9 +35,24 @@ class S3DeploymentStack extends pulumicdk.Stack {
         });
 
         this.bucketObjectKeys = this.asOutput(deploy.objectKeys);
+
+        // Create a role that can read from the deployment bucket
+        // This verifies that GetAtt works on Custom Resources
+        new iam.Role(this, 'CustomResourceRole', {
+            assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+            inlinePolicies: {
+                'CustomResourcePolicy': new iam.PolicyDocument({
+                    statements: [
+                        new iam.PolicyStatement({
+                            actions: ['s3:GetObject'],
+                            resources: [`${deploy.deployedBucket.bucketArn}/*`],
+                        }),
+                    ],
+                }),
+            }
+        });
     }
 }
-
 
 const cfg = new pulumi.Config();
 const accountId = cfg.require('accountId');

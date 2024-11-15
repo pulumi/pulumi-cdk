@@ -13,7 +13,6 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { debug, info } from '@pulumi/pulumi/log';
 import { normalizeObject } from './pulumi-metadata';
 import { toSdkName } from './naming';
 import { PulumiProvider } from './types';

@@ -13,8 +13,10 @@
 // limitations under the License.
 
 import { GraphBuilder, GraphNode } from '../src/graph';
-import { StackManifest } from '../src/assembly';
+import { StackManifest, StackManifestProps } from '../src/assembly';
 import { createStackManifest } from './utils';
+import * as fs from 'fs';
+import * as path from 'path';
 
 describe('GraphBuilder', () => {
     const nodes = GraphBuilder.build(
@@ -472,6 +474,33 @@ test('pulumi resource type name fallsback when fqn not available', () => {
     expect(nodes[2].construct.type).toEqual('Bucket');
     expect(nodes[3].construct.type).toEqual(policyResourceId);
     expect(nodes[4].construct.type).toEqual('BucketPolicy');
+});
+
+test('parses custom resources', () => {
+    const stackManifestPath = path.join(__dirname, 'test-data/custom-resource-stack/stack-manifest.json');
+    const props: StackManifestProps = JSON.parse(fs.readFileSync(stackManifestPath, 'utf-8'));
+    const stackManifest = new StackManifest(props);
+    const graph = GraphBuilder.build(stackManifest);
+
+    const deployWebsiteCR = graph.nodes.find((node) => node.logicalId === 'DeployWebsiteCustomResourceD116527B');
+    expect(deployWebsiteCR).toBeDefined();
+    expect(deployWebsiteCR?.construct.type).toEqual('aws-cdk-lib:CfnResource');
+    expect(deployWebsiteCR?.resource).toBeDefined();
+    const deployWebsiteCRResource = deployWebsiteCR?.resource!;
+    expect(deployWebsiteCRResource.Type).toEqual('Custom::CDKBucketDeployment');
+    expect(deployWebsiteCRResource.Properties.ServiceToken).toEqual({ 'Fn::GetAtt': ['CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536', 'Arn'] });
+    expect(deployWebsiteCRResource.Properties.SourceBucketNames).toEqual(['pulumi-cdk-stom-res-d817419f-staging-616138583583-us-west-2']);
+    expect(deployWebsiteCRResource.Properties.SourceObjectKeys).toEqual(['a386ba9b8c0d9b386083b2f6952db278a5a0ce88f497484eb5e62172219468fd.zip']);
+
+    const testRole = graph.nodes.find((node) => node.logicalId === 'CustomResourceRoleAB1EF463');
+    expect(testRole).toBeDefined();
+    const policies = testRole?.resource?.Properties?.Policies;
+    expect(policies).toBeDefined();
+    expect(policies).toHaveLength(1);
+    const statement = policies[0].PolicyDocument?.Statement;
+    expect(statement).toBeDefined();
+    expect(statement).toHaveLength(1);
+    expect(statement[0].Resource).toEqual({ 'Fn::Join': ['', [{ 'Fn::GetAtt': ['DeployWebsiteCustomResourceD116527B', 'DestinationBucketArn'] }, '/*']] });
 });
 
 function edgesToArray(edges: Set<GraphNode>): string[] {
