@@ -547,8 +547,12 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                 return intrinsics.fnIf.evaluate(this, params);
             }
 
+            case 'Fn::Or': {
+                return intrinsics.fnOr.evaluate(this, params);
+            }
+
             default:
-                throw new Error(`unsupported intrinsic function^^ ${fn} (params: ${JSON.stringify(params)})`);
+                throw new Error(`unsupported intrinsic function ${fn} (params: ${JSON.stringify(params)})`);
         }
     }
 

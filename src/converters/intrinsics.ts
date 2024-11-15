@@ -92,16 +92,76 @@ export const fnIf: Intrinsic = {
     }
 }
 
+/**
+ *
+ * From the docs: the minimum number of conditions that you can include is 2, and the maximum is 10.
+ *
+ * Example invocation:
+ *
+ *   "MyOrCondition": {
+ *     "Fn::Or" : [
+ *       {"Fn::Equals" : ["sg-mysggroup", {"Ref" : "ASecurityGroup"}]},
+ *       {"Condition" : "SomeOtherCondition"}
+ *     ]
+ *   }
+ *
+ * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html#intrinsic-function-reference-conditions-or
+ */
+export const fnOr: Intrinsic = {
+    name: 'Fn::Or',
+    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+        if (params.length < 2) {
+            return ctx.fail(`Fn::Or expects at least 2 params, got ${params.length}`)
+        }
+        const reducer = (acc: Result<boolean>, expr: Expression) => ctx.apply(acc, ok => {
+            if (ok) {
+                return ctx.succeed(true);
+            } else {
+                return evaluateConditionOrExpression(ctx, expr);
+            }
+        })
+        return params.reduce(reducer, ctx.succeed(true));
+    }
+}
+
+/**
+ * Recognize forms such as {"Condition" : "SomeOtherCondition"}. If recognized, returns the conditionName.
+ */
+function parseConditionExpr(raw: Expression): string|undefined {
+    if (typeof raw !== 'object' || !raw.hasOwnProperty('Condition')) {
+        return undefined;
+    }
+    const cond = (<any>raw)['Condition'];
+    if (typeof cond !== 'string') {
+        return undefined;
+    }
+    return cond;
+}
+
+/**
+ * Like `ctx.evaluate` but also recognizes Condition sub-expressions as required by `Fn::Or`.
+ */
+function evaluateConditionOrExpression(ctx: IntrinsicContext, expr: Expression): Result<boolean> {
+    const firstExprConditonName = parseConditionExpr(expr);
+    if (firstExprConditonName !== undefined) {
+        return evaluateCondition(ctx, firstExprConditonName)
+    } else {
+        return ctx.apply(ctx.evaluate(expr), r => mustBeBoolean(ctx, r));
+    }
+}
+
+function mustBeBoolean(ctx: IntrinsicContext, r: any): Result<boolean> {
+    if (typeof r === "boolean") {
+        return ctx.succeed(r);
+    } else {
+        return ctx.fail(`Expected a boolean, got ${typeof r}`);
+    }
+}
+
 function evaluateCondition(ctx: IntrinsicContext, conditionName: string): Result<boolean> {
     const conditionExpr = ctx.findCondition(conditionName);
     if (conditionExpr === undefined) {
         return ctx.fail(`No condition '${conditionName}' found`);
     }
-    return ctx.apply(ctx.evaluate(conditionExpr), result => {
-        if (typeof result === 'boolean') {
-            return ctx.succeed(result);
-        } else {
-            return ctx.fail(`Expected condition '${conditionName}' to evaluate to a boolean, got ${typeof(result)}`)
-        }
-    });
+    return ctx.apply(ctx.evaluate(conditionExpr), r => mustBeBoolean(ctx, r));
 }
