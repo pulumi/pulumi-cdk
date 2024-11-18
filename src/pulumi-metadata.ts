@@ -290,7 +290,7 @@ export function normalizeObject(key: string[], value: any, cfnType?: string, pul
     }
 
     if (pulumi.Output.isInstance(value)) {
-        return value.apply(v => normalizeObject(key, v, cfnType, pulumiProvider)});
+        return value.apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
     }
 
     if (Array.isArray(value)) {
