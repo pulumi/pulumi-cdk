@@ -1,5 +1,4 @@
 import * as path from 'path';
-import * as pulumi from '@pulumi/pulumi';
 import { toSdkName, typeToken } from './naming';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pulumiMetadata = require(path.join(__dirname, '../schemas/aws-native-metadata.json'));
@@ -260,24 +259,24 @@ export function getNativeType(
  * Recursively normalizes object types, with special handling for JSON types (which should not be normalized)
  *
  * @param key the property key as a list (including parent property names for nested properties)
- * @param value the value to normalize
+ * @param value the value to normalize; this should not contain eventual types like Promise and pulumi.Output
  * @param cfnType The CloudFormation resource type being normalized (e.g. AWS::S3::Bucket). If no value
  * is provided then property conversion will be done without schema knowledge
  * @param pulumiProvider The pulumi provider to read the schema from. If `cfnType` is provided then this defaults
  * to PulumiProvider.AWS_NATIVE
  * @returns the normalized property value
  */
-export function normalizeObject(key: string[], value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
+export function normalizePromptObject(key: string[], value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
     if (!value) return value;
     if (Array.isArray(value)) {
         const result: any[] = [];
         for (let i = 0; i < value.length; i++) {
-            result[i] = normalizeObject(key, value[i], cfnType);
+            result[i] = normalizePromptObject(key, value[i], cfnType);
         }
         return result;
     }
 
-    if (typeof value !== 'object' || pulumi.Output.isInstance(value) || value instanceof Promise) {
+    if (typeof value !== 'object') {
         return value;
     }
 
@@ -294,22 +293,22 @@ export function normalizeObject(key: string[], value: any, cfnType?: string, pul
 
             Object.entries(value).forEach(([k, v]) => {
                 k = nativeType === NativeType.ADDITIONAL_PROPERTIES ? k : toSdkName(k);
-                result[k] = normalizeObject([...key, k], v, cfnType);
+                result[k] = normalizePromptObject([...key, k], v, cfnType);
             });
             return result;
         } catch (e) {
             debug(`error reading pulumi schema: ${e}`);
             // fallback to processing without the schema
-            return normalizeGenericResourceObject(key, value);
+            return normalizeGenericPromptResourceObject(key, value);
         }
     }
-    return normalizeGenericResourceObject(key, value);
+    return normalizeGenericPromptResourceObject(key, value);
 }
 
-function normalizeGenericResourceObject(key: string[], value: any): any {
+function normalizeGenericPromptResourceObject(key: string[], value: any): any {
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {
-        result[toSdkName(k)] = normalizeObject([...key, k], v);
+        result[toSdkName(k)] = normalizePromptObject([...key, k], v);
     });
     return result;
 }

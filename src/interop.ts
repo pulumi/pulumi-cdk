@@ -1,4 +1,4 @@
-// Copyright 2016-2022, Pulumi Corporation.
+// Copyright 2016-2024, Pulumi Corporation.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { normalizeObject } from './pulumi-metadata';
+import { normalizePromptObject } from './pulumi-metadata';
 import { toSdkName } from './naming';
-import { PulumiProvider } from './types';
+import { PulumiProvider, lift } from './types';
 import { PulumiResourceType } from './graph';
 
 export function firstToLower(str: string) {
@@ -36,23 +36,30 @@ export function firstToLower(str: string) {
  * @returns The normalized resource properties
  */
 export function normalize(value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
+    return lift(value => normalizePromptValue(value, cfnType, pulumiProvider), value);
+}
+
+/**
+  * The inner part of `normalize` that does not have to deal with eventual types like Promise or pulumi.Output.
+  */
+function normalizePromptValue(value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
     if (!value) return value;
 
     if (Array.isArray(value)) {
         const result: any[] = [];
         for (let i = 0; i < value.length; i++) {
-            result[i] = normalize(value[i], cfnType);
+            result[i] = normalizePromptValue(value[i], cfnType, pulumiProvider);
         }
         return result;
     }
 
-    if (typeof value !== 'object' || pulumi.Output.isInstance(value) || value instanceof Promise) {
+    if (typeof value !== 'object') {
         return value;
     }
 
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {
-        result[toSdkName(k)] = normalizeObject([k], v, cfnType, pulumiProvider);
+        result[toSdkName(k)] = normalizePromptObject([k], v, cfnType, pulumiProvider);
     });
     return result;
 }
