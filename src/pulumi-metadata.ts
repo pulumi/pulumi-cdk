@@ -275,7 +275,7 @@ export function getNativeType(
  * Recursively normalizes object types, with special handling for JSON types (which should not be normalized)
  *
  * @param key the property key as a list (including parent property names for nested properties)
- * @param value the value to normalize; this should not contain eventual types like Promise and pulumi.Output
+ * @param value the value to normalize
  * @param cfnType The CloudFormation resource type being normalized (e.g. AWS::S3::Bucket). If no value
  * is provided then property conversion will be done without schema knowledge
  * @param pulumiProvider The pulumi provider to read the schema from. If `cfnType` is provided then this defaults
