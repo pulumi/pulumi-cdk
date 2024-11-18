@@ -309,8 +309,9 @@ export class StackConverter extends ArtifactConverter {
      * capability, which means the user would need to manually create the snapshot before deleting.
      * to be on the safe side, we will retain the resource
      *
-     * RETAIN_EXCEPT_ON_CREATE only applies to CloudFormation because CloudFormation will rollback a stack
-     * if it fails to deploy. Pulumi does not have the same behavior, so we will treat it as RETAIN
+     * @param logicalId - The logicalId of the resource
+     * @param resource - The CloudFormation resource
+     * @returns - The retainOnDelete value
      */
     private getRetainOnDelete(logicalId: string, resource: CloudFormationResource): boolean | undefined {
         if (resource.DeletionPolicy === undefined) {
@@ -321,6 +322,8 @@ export class StackConverter extends ArtifactConverter {
                 return false;
             case cdk.CfnDeletionPolicy.RETAIN:
             case cdk.CfnDeletionPolicy.RETAIN_EXCEPT_ON_CREATE:
+                // RETAIN_EXCEPT_ON_CREATE only applies to CloudFormation because CloudFormation will rollback a stack
+                // if it fails to deploy. Pulumi does not have the same behavior, so we will treat it as RETAIN
                 return true;
             case cdk.CfnDeletionPolicy.SNAPSHOT:
                 warn(`DeletionPolicy Snapshot is not supported. Resource '${logicalId}' will be retained.`);
