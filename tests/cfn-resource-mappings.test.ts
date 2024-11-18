@@ -1,7 +1,5 @@
-import { CustomResource } from '@pulumi/pulumi';
 import { mapToCfnResource } from '../src/cfn-resource-mappings';
 import * as aws from '@pulumi/aws-native';
-import { moduleName, typeName } from '../src/naming';
 
 class MockResource {
     constructor(args: { [key: string]: any }) {
