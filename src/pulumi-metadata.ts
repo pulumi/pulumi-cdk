@@ -1,9 +1,25 @@
+// Copyright 2016-2024, Pulumi Corporation.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import * as path from 'path';
 import { toSdkName, typeToken } from './naming';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pulumiMetadata = require(path.join(__dirname, '../schemas/aws-native-metadata.json'));
 import { PulumiProvider } from './types';
 import { debug } from '@pulumi/pulumi/log';
+import * as pulumi from '@pulumi/pulumi';
+
 
 export class UnknownCfnType extends Error {
     constructor(cfnType: string) {
@@ -266,12 +282,21 @@ export function getNativeType(
  * to PulumiProvider.AWS_NATIVE
  * @returns the normalized property value
  */
-export function normalizePromptObject(key: string[], value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
+export function normalizeObject(key: string[], value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
     if (!value) return value;
+
+    if (value instanceof Promise) {
+        pulumi.output(value).apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
+    }
+
+    if (pulumi.Output.isInstance(value)) {
+        return value.apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
+    }
+
     if (Array.isArray(value)) {
         const result: any[] = [];
         for (let i = 0; i < value.length; i++) {
-            result[i] = normalizePromptObject(key, value[i], cfnType);
+            result[i] = normalizeObject(key, value[i], cfnType);
         }
         return result;
     }
@@ -280,6 +305,7 @@ export function normalizePromptObject(key: string[], value: any, cfnType?: strin
         return value;
     }
 
+    // The remaining case is the actual object type.
     const result: any = {};
     if (cfnType) {
         try {
@@ -293,7 +319,7 @@ export function normalizePromptObject(key: string[], value: any, cfnType?: strin
 
             Object.entries(value).forEach(([k, v]) => {
                 k = nativeType === NativeType.ADDITIONAL_PROPERTIES ? k : toSdkName(k);
-                result[k] = normalizePromptObject([...key, k], v, cfnType);
+                result[k] = normalizeObject([...key, k], v, cfnType);
             });
             return result;
         } catch (e) {
@@ -308,7 +334,7 @@ export function normalizePromptObject(key: string[], value: any, cfnType?: strin
 function normalizeGenericPromptResourceObject(key: string[], value: any): any {
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {
-        result[toSdkName(k)] = normalizePromptObject([...key, k], v);
+        result[toSdkName(k)] = normalizeObject([...key, k], v);
     });
     return result;
 }

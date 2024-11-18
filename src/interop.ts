@@ -13,9 +13,9 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { normalizePromptObject } from './pulumi-metadata';
+import { normalizeObject } from './pulumi-metadata';
 import { toSdkName } from './naming';
-import { PulumiProvider, lift } from './types';
+import { PulumiProvider } from './types';
 import { PulumiResourceType } from './graph';
 
 export function firstToLower(str: string) {
@@ -36,19 +36,20 @@ export function firstToLower(str: string) {
  * @returns The normalized resource properties
  */
 export function normalize(value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
-    return lift(value => normalizePromptValue(value, cfnType, pulumiProvider), value);
-}
-
-/**
-  * The inner part of `normalize` that does not have to deal with eventual types like Promise or pulumi.Output.
-  */
-function normalizePromptValue(value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
     if (!value) return value;
+
+    if (value instanceof Promise) {
+        pulumi.output(value).apply(v => normalize(v, cfnType, pulumiProvider));
+    }
+
+    if (pulumi.Output.isInstance(value)) {
+        return value.apply(v => normalize(v, cfnType, pulumiProvider));
+    }
 
     if (Array.isArray(value)) {
         const result: any[] = [];
         for (let i = 0; i < value.length; i++) {
-            result[i] = normalizePromptValue(value[i], cfnType, pulumiProvider);
+            result[i] = normalize(value[i], cfnType, pulumiProvider);
         }
         return result;
     }
@@ -57,9 +58,10 @@ function normalizePromptValue(value: any, cfnType?: string, pulumiProvider?: Pul
         return value;
     }
 
+    // The remaining case is the object type, representing either Maps or Object types with known field types in Pulumi.
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {
-        result[toSdkName(k)] = normalizePromptObject([k], v, cfnType, pulumiProvider);
+        result[toSdkName(k)] = normalizeObject([k], v, cfnType, pulumiProvider);
     });
     return result;
 }
