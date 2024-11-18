@@ -325,13 +325,13 @@ export function normalizeObject(key: string[], value: any, cfnType?: string, pul
         } catch (e) {
             debug(`error reading pulumi schema: ${e}`);
             // fallback to processing without the schema
-            return normalizeGenericPromptResourceObject(key, value);
+            return normalizeGenericResourceObject(key, value);
         }
     }
-    return normalizeGenericPromptResourceObject(key, value);
+    return normalizeGenericResourceObject(key, value);
 }
 
-function normalizeGenericPromptResourceObject(key: string[], value: any): any {
+function normalizeGenericResourceObject(key: string[], value: any): any {
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {
         result[toSdkName(k)] = normalizeObject([...key, k], v);
