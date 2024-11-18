@@ -7,7 +7,7 @@ on:
         description: The folder in which to run tests
 
 env:
-  AWS_REGION: us-west-2
+  AWS_REGION: us-east-2
 
 jobs:
   acceptance-tests:
