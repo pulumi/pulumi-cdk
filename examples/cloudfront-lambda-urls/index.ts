@@ -12,6 +12,7 @@ import {
 import { FunctionUrlOrigin, S3Origin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { RemovalPolicy } from 'aws-cdk-lib';
 
 class CloudFrontAppStack extends pulumicdk.Stack {
     public cloudFrontUrl: pulumi.Output<string>;
@@ -32,7 +33,9 @@ class CloudFrontAppStack extends pulumicdk.Stack {
             authType: FunctionUrlAuthType.NONE,
         });
 
-        const bucket = new Bucket(this, 'Bucket');
+        const bucket = new Bucket(this, 'Bucket', {
+            removalPolicy: RemovalPolicy.DESTROY,
+        });
 
         const distro = new Distribution(this, 'distro', {
             defaultBehavior: {

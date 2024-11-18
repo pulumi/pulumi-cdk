@@ -1,0 +1,3 @@
+name: pulumi-aws-removal-policy
+runtime: nodejs
+description: removal-policy integration test

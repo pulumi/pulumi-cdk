@@ -4,6 +4,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as secrets from 'aws-cdk-lib/aws-secretsmanager';
 import * as pulumicdk from '@pulumi/cdk';
+import { RemovalPolicy } from 'aws-cdk-lib';
 
 class SecretsManagerStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
@@ -27,6 +28,7 @@ class SecretsManagerStack extends pulumicdk.Stack {
             }),
             vpcSubnets: vpc.selectSubnets({ subnetType: ec2.SubnetType.PRIVATE_ISOLATED }),
             credentials: rds.Credentials.fromGeneratedSecret('admin'),
+            removalPolicy: RemovalPolicy.DESTROY,
         });
 
         const role = new iam.Role(this, 'Role', {

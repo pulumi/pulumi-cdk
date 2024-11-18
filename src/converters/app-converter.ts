@@ -6,7 +6,7 @@ import { ConstructInfo, Graph, GraphBuilder, GraphNode } from '../graph';
 import { ArtifactConverter } from './artifact-converter';
 import { lift, Mapping, AppComponent } from '../types';
 import { CdkConstruct, ResourceAttributeMapping, ResourceMapping } from '../interop';
-import { debug } from '@pulumi/pulumi/log';
+import { debug, warn } from '@pulumi/pulumi/log';
 import {
     cidr,
     getAccountId,
@@ -141,7 +141,7 @@ export class StackConverter extends ArtifactConverter {
                 debug(`Processing node with template: ${JSON.stringify(cfn)}`);
                 debug(`Creating resource for ${n.logicalId}`);
                 const props = this.processIntrinsics(cfn.Properties);
-                const options = this.processOptions(cfn, parent);
+                const options = this.processOptions(n.logicalId, cfn, parent);
 
                 const mapped = this.mapResource(n.logicalId, cfn.Type, props, options);
                 this.registerResource(mapped, n);
@@ -301,10 +301,46 @@ export class StackConverter extends ArtifactConverter {
         return cfnMapping;
     }
 
-    private processOptions(resource: CloudFormationResource, parent: pulumi.Resource): pulumi.ResourceOptions {
+    /**
+     * Converts a CloudFormation deletion policy to a Pulumi retainOnDelete value.
+     *
+     * When a CloudFormation resource is set to Snapshot, CloudFormation will first
+     * create a snapshot of the resource before deleting it. Pulumi does not have the same
+     * capability, which means the user would need to manually create the snapshot before deleting.
+     * to be on the safe side, we will retain the resource
+     *
+     * @param logicalId - The logicalId of the resource
+     * @param resource - The CloudFormation resource
+     * @returns - The retainOnDelete value
+     */
+    private getRetainOnDelete(logicalId: string, resource: CloudFormationResource): boolean | undefined {
+        if (resource.DeletionPolicy === undefined) {
+            return undefined;
+        }
+        switch (resource.DeletionPolicy) {
+            case cdk.CfnDeletionPolicy.DELETE:
+                return false;
+            case cdk.CfnDeletionPolicy.RETAIN:
+            case cdk.CfnDeletionPolicy.RETAIN_EXCEPT_ON_CREATE:
+                // RETAIN_EXCEPT_ON_CREATE only applies to CloudFormation because CloudFormation will rollback a stack
+                // if it fails to deploy. Pulumi does not have the same behavior, so we will treat it as RETAIN
+                return true;
+            case cdk.CfnDeletionPolicy.SNAPSHOT:
+                warn(`DeletionPolicy Snapshot is not supported. Resource '${logicalId}' will be retained.`);
+                return true;
+        }
+    }
+
+    private processOptions(
+        logicalId: string,
+        resource: CloudFormationResource,
+        parent: pulumi.Resource,
+    ): pulumi.ResourceOptions {
         const dependsOn = getDependsOn(resource);
+        const retainOnDelete = this.getRetainOnDelete(logicalId, resource);
         return {
             parent: parent,
+            retainOnDelete,
             dependsOn: dependsOn?.flatMap((id) => {
                 const resource = this.resources.get(id);
                 if (resource === undefined) {

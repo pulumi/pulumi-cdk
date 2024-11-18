@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { CfnDeletionPolicy } from 'aws-cdk-lib/core';
+
 export interface CloudFormationParameter {
     readonly Type: string;
     readonly Default?: any;
@@ -21,6 +23,7 @@ export interface CloudFormationResource {
     readonly Type: string;
     readonly Properties: any;
     readonly Condition?: string;
+    readonly DeletionPolicy?: CfnDeletionPolicy;
     readonly DependsOn?: string | string[];
 }
 

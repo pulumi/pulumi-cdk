@@ -27,6 +27,7 @@ export class S3ObjectLambdaStack extends pulumicdk.Stack {
             accessControl: s3.BucketAccessControl.BUCKET_OWNER_FULL_CONTROL,
             encryption: s3.BucketEncryption.S3_MANAGED,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
         });
 
         // Delegating access control to access points

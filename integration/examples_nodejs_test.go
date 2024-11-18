@@ -16,10 +16,18 @@ package examples
 
 import (
 	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"math/rand"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
 	"github.com/stretchr/testify/assert"
 )
@@ -175,6 +183,62 @@ func TestReplaceOnChanges(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestRemovalPolicy(t *testing.T) {
+	// Since we are creating two tests we have to set `NoParallel` on each test
+	// and set parallel here.
+	t.Parallel()
+	ctx := context.Background()
+	config, err := config.LoadDefaultConfig(ctx)
+	assert.NoError(t, err)
+	client := s3.NewFromConfig(config)
+
+	suffix := rand.Intn(10000)
+	bucketName := fmt.Sprintf("pulumi-cdk-removal-test-%d", suffix)
+	t.Logf("Bucket name: %s", bucketName)
+
+	testConfig := map[string]string{
+		"bucketName": bucketName,
+	}
+
+	// ----------------------------------------------------------
+	// Step 1: Create a bucket with a removal policy of 'retain'
+	// ----------------------------------------------------------
+	test1 := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir:        filepath.Join(getCwd(t), "removal-policy"),
+			NoParallel: true,
+			Config:     testConfig,
+		})
+
+	integration.ProgramTest(t, &test1)
+
+	// Assert that the bucket still exists
+	exists, err := bucketExists(ctx, client, bucketName)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	// Delete the bucket before Step 2.
+	_, err = client.DeleteBucket(ctx, &s3.DeleteBucketInput{
+		Bucket: &bucketName,
+	})
+	assert.NoError(t, err)
+
+	// ----------------------------------------------------------
+	// Step 2: Create a new stack with the same bucket name and a removal policy of 'destroy'
+	// ----------------------------------------------------------
+	test2 := getJSBaseOptions(t).With(integration.ProgramTestOptions{
+		Dir:        filepath.Join(getCwd(t), "removal-policy/step2"),
+		NoParallel: true,
+		Config:     testConfig,
+	})
+	integration.ProgramTest(t, &test2)
+
+	// Assert that the bucket no longer exists
+	exists, err = bucketExists(ctx, client, bucketName)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+}
+
 func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {
 	base := getBaseOptions(t)
 	baseJS := base.With(integration.ProgramTestOptions{
@@ -184,4 +248,21 @@ func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {
 	})
 
 	return baseJS
+}
+
+func bucketExists(ctx context.Context, client *s3.Client, bucketName string) (bool, error) {
+	_, err := client.HeadBucket(ctx, &s3.HeadBucketInput{
+		Bucket: &bucketName,
+	})
+	if err != nil {
+		var apiError smithy.APIError
+		if errors.As(err, &apiError) {
+			switch apiError.(type) {
+			case *types.NotFound:
+				return false, nil
+			}
+		}
+		return false, err
+	}
+	return true, nil
 }
