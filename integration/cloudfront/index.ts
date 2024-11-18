@@ -4,13 +4,15 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as pulumicdk from '@pulumi/cdk';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
-import { Duration } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 
 class CloudFrontStack extends pulumicdk.Stack {
     public readonly bucketName: pulumi.Output<string>;
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);
-        const bucket = new s3.Bucket(this, 'Bucket');
+        const bucket = new s3.Bucket(this, 'Bucket', {
+            removalPolicy: RemovalPolicy.DESTROY,
+        });
         this.bucketName = this.asOutput(bucket.bucketName);
         const cachePolicy = new cloudfront.CachePolicy(this, 'CachePolicy', {
             maxTtl: Duration.days(1),
