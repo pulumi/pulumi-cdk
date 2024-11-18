@@ -39,7 +39,7 @@ export function normalize(value: any, cfnType?: string, pulumiProvider?: PulumiP
     if (!value) return value;
 
     if (value instanceof Promise) {
-        pulumi.output(value).apply(v => normalize(v, cfnType, pulumiProvider));
+        return pulumi.output(value).apply(v => normalize(v, cfnType, pulumiProvider));
     }
 
     if (pulumi.Output.isInstance(value)) {

@@ -286,11 +286,11 @@ export function normalizeObject(key: string[], value: any, cfnType?: string, pul
     if (!value) return value;
 
     if (value instanceof Promise) {
-        pulumi.output(value).apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
+        return pulumi.output(value).apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
     }
 
     if (pulumi.Output.isInstance(value)) {
-        return value.apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
+        return value.apply(v => normalizeObject(key, v, cfnType, pulumiProvider)});
     }
 
     if (Array.isArray(value)) {
