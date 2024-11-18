@@ -13,8 +13,12 @@ import { Construct } from 'constructs';
 describe('CDK Construct tests', () => {
     let resources: MockResourceArgs[] = [];
     beforeAll(() => {
+        process.env.AWS_REGION = 'us-east-2';
         resources = [];
         setMocks(resources);
+    });
+    afterAll(() => {
+        process.env.AWS_REGION = undefined;
     });
     // DynamoDB table was previously mapped to the `aws` provider
     // otherwise this level of testing wouldn't be necessary.

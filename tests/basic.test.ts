@@ -20,6 +20,13 @@ import { Vpc } from 'aws-cdk-lib/aws-ec2';
 import { aws_ssm } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
+beforeAll(() => {
+    process.env.AWS_REGION = 'us-east-2';
+});
+afterAll(() => {
+    process.env.AWS_REGION = undefined;
+});
+
 describe('Basic tests', () => {
     setMocks();
     test('Checking single resource registration', async () => {
