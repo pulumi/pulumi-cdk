@@ -94,6 +94,34 @@ Try the workshop at https://apprunnerworkshop.com
 Read the docs at https://docs.aws.amazon.com/apprunner
 ```
 
+## AWS Cloud Control AutoNaming Config
+
+Sometimes CDK constructs can create resource names that are too long for the
+[AWS Cloud Control provider](https://www.pulumi.com/registry/packages/aws-native/).
+When this happens you can configure the `autoTrim` feature to have the generated
+names be automatically trimmed to fit within the name requirements. If you are
+not configuring your own `aws-native` provider then this feature is enabled by
+default. If you _are_ configuring your own `aws-native` provider then you will
+have to enable this.
+
+```ts
+const nativeProvider = new aws_native.Provider('cdk-native-provider', {
+  region: 'us-east-2',
+  autoNaming: {
+    autoTrim: true,
+    randomSuffixMinLength: 7,
+  },
+});
+const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+    const stack = new AppRunnerStack('teststack');
+    return {
+        url: stack.url,
+    };
+}, {
+  providers: [ nativeProvider ],
+});
+```
+
 ## Bootstrapping
 
 CDK has the concept of [bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html)

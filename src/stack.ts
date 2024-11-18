@@ -19,6 +19,7 @@ import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
 import { CdkConstruct } from './interop';
 import { makeUniqueId } from './cdk-logical-id';
+import * as native from '@pulumi/aws-native';
 
 export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
 
@@ -93,7 +94,24 @@ export class App
     private appProps?: cdk.AppProps;
 
     constructor(id: string, createFunc: (scope: App) => void | AppOutputs, props?: AppResourceOptions) {
-        super('cdk:index:App', id, props?.appOptions, props);
+        // This matches the logic found in aws-native. If all of these are undefined the provider
+        // will throw an error
+        const region = native.config.region ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION!;
+        // If the user has not provided any providers, we will create an aws-native one by default in order
+        // to enable the autoNaming feature.
+        const providers = props?.providers ?? [
+            new native.Provider('cdk-aws-native', {
+                region: region as native.Region,
+                autoNaming: {
+                    randomSuffixMinLength: 7,
+                    autoTrim: true,
+                },
+            }),
+        ];
+        super('cdk:index:App', id, props?.appOptions, {
+            ...props,
+            providers,
+        });
         this.appOptions = props?.appOptions;
         this.createFunc = createFunc;
         this.component = this;
