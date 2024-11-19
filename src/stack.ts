@@ -19,6 +19,7 @@ import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
 import { CdkConstruct } from './interop';
 import { makeUniqueId } from './cdk-logical-id';
+import * as native from '@pulumi/aws-native';
 
 export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
 
@@ -93,7 +94,10 @@ export class App
     private appProps?: cdk.AppProps;
 
     constructor(id: string, createFunc: (scope: App) => void | AppOutputs, props?: AppResourceOptions) {
-        super('cdk:index:App', id, props?.appOptions, props);
+        super('cdk:index:App', id, props?.appOptions, {
+            ...props,
+            providers: createDefaultNativeProvider(props?.providers),
+        });
         this.appOptions = props?.appOptions;
         this.createFunc = createFunc;
         this.component = this;
@@ -325,4 +329,30 @@ function generateAppId(): string {
         .toLowerCase()
         .replace(/[^a-z0-9-.]/g, '-')
         .slice(-17);
+}
+
+/**
+ * If the user has not provided the aws-native provider, we will create one by default in order
+ * to enable the autoNaming feature.
+ */
+function createDefaultNativeProvider(
+    providers?: pulumi.ProviderResource[] | Record<string, pulumi.ProviderResource>,
+): pulumi.ProviderResource[] {
+    // This matches the logic found in aws-native. If all of these are undefined the provider
+    // will throw an error
+    const region = native.config.region ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION!;
+
+    const newProviders = providers && !Array.isArray(providers) ? Object.values(providers) : providers ?? [];
+    if (!newProviders.find((p) => native.Provider.isInstance(p))) {
+        newProviders.push(
+            new native.Provider('cdk-aws-native', {
+                region: region as native.Region,
+                autoNaming: {
+                    randomSuffixMinLength: 7,
+                    autoTrim: true,
+                },
+            }),
+        );
+    }
+    return newProviders;
 }

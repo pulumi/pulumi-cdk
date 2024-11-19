@@ -148,8 +148,6 @@ func TestCustomResource(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "custom-resource"),
-			// Workaround until TODO[pulumi/pulumi-aws-native#1816] is resolved.
-			Env: []string{"PULUMI_CDK_EXPERIMENTAL_MAX_NAME_LENGTH=56"},
 			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
 				t.Logf("Outputs: %v", stack.Outputs)
 				url := stack.Outputs["websiteUrl"].(string)

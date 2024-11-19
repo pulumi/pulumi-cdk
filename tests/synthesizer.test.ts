@@ -7,6 +7,13 @@ import { asNetworkMode, asPlatforms } from '../src/synthesizer';
 import { NetworkMode, Platform as DockerPlatform } from '@pulumi/docker-build';
 import { DockerImageAsset, Platform, NetworkMode as Network } from 'aws-cdk-lib/aws-ecr-assets';
 
+beforeAll(() => {
+    process.env.AWS_REGION = 'us-east-2';
+});
+afterAll(() => {
+    process.env.AWS_REGION = undefined;
+});
+
 describe('Synthesizer File Assets', () => {
     test('no assets = no staging resources', async () => {
         const resources: MockResourceArgs[] = [];
@@ -16,6 +23,19 @@ describe('Synthesizer File Assets', () => {
             new CfnBucket(scope, 'Bucket');
         });
         expect(resources).toEqual([
+            expect.objectContaining({
+                inputs: {
+                    autoNaming: '{"randomSuffixMinLength":7,"autoTrim":true}',
+                    region: 'us-east-2',
+                    skipCredentialsValidation: 'true',
+                    skipGetEc2Platforms: 'true',
+                    skipMetadataApiCheck: 'true',
+                    skipRegionValidation: 'true',
+                },
+                name: 'cdk-aws-native',
+                provider: '',
+                type: 'pulumi:providers:aws-native',
+            }),
             expect.objectContaining({
                 name: 'staging-stack-project-stack',
                 type: 'cdk:construct:StagingStack',

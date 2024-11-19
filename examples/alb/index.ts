@@ -3,7 +3,6 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
-import { CfnOutput } from 'aws-cdk-lib';
 
 class AlbStack extends pulumicdk.Stack {
     url: pulumi.Output<string>;
@@ -28,14 +27,10 @@ class AlbStack extends pulumicdk.Stack {
             port: 80,
         });
 
-        const tg = listener.addTargets('Target', {
+        listener.addTargets('Target', {
             port: 80,
             targets: [asg],
         });
-
-        // workaround for https://github.com/pulumi/pulumi-cdk/issues/62
-        const cfnTargetGroup = tg.node.defaultChild as elbv2.CfnTargetGroup;
-        cfnTargetGroup.overrideLogicalId('LBListenerTG');
 
         listener.connections.allowDefaultPortFromAnyIpv4('Open to the world');
 

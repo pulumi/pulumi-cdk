@@ -1,6 +1,13 @@
 import * as pulumi from '@pulumi/pulumi';
 import { CdkConstruct } from '../src/interop';
-import { Stack as CdkStack, DockerImageAssetLocation, DockerImageAssetSource, FileAssetLocation, FileAssetSource, ISynthesisSession } from 'aws-cdk-lib/core';
+import {
+    Stack as CdkStack,
+    DockerImageAssetLocation,
+    DockerImageAssetSource,
+    FileAssetLocation,
+    FileAssetSource,
+    ISynthesisSession,
+} from 'aws-cdk-lib/core';
 import { AppComponent, AppOptions } from '../src/types';
 import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Construct } from 'constructs';
@@ -28,7 +35,7 @@ export class MockAppComponent extends pulumi.ComponentResource implements AppCom
     }
 }
 
-export async function testApp(fn: (scope: Construct) => void) {
+export async function testApp(fn: (scope: Construct) => void, options?: pulumi.ComponentResourceOptions) {
     class TestStack extends Stack {
         constructor(app: App, id: string) {
             super(app, id, {
@@ -48,9 +55,15 @@ export async function testApp(fn: (scope: Construct) => void) {
         }
     }
 
-    const app = new App('testapp', (scope: App) => {
-        new TestStack(scope, 'teststack');
-    });
+    const app = new App(
+        'testapp',
+        (scope: App) => {
+            new TestStack(scope, 'teststack');
+        },
+        {
+            ...options,
+        },
+    );
     const converter = await app.converter;
     await Promise.all(
         Array.from(converter.stacks.values()).flatMap((stackConverter) => {
@@ -151,8 +164,8 @@ export function setMocks(resources?: MockResourceArgs[]) {
                             ...args.inputs,
                             id: args.inputs.logicalId + '_id',
                             data: {
-                                "DestinationBucketArn": `arn:aws:s3:::${args.inputs.bucketName}`
-                            }
+                                DestinationBucketArn: `arn:aws:s3:::${args.inputs.bucketName}`,
+                            },
                         },
                     };
                 default:
@@ -173,7 +186,6 @@ export function setMocks(resources?: MockResourceArgs[]) {
 }
 
 export class MockSynth extends PulumiSynthesizerBase {
-
     constructor(readonly bucket: string, readonly prefix: string) {
         super();
     }
@@ -195,4 +207,3 @@ export class MockSynth extends PulumiSynthesizerBase {
         throw new Error('Method not implemented.');
     }
 }
-

@@ -117,18 +117,7 @@ export function mapToCfnResource(
             const pType = pulumiTypeName(typeName);
             const awsModule = aws as any;
 
-            // Workaround until TODO[pulumi/pulumi-aws-native#1816] is resolved.
-            // Not expected to be exposed to users
-            let name = logicalId;
-            const maxNameLength = process.env.PULUMI_CDK_EXPERIMENTAL_MAX_NAME_LENGTH;
-            if (maxNameLength) {
-                const maxLength = parseInt(maxNameLength, 10);
-                if (name.length > maxLength) {
-                    name = name.substring(0, maxLength);
-                }
-            }
-
-            return new awsModule[mName][pType](name, props, options);
+            return new awsModule[mName][pType](logicalId, props, options);
         }
     }
 }
