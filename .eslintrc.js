@@ -12,6 +12,9 @@ module.exports = {
   rules: {
     // disabling this since it is used everywhere in this repo
     "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "warn"
+    "@typescript-eslint/no-unused-vars": ["warn", {
+        "varsIgnorePattern": "^[_]",
+        "argsIgnorePattern": "^[_]"
+    }]
   }
 };

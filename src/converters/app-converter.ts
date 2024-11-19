@@ -18,7 +18,7 @@ import {
 } from '@pulumi/aws-native';
 import { mapToAwsResource } from '../aws-resource-mappings';
 import { attributePropertyName, mapToCfnResource } from '../cfn-resource-mappings';
-import { CloudFormationMapping, CloudFormationResource, getDependsOn } from '../cfn';
+import { CloudFormationResource, getDependsOn } from '../cfn';
 import { OutputMap, OutputRepr } from '../output-map';
 import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
@@ -475,7 +475,7 @@ export class StackConverter extends ArtifactConverter {
 
             case 'Fn::Sub':
                 return lift((params) => {
-                    const [template, vars] =
+                    const [template, _vars] =
                         typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 
                     const parts: string[] = [];
