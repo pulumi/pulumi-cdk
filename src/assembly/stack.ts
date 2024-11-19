@@ -107,7 +107,7 @@ export class StackManifest {
     /**
      * Map of resource logicalId to CloudFormation template resource fragment
      */
-    private readonly resources: { [logicalId: string]: CloudFormationResource };
+    public readonly resources: { [logicalId: string]: CloudFormationResource };
 
     /**
      * The Mappings from the CFN Stack

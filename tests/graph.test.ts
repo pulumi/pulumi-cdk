@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { GraphBuilder, GraphNode } from '../src/graph';
-import { StackManifest, StackManifestProps } from '../src/assembly';
+import { ConstructTree, StackManifest, StackManifestProps } from '../src/assembly';
 import { createStackManifest } from './utils';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -517,6 +517,29 @@ test('parses custom resources', () => {
     expect(statement[0].Resource).toEqual({
         'Fn::Join': ['', [{ 'Fn::GetAtt': ['DeployWebsiteCustomResourceD116527B', 'DestinationBucketArn'] }, '/*']],
     });
+});
+
+test('validates that all resources are mapped', () => {
+    const stackManifestPath = path.join(__dirname, 'test-data/custom-resource-stack/stack-manifest.json');
+    const props: StackManifestProps = JSON.parse(fs.readFileSync(stackManifestPath, 'utf-8'));
+    const metadata = props.metadata;
+    const resourceToDelete = 's3deployment/WebsiteBucket/Resource';
+    delete metadata[resourceToDelete];
+
+    const deleteResourceFromTree = (tree: ConstructTree, path: string): ConstructTree => {
+        if (tree.children) {
+            tree.children = Object.fromEntries(
+                Object.entries(tree.children)
+                    .filter(([_, value]) => value.path !== path)
+                    .map(([key, value]) => [key, deleteResourceFromTree(value, path)])
+            );
+        }
+        return tree;
+    }
+    const constructTree = deleteResourceFromTree(props.tree, resourceToDelete);
+    const stackManifest = new StackManifest({ ...props, tree: constructTree, metadata });
+
+    expect(() => GraphBuilder.build(stackManifest)).toThrow('1 out of 11 CDK resources failed to map to Pulumi resources.');
 });
 
 function edgesToArray(edges: Set<GraphNode>): string[] {
