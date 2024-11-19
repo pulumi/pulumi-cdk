@@ -47,6 +47,7 @@ export interface Expression {}
  *
  * @internal
  */
+// eslint-disable-next-line
 export interface Result<T> {}
 
 /**
@@ -155,7 +156,7 @@ export const fnEquals: Intrinsic = {
  * Recognize forms such as {"Condition" : "SomeOtherCondition"}. If recognized, returns the conditionName.
  */
 function parseConditionExpr(raw: Expression): string|undefined {
-    if (typeof raw !== 'object' || !raw.hasOwnProperty('Condition')) {
+    if (typeof raw !== 'object' || !('Condition' in raw)) {
         return undefined;
     }
     const cond = (<any>raw)['Condition'];

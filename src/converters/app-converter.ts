@@ -648,7 +648,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     }
 
     findCondition(conditionName: string): intrinsics.Expression|undefined {
-        if ((this.stack.conditions||{}).hasOwnProperty(conditionName)) {
+        if (conditionName in (this.stack.conditions||{})) {
             return this.stack.conditions![conditionName];
         } else {
             return undefined;
