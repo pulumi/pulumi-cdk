@@ -25,7 +25,18 @@ import * as equal from 'fast-deep-equal';
  * @internal
  */
 export interface Intrinsic {
+    /**
+     * The name of the intrinsic function such as 'Fn::If'.
+     */
     name: string;
+
+    /**
+     * Executes the logic to evaluate CF expressions and compute the result.
+     *
+     * Most intrinsics need to use IntrinsicContext.evaluate right away to find the values of parameters before
+     * processing them. Conditional intrinsics such as 'Fn::If' or 'Fn::Or' are an exception to this and need to
+     * evaluate their parameters only when necessary.
+     */
     evaluate(ctx: IntrinsicContext, params: Expression[]): Result<any>;
 }
 
