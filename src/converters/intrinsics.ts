@@ -160,12 +160,71 @@ export const fnOr: Intrinsic = {
             if (ok) {
                 return ctx.succeed(true);
             } else {
-                return evaluateConditionOrExpression(ctx, expr);
+                return evaluateConditionSubExpression(ctx, expr);
             }
         })
         return params.reduce(reducer, ctx.succeed(false));
     }
 }
+
+
+/**
+ *
+ * From the docs: the minimum number of conditions that you can include is 2, and the maximum is 10.
+ *
+ * Example invocation:
+ *
+ *     "MyAndCondition": {
+ *        "Fn::And": [
+ *           {"Fn::Equals": ["sg-mysggroup", {"Ref": "ASecurityGroup"}]},
+ *           {"Condition": "SomeOtherCondition"}
+ *        ]
+ *     }
+ *
+ * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html#intrinsic-function-reference-conditions-and
+ */
+export const fnAnd: Intrinsic = {
+    name: 'Fn::And',
+    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+        if (params.length < 2) {
+            return ctx.fail(`Fn::And expects at least 2 params, got ${params.length}`)
+        }
+        const reducer = (acc: Result<boolean>, expr: Expression) => ctx.apply(acc, ok => {
+            if (!ok) {
+                return ctx.succeed(false);
+            } else {
+                return evaluateConditionSubExpression(ctx, expr);
+            }
+        })
+        return params.reduce(reducer, ctx.succeed(true));
+    }
+}
+
+
+/**
+ * Boolean negation. Expects exactly one argument.
+ *
+ * Example invocation:
+ *
+ *     "MyNotCondition" : {
+ *       "Fn::Not" : [{
+ *          "Fn::Equals" : [
+ *             {"Ref" : "EnvironmentType"},
+ *             "prod"
+ *          ]
+ *       }]
+ *     }
+ */
+export const fnNot: Intrinsic = {
+    name: 'Fn::Not',
+    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+        if (params.length != 1) {
+            return ctx.fail(`Fn::Not expects exactly 1 param, got ${params.length}`)
+        }
+        return ctx.apply(mustBeBoolean(ctx, ctx.evaluate(params[0])), v => ctx.succeed(!v));
+    }
+}
+
 
 /**
  * From the docs: Compares if two values are equal. Returns true if the two values are equal or false if they aren't.
@@ -209,7 +268,7 @@ function parseConditionExpr(raw: Expression): string|undefined {
 /**
  * Like `ctx.evaluate` but also recognizes Condition sub-expressions as required by `Fn::Or`.
  */
-function evaluateConditionOrExpression(ctx: IntrinsicContext, expr: Expression): Result<boolean> {
+function evaluateConditionSubExpression(ctx: IntrinsicContext, expr: Expression): Result<boolean> {
     const firstExprConditonName = parseConditionExpr(expr);
     if (firstExprConditonName !== undefined) {
         return evaluateCondition(ctx, firstExprConditonName)
