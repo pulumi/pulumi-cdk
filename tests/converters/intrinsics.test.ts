@@ -64,6 +64,77 @@ describe('Fn::Or', () => {
     });
 })
 
+describe('Fn::And', () => {
+    test('picks true', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnAnd, tc, [true, true, true]);
+        expect(result).toEqual(ok(true));
+    });
+
+    test('picks false', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnAnd, tc, [true, false, true]);
+        expect(result).toEqual(ok(false));
+    });
+
+    test('picks true from inner Condition', async () => {
+        const tc = new TestContext({conditions: {'MyCondition': true}});
+        const result = runIntrinsic(intrinsics.fnAnd, tc, [true, {'Condition': 'MyCondition'}]);
+        expect(result).toEqual(ok(true));
+    });
+
+    test('picks false with inner Condition', async () => {
+        const tc = new TestContext({conditions: {'MyCondition': false}});
+        const result = runIntrinsic(intrinsics.fnAnd, tc, [true, {'Condition': 'MyCondition'}]);
+        expect(result).toEqual(ok(false));
+    });
+
+    test('has to have at least two arguments', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnAnd, tc, [false]);
+        expect(result).toEqual(failed(`Fn::And expects at least 2 params, got 1`));
+    });
+
+    test('short-cirtcuits evaluation if false is found', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnAnd, tc, [false, {'Condition': 'DoesNotExist'}]);
+        expect(result).toEqual(ok(false));
+    });
+})
+
+
+describe('Fn::Not', () => {
+    test('inverts false', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnNot, tc, [true]);
+        expect(result).toEqual(ok(false));
+    });
+
+    test('inverts true', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnNot, tc, [false]);
+        expect(result).toEqual(ok(true));
+    });
+
+    test('inverts a false Condition', async () => {
+        const tc = new TestContext({conditions: {'MyCondition': false}});
+        const result = runIntrinsic(intrinsics.fnNot, tc, [{'Condition': 'MyCondition'}]);
+        expect(result).toEqual(ok(true));
+    });
+
+    test('inverts a true Condition', async () => {
+        const tc = new TestContext({conditions: {'MyCondition': true}});
+        const result = runIntrinsic(intrinsics.fnNot, tc, [{'Condition': 'MyCondition'}]);
+        expect(result).toEqual(ok(false));
+    });
+
+    test('requires a boolean', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.fnNot, tc, ['ok']);
+        expect(result).toEqual(failed(`Expected a boolean, got string`));
+    });
+})
+
 describe('Fn::Equals', () => {
     test('detects equal strings', async () => {
         const tc = new TestContext({});

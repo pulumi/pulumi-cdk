@@ -221,7 +221,8 @@ export const fnNot: Intrinsic = {
         if (params.length != 1) {
             return ctx.fail(`Fn::Not expects exactly 1 param, got ${params.length}`)
         }
-        return ctx.apply(mustBeBoolean(ctx, ctx.evaluate(params[0])), v => ctx.succeed(!v));
+        const x = evaluateConditionSubExpression(ctx, params[0]);
+        return ctx.apply(x, v => ctx.succeed(!v));
     }
 }
 
