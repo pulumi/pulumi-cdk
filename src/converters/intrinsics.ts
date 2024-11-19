@@ -64,13 +64,42 @@ export interface Result<T> {}
 /**
  * Context available when evaluating CF expressions.
  *
+ * Note that `succeed`, `fail`, `apply` and `Result` expressions are abstracting the use of `pulumi.Input` to facilitate
+ * testing over a simpler structure without dealing with async evaluation.
+ *
  * @internal
  */
 export interface IntrinsicContext {
+
+    /**
+     * Lookup a CF Condition by its logical ID.
+     *
+     * If the condition is found, return the CF Expression with intrinsic function calls inside.
+     *
+     * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/conditions-section-structure.html
+     */
     findCondition(conditionName: string): Expression|undefined;
+
+    /**
+     * Finds the value of a CF expression evaluating any intrinsic functions or references within.
+     */
     evaluate(expression: Expression): Result<any>;
+
+    /**
+     * If result succeeds, use its value to call `fn` and proceed with what it returns.
+     *
+     * If result fails, do not call `fn` and proceed with the error message from `result`.
+     */
     apply<T,U>(result: Result<T>, fn: (value: U) => Result<U>): Result<U>;
+
+    /**
+     * Fail with a given error message.
+     */
     fail(msg: string): Result<any>;
+
+    /**
+     * Succeed with a given value.
+     */
     succeed<T>(r: T): Result<T>;
 }
 
