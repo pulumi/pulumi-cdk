@@ -1,4 +1,4 @@
-// Copyright 2016-2022, Pulumi Corporation.
+// Copyright 2016-2024, Pulumi Corporation.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,18 +38,27 @@ export function firstToLower(str: string) {
 export function normalize(value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
     if (!value) return value;
 
+    if (value instanceof Promise) {
+        return pulumi.output(value).apply(v => normalize(v, cfnType, pulumiProvider));
+    }
+
+    if (pulumi.Output.isInstance(value)) {
+        return value.apply(v => normalize(v, cfnType, pulumiProvider));
+    }
+
     if (Array.isArray(value)) {
         const result: any[] = [];
         for (let i = 0; i < value.length; i++) {
-            result[i] = normalize(value[i], cfnType);
+            result[i] = normalize(value[i], cfnType, pulumiProvider);
         }
         return result;
     }
 
-    if (typeof value !== 'object' || pulumi.Output.isInstance(value) || value instanceof Promise) {
+    if (typeof value !== 'object') {
         return value;
     }
 
+    // The remaining case is the object type, representing either Maps or Object types with known field types in Pulumi.
     const result: any = {};
     Object.entries(value).forEach(([k, v]) => {
         result[toSdkName(k)] = normalizeObject([k], v, cfnType, pulumiProvider);

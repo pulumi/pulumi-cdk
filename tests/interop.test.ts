@@ -1,4 +1,5 @@
 import { normalize } from '../src/interop';
+import * as pulumi from '@pulumi/pulumi';
 
 beforeEach(() => {
     jest.resetAllMocks();
@@ -339,4 +340,31 @@ describe('normalize', () => {
             },
         });
     });
+
+    test('normalize changes the case of nested properties through an Output eventual type', async () => {
+        const normalized = normalize({
+            'StreamEncryption': pulumi.output({
+                EncryptionType: 'KMS',
+                KeyId: 'alias/aws/kinesis'
+            })
+        });
+
+        const finalValue = await awaitOutput(pulumi.output(normalized));
+
+        expect(finalValue).toEqual({
+            streamEncryption: {
+                encryptionType: 'KMS',
+                keyId: 'alias/aws/kinesis',
+            }
+        });
+    });
 });
+
+function awaitOutput<T>(out: pulumi.Output<T>): Promise<T> {
+    return new Promise((resolve, _reject) => {
+        out.apply(v => {
+            resolve(v);
+            return v;
+        })
+    });
+}

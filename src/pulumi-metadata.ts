@@ -1,10 +1,25 @@
+// Copyright 2016-2024, Pulumi Corporation.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import * as path from 'path';
-import * as pulumi from '@pulumi/pulumi';
 import { toSdkName, typeToken } from './naming';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pulumiMetadata = require(path.join(__dirname, '../schemas/aws-native-metadata.json'));
 import { PulumiProvider } from './types';
 import { debug } from '@pulumi/pulumi/log';
+import * as pulumi from '@pulumi/pulumi';
+
 
 export class UnknownCfnType extends Error {
     constructor(cfnType: string) {
@@ -269,6 +284,15 @@ export function getNativeType(
  */
 export function normalizeObject(key: string[], value: any, cfnType?: string, pulumiProvider?: PulumiProvider): any {
     if (!value) return value;
+
+    if (value instanceof Promise) {
+        return pulumi.output(value).apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
+    }
+
+    if (pulumi.Output.isInstance(value)) {
+        return value.apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
+    }
+
     if (Array.isArray(value)) {
         const result: any[] = [];
         for (let i = 0; i < value.length; i++) {
@@ -277,10 +301,11 @@ export function normalizeObject(key: string[], value: any, cfnType?: string, pul
         return result;
     }
 
-    if (typeof value !== 'object' || pulumi.Output.isInstance(value) || value instanceof Promise) {
+    if (typeof value !== 'object') {
         return value;
     }
 
+    // The remaining case is the actual object type.
     const result: any = {};
     if (cfnType) {
         try {
