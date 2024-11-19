@@ -542,6 +542,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                     const value = secondLevelMapping[secondLevelKey];
                     return value;
                 }, this.processIntrinsics(params));
+            }
 
             case 'Fn::Equals': {
                 return intrinsics.fnEquals.evaluate(this, params);
