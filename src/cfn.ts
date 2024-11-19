@@ -32,10 +32,21 @@ export type CloudFormationMappingValue = string | string[];
 export type TopLevelMapping = { [key: string]: SecondLevelMapping };
 export type SecondLevelMapping = { [key: string]: CloudFormationMappingValue };
 
+/**
+ * Models CF conditions. These are possibly nested expressions evaluating to a boolean.
+ *
+ * Example value:
+ *
+ *     {"Fn::Equals": [{"Ref": "EnvType"}, "prod"]}
+ *
+ * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/conditions-section-structure.html
+ */
+export interface CloudFormationCondition {}
+
 export interface CloudFormationTemplate {
     Parameters?: { [id: string]: CloudFormationParameter };
     Resources?: { [id: string]: CloudFormationResource };
-    Conditions?: { [id: string]: any };
+    Conditions?: { [id: string]: CloudFormationCondition };
     Mappings?: CloudFormationMapping;
     Outputs?: { [id: string]: any };
 }

@@ -24,6 +24,7 @@ import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
 import { processSecretsManagerReferenceValue } from './secrets-manager-dynamic';
+import * as intrinsics from "./intrinsics";
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -90,7 +91,7 @@ export class AppConverter {
 /**
  * StackConverter converts all of the resources in a CDK stack to Pulumi resources
  */
-export class StackConverter extends ArtifactConverter {
+export class StackConverter extends ArtifactConverter implements intrinsics.IntrinsicContext {
     readonly parameters = new Map<string, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
@@ -543,6 +544,18 @@ export class StackConverter extends ArtifactConverter {
                 }, this.processIntrinsics(params));
             }
 
+            case 'Fn::Equals': {
+                return intrinsics.fnEquals.evaluate(this, params);
+            }
+
+            case 'Fn::If': {
+                return intrinsics.fnIf.evaluate(this, params);
+            }
+
+            case 'Fn::Or': {
+                return intrinsics.fnOr.evaluate(this, params);
+            }
+
             default:
                 throw new Error(`unsupported intrinsic function ${fn} (params: ${JSON.stringify(params)})`);
         }
@@ -632,5 +645,29 @@ export class StackConverter extends ArtifactConverter {
             throw new Error(`No property ${propertyName} for attribute ${attribute} on resource ${logicalId}`);
         }
         return d.value;
+    }
+
+    findCondition(conditionName: string): intrinsics.Expression|undefined {
+        if (conditionName in (this.stack.conditions||{})) {
+            return this.stack.conditions![conditionName];
+        } else {
+            return undefined;
+        }
+    }
+
+    evaluate(expression: intrinsics.Expression): intrinsics.Result<any> {
+        return this.processIntrinsics(expression);
+    }
+
+    fail(msg: string): intrinsics.Result<any> {
+        throw new Error(msg);
+    }
+
+    succeed<T>(r: T): intrinsics.Result<T> {
+        return <any>r;
+    }
+
+    apply<T,U>(result: intrinsics.Result<T>, fn: (value: U) => intrinsics.Result<U>): intrinsics.Result<U> {
+        return lift(fn, result);
     }
 }
