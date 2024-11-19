@@ -108,7 +108,6 @@ export abstract class PulumiSynthesizerBase extends cdk.StackSynthesizer {
      */
     public abstract getStagingBucket(): pulumi.Input<string>;
 
-
     /**
      * Returns the S3 key prefix that will be used for deploy time assets.
      */
@@ -451,6 +450,8 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      * Also, we currently only support a single stack so we don't have to worry
      * about this being created multiple times. If we change the way this library
      * works and allow for multiple stacks we will have to revisit this
+     *
+     * @hidden
      */
     public reusableBind(stack: cdk.Stack): cdk.IBoundStackSynthesizer {
         // Create a copy of the current object and bind that
@@ -466,6 +467,8 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      *
      * NOTE: For our purposes we, we don't need to worry about calling this,
      * it will automatically get called by the underlying CDK stack construct
+     *
+     * @hidden
      */
     public bind(stack: cdk.Stack) {
         super.bind(stack);
@@ -483,6 +486,8 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      * Usually the default synthesizers will then take the data and add it to the asset manifest
      * for the stack. In our case we can just directly upload the files and then we don't have to
      * later post-process the assets from the manifest
+     *
+     * @hidden
      */
     public addFileAsset(asset: cdk.FileAssetSource): cdk.FileAssetLocation {
         assertBound(this.cdkAccount);
@@ -570,6 +575,8 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      * for the stack. In our case we can just directly push the images and then we don't have to
      * later post-process the assets from the manifest
      *
+     * @hidden
+     *
      * @param asset - The cdk asset to add
      * @returns The location of the asset. This will be the reference to the image ref
      */
@@ -651,6 +658,8 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
 
     /**
      * We synthesize the template and the asset manifest
+     *
+     * @hidden
      */
     synthesize(session: cdk.ISynthesisSession): void {
         const templateAssetSource = this.synthesizeTemplate(session);
@@ -704,6 +713,8 @@ function fromCdkCacheFrom(cacheFrom?: cdk.DockerCacheOption[]): docker.types.inp
 /**
  * Converts the CDK NetworkMode to the Pulumi Docker.NetworkMode
  *
+ * @hidden
+ *
  * @param networkMode - The cdk network mode
  * @returns The docker network mode
  */
@@ -721,6 +732,8 @@ export function asNetworkMode(networkMode?: string): docker.NetworkMode | undefi
 
 /**
  * Converts the CDK Platform to the Pulumi Docker.Platform
+ *
+ * @hidden
  *
  * @param platform - The cdk platform
  * @returns The docker platform

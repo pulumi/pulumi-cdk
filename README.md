@@ -146,150 +146,19 @@ create the following staging resources.
 5. [aws.s3.BucketPolicy](https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpolicy/)
   - Require SSL
 
+### ECR Resources
+
+When any image assets are added to your application, CDK will automatically
+create the following staging resources.
+
+1. `aws.ecr.Repository`
+  - `imageTagMutability`: `IMMUTABLE`
+2. `aws.ecr.LifecyclePolicy`
+  - Expire old images when the number of images > 3
+
 ## API
 
-### `App`
-
-A Pulumi CDK App component. This is the entrypoint to your Pulumi CDK application.
-In order to deploy a CDK application with Pulumi, you must start with this class.
-
-#### `constructor`
-
-Create and register an AWS CDK app deployed with Pulumi.
-
-```ts
-constructor(id: string, createFunc: (scope: App) => void | AppOutputs, props?: AppResourceOptions)
-```
-
-Parameters:
-* `id`: The _unique_ name of the app
-* `createFunc`: A callback function where all CDK Stacks must be created
-* `options`: A bag of options that control the resource's behavior
-
-#### `outputs`
-
-The collection of outputs from the Pulumi CDK App represented as Pulumi Outputs.
-Each `CfnOutput` defined in each AWS CDK Stack will populate a value in the
-outputs.
-
-```ts
-outputs: { [outputId: string]: pulumi.Output<any> }
-```
-
-#### `AppResourceOptions`
-
-Options specific to the App Component
-
-```ts
-interface AppResourceOptions
-```
-
-#### `remapCloudControlResource`
-
-This optional method can be implemented to define a mapping to override and/or
-provide an implementation for a CloudFormation resource type that is not (yet)
-implemented in the AWS Cloud Control API (and thus not yet available in the
-Pulumi AWS Native provider). Pulumi code can override this method to provide a
-custom mapping of CloudFormation elements and their properties into Pulumi
-CustomResources, commonly by using the AWS Classic provider to implement the
-missing resource.
-
-```ts
-remapCloudControlResource(logicalId: string, typeName: string, props: any, options: pulumi.ResourceOptions): ResourceMapping | undefined;
-```
-
-Parameters:
-* `logicalId`: The logical ID of the resource being mapped.
-* `typeName`: The CloudFormation type name of the resource being mapped.
-* `props`: The bag of input properties to the CloudFormation resource being mapped.
-* `options`: The set of Pulumi ResourceOptions to apply to the resource being mapped.
-
-Returns an object containing one or more logical IDs mapped to Pulumi resources
-that must be created to implement the mapped CloudFormation resource, or else
-undefined if no mapping is implemented.
-
-#### `appId`
-
-This is a unique identifier for the application. It will be used in the names of the
-staging resources created for the application. This `appId` should be unique across apps.
-
-### `Stack`
-
-A Construct that represents an AWS CDK stack deployed with Pulumi. In order to
-deploy a CDK stack with Pulumi, it must derive from this class.
-
-#### `constructor`
-
-Create and register an AWS CDK stack deployed with Pulumi.
-
-```ts
-constructor(app: App, name: string, options?: StackOptions)
-```
-
-Parameters:
-* `app`: The Pulumi CDK App
-* `name`: The _unique_ name of the resource.
-* `options`: A bag of options that control this resource's behavior.
-
-
-#### `asOutput`
-
-Convert a CDK value to a Pulumi output.
-
-Parameters:
-* `v`: A CDK value.
-
-```ts
-asOutput<T>(v: T): pulumi.Output<T>
-```
-
-### `StackOptions`
-
-Options specific to the Stack component.
-
-```ts
-interface StackOptions
-```
-
-
-### `asString`
-
-Convert a Pulumi Output to a CDK string value.
-
-```ts
-function asString<T>(o: pulumi.Output<T>): string
-```
-
-Parameters:
- * `o`: A Pulumi Output value which represents a string.
-
-Returns A CDK token representing a string value.
-
-### `asNumber`
-
-Convert a Pulumi Output to a CDK number value.
-
-```ts
-function asNumber<T>(o: pulumi.Output<T>): number
-```
-
-Parameters:
- * `o`: A Pulumi Output value which represents a number.
-
-Returns A CDK token representing a number value.
-
-### `asList`
-
-Convert a Pulumi Output to a list of CDK values.
-
-```ts
-function asList<T>(o: pulumi.Output<T>): string[]
-```
-
-Parameters:
- * `o`: A Pulumi Output value which represents a list.
-
-Returns a CDK token representing a list of values.
+See [API Docs](./api-docs/README.md) for more details.
 
 ## Building locally
 
@@ -298,7 +167,7 @@ Install dependencies, build library, and link for local usage.
 ```sh
 $ yarn install
 $ yarn build
-$ pushd lib && yarn link && popd
+$ yarn link
 ```
 
 Run unit test:

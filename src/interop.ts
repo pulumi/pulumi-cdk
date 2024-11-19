@@ -18,6 +18,9 @@ import { toSdkName } from './naming';
 import { PulumiProvider } from './types';
 import { PulumiResourceType } from './graph';
 
+/**
+ * @internal
+ */
 export function firstToLower(str: string) {
     return str.replace(/\w\S*/g, function (txt) {
         return txt.charAt(0).toLowerCase() + txt.substring(1);
@@ -39,11 +42,11 @@ export function normalize(value: any, cfnType?: string, pulumiProvider?: PulumiP
     if (!value) return value;
 
     if (value instanceof Promise) {
-        return pulumi.output(value).apply(v => normalize(v, cfnType, pulumiProvider));
+        return pulumi.output(value).apply((v) => normalize(v, cfnType, pulumiProvider));
     }
 
     if (pulumi.Output.isInstance(value)) {
-        return value.apply(v => normalize(v, cfnType, pulumiProvider));
+        return value.apply((v) => normalize(v, cfnType, pulumiProvider));
     }
 
     if (Array.isArray(value)) {
@@ -92,6 +95,9 @@ export type ResourceAttributeMappingArray = (ResourceAttributeMapping & { logica
 
 export type ResourceMapping = ResourceAttributeMapping | pulumi.Resource | ResourceAttributeMappingArray;
 
+/**
+ * @internal
+ */
 export class CdkConstruct extends pulumi.ComponentResource {
     constructor(public readonly name: PulumiResourceType, type?: string, options?: pulumi.ComponentResourceOptions) {
         const constructType = type ?? 'Construct';

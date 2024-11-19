@@ -17,6 +17,6 @@ export * from './output';
 
 import * as interop from './interop';
 export { interop };
-export { AppResourceOptions, AppOptions } from './types';
+export { AppResourceOptions, AppOptions, AppComponent, PulumiProvider } from './types';
 import * as synthesizer from './synthesizer';
 export { synthesizer };

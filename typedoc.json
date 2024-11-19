@@ -1,0 +1,20 @@
+{
+  "plugin": "typedoc-plugin-markdown",
+  "entryPoints": ["src/index.ts"],
+  "out": "api-docs",
+  "cleanOutputDir": true,
+  "outputFileStrategy": "modules",
+  "flattenOutputFiles": true,
+  "parametersFormat": "table",
+  "classPropertiesFormat": "table",
+  "enumMembersFormat": "table",
+  "typeDeclarationFormat": "table",
+  "propertyMembersFormat": "table",
+  "interfacePropertiesFormat": "table",
+  "excludeInternal": true,
+  "excludeProtected": true,
+  "excludeReferences": true,
+  "excludePrivate": true,
+  "excludeExternals": true,
+  "readme": "none"
+}

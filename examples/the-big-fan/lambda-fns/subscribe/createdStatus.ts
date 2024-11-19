@@ -8,4 +8,3 @@ export const handler = async function (event: any) {
         console.log('received message ' + payload);
     }
 };
-

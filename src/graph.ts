@@ -54,8 +54,8 @@ export interface ConstructInfo {
 }
 
 export interface ConstructMetadata {
-    "fqn": string;
-    "version": string;
+    fqn: string;
+    version: string;
 }
 
 export interface GraphNode {
@@ -235,7 +235,7 @@ export class GraphBuilder {
         // CDK CustomResource are exposed as a CfnResource with the ID "Default"
         // If the parent construct has the fqn of CustomResource and the current tree node is the "Default" node
         // then we need to treat it as a Custom Resource
-        return parent?.constructInfo?.fqn === 'aws-cdk-lib.CustomResource' && node.id === 'Default'
+        return parent?.constructInfo?.fqn === 'aws-cdk-lib.CustomResource' && node.id === 'Default';
     }
 
     private _build(): Graph {
@@ -259,7 +259,9 @@ export class GraphBuilder {
         });
         if (unmappedResources.length > 0) {
             const total = Object.keys(this.stack.resources).length;
-            throw new Error(`${unmappedResources.length} out of ${total} CDK resources failed to map to Pulumi resources.`);
+            throw new Error(
+                `${unmappedResources.length} out of ${total} CDK resources failed to map to Pulumi resources.`,
+            );
         }
 
         // parseTree does not guarantee that the VPC resource will be parsed before the VPCCidrBlock resource

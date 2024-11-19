@@ -47,6 +47,8 @@
     "prettier": "^2.6.2",
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.2",
+    "typedoc": "^0.26.11",
+    "typedoc-plugin-markdown": "^4.2.10",
     "typescript": "^5.4.5",
     "typescript-eslint": "^7.16.1"
   },
@@ -67,8 +69,9 @@
   },
   "scripts": {
     "set-version": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",
-    "build": "tsc --build",
+    "build": "tsc --build && yarn docs && yarn format && yarn lint",
     "watch": "tsc --build --watch",
+    "docs": "npx typedoc",
     "lint": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --fix --no-error-on-unmatched-pattern src",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\" \"examples/**/*.ts\"",
     "test": "jest --passWithNoTests --updateSnapshot",
