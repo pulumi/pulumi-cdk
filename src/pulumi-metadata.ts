@@ -20,7 +20,6 @@ import { PulumiProvider } from './types';
 import { debug } from '@pulumi/pulumi/log';
 import * as pulumi from '@pulumi/pulumi';
 
-
 export class UnknownCfnType extends Error {
     constructor(cfnType: string) {
         super(`CfnType ${cfnType} doesn't exist as a native type`);
@@ -286,11 +285,11 @@ export function normalizeObject(key: string[], value: any, cfnType?: string, pul
     if (!value) return value;
 
     if (value instanceof Promise) {
-        return pulumi.output(value).apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
+        return pulumi.output(value).apply((v) => normalizeObject(key, v, cfnType, pulumiProvider));
     }
 
     if (pulumi.Output.isInstance(value)) {
-        return value.apply(v => normalizeObject(key, v, cfnType, pulumiProvider));
+        return value.apply((v) => normalizeObject(key, v, cfnType, pulumiProvider));
     }
 
     if (Array.isArray(value)) {

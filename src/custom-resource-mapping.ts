@@ -31,25 +31,31 @@ export function mapToCustomResource(
     if (isCustomResource(typeName)) {
         const synth = stack.synthesizer;
         if (!(synth instanceof PulumiSynthesizerBase)) {
-            throw new Error(`Synthesizer of stack ${stack.node.id} does not support custom resources. It must inherit from ${PulumiSynthesizerBase.name}.`);
+            throw new Error(
+                `Synthesizer of stack ${stack.node.id} does not support custom resources. It must inherit from ${PulumiSynthesizerBase.name}.`,
+            );
         }
 
         const stagingBucket = synth.getStagingBucket();
         const stackId = stack.node.id;
 
-        return new aws.cloudformation.CustomResourceEmulator(logicalId, {
-            stackId: stack.node.id,
-            bucketName: stagingBucket,
-            bucketKeyPrefix: `${synth.getDeployTimePrefix()}pulumi/custom-resources/${stackId}/${logicalId}`,
-            serviceToken: rawProps.ServiceToken,
-            resourceType: typeName,
-            customResourceProperties: rawProps,
-        }, {
-            ...options,
-            customTimeouts: convertToCustomTimeouts(rawProps.ServiceTimeout),
-        });
+        return new aws.cloudformation.CustomResourceEmulator(
+            logicalId,
+            {
+                stackId: stack.node.id,
+                bucketName: stagingBucket,
+                bucketKeyPrefix: `${synth.getDeployTimePrefix()}pulumi/custom-resources/${stackId}/${logicalId}`,
+                serviceToken: rawProps.ServiceToken,
+                resourceType: typeName,
+                customResourceProperties: rawProps,
+            },
+            {
+                ...options,
+                customTimeouts: convertToCustomTimeouts(rawProps.ServiceTimeout),
+            },
+        );
     }
-    
+
     return undefined;
 }
 

@@ -37,4 +37,3 @@ const sendRes = (status: number, body: string) => {
     };
     return response;
 };
-

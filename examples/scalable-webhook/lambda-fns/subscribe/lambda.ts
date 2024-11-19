@@ -28,4 +28,3 @@ export const handler: SQSHandler = async function (event) {
         }
     }
 };
-

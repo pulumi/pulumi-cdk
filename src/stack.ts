@@ -179,6 +179,8 @@ export class App
      *
      * Note: currently lookups are disabled so this will only be executed once
      *
+     * @hidden
+     *
      * @param context The CDK context collected by the CLI that needs to be passed to the cdk.App
      * @returns the path to the CDK Assembly directory
      */
