@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { debug } from '@pulumi/pulumi/log';
+import { debug, warn } from '@pulumi/pulumi/log';
 import { CloudFormationResource } from './cfn';
 import { parseSub } from './sub';
 import { ConstructTree, StackManifest } from './assembly';
@@ -241,13 +241,26 @@ export class GraphBuilder {
     private _build(): Graph {
         // passes
         // 1. collect all constructs into a map from construct name to DAG node, converting CFN elements to fragments
-        // 2. hook up dependency edges
-        // 3. sort the dependency graph
+        // 2. validate that all CDK resources are mapped to Pulumi resources
+        // 3. hook up dependency edges
+        // 4. sort the dependency graph
 
         // Create graph nodes and associate them with constructs and CFN logical IDs.
         //
         // NOTE: this doesn't handle cross-stack references. We'll likely need to do so, at least for nested stacks.
         this.parseTree(this.stack.constructTree);
+
+        const unmappedResources: string[] = [];
+        Object.entries(this.stack.resources).forEach(([logicalId, resource]) => {
+            if (!this.cfnElementNodes.has(logicalId)) {
+                warn(`CDK resource ${logicalId} (${resource.Type}) was not mapped to a Pulumi resource.`);
+                unmappedResources.push(logicalId);
+            }
+        });
+        if (unmappedResources.length > 0) {
+            const total = Object.keys(this.stack.resources).length;
+            throw new Error(`${unmappedResources.length} out of ${total} CDK resources failed to map to Pulumi resources.`);
+        }
 
         // parseTree does not guarantee that the VPC resource will be parsed before the VPCCidrBlock resource
         // so we need to process this separately after
