@@ -24,7 +24,7 @@ import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
 import { processSecretsManagerReferenceValue } from './secrets-manager-dynamic';
-import * as intrinsics from "./intrinsics";
+import * as intrinsics from './intrinsics';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -647,8 +647,8 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return d.value;
     }
 
-    findCondition(conditionName: string): intrinsics.Expression|undefined {
-        if (conditionName in (this.stack.conditions||{})) {
+    findCondition(conditionName: string): intrinsics.Expression | undefined {
+        if (conditionName in (this.stack.conditions || {})) {
             return this.stack.conditions![conditionName];
         } else {
             return undefined;
@@ -667,7 +667,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return <any>r;
     }
 
-    apply<T,U>(result: intrinsics.Result<T>, fn: (value: U) => intrinsics.Result<U>): intrinsics.Result<U> {
+    apply<T, U>(result: intrinsics.Result<T>, fn: (value: U) => intrinsics.Result<U>): intrinsics.Result<U> {
         return lift(fn, result);
     }
 }

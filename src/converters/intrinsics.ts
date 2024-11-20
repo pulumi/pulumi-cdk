@@ -70,7 +70,6 @@ export interface Result<T> {}
  * @internal
  */
 export interface IntrinsicContext {
-
     /**
      * Lookup a CF Condition by its logical ID.
      *
@@ -78,7 +77,7 @@ export interface IntrinsicContext {
      *
      * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/conditions-section-structure.html
      */
-    findCondition(conditionName: string): Expression|undefined;
+    findCondition(conditionName: string): Expression | undefined;
 
     /**
      * Finds the value of a CF expression evaluating any intrinsic functions or references within.
@@ -90,7 +89,7 @@ export interface IntrinsicContext {
      *
      * If result fails, do not call `fn` and proceed with the error message from `result`.
      */
-    apply<T,U>(result: Result<T>, fn: (value: U) => Result<U>): Result<U>;
+    apply<T, U>(result: Result<T>, fn: (value: U) => Result<U>): Result<U>;
 
     /**
      * Fail with a given error message.
@@ -114,7 +113,7 @@ export const fnIf: Intrinsic = {
     name: 'Fn::If',
     evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
         if (params.length !== 3) {
-            return ctx.fail(`Expected 3 parameters, got ${ params.length }`);
+            return ctx.fail(`Expected 3 parameters, got ${params.length}`);
         }
 
         if (typeof params[0] !== 'string') {
@@ -125,15 +124,15 @@ export const fnIf: Intrinsic = {
         const exprIfTrue = params[1];
         const exprIfFalse = params[2];
 
-        return ctx.apply(evaluateCondition(ctx, conditionName), ok => {
+        return ctx.apply(evaluateCondition(ctx, conditionName), (ok) => {
             if (ok) {
                 return ctx.evaluate(exprIfTrue);
             } else {
                 return ctx.evaluate(exprIfFalse);
             }
         });
-    }
-}
+    },
+};
 
 /**
  *
@@ -154,19 +153,19 @@ export const fnOr: Intrinsic = {
     name: 'Fn::Or',
     evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
         if (params.length < 2) {
-            return ctx.fail(`Fn::Or expects at least 2 params, got ${params.length}`)
+            return ctx.fail(`Fn::Or expects at least 2 params, got ${params.length}`);
         }
-        const reducer = (acc: Result<boolean>, expr: Expression) => ctx.apply(acc, ok => {
-            if (ok) {
-                return ctx.succeed(true);
-            } else {
-                return evaluateConditionSubExpression(ctx, expr);
-            }
-        })
+        const reducer = (acc: Result<boolean>, expr: Expression) =>
+            ctx.apply(acc, (ok) => {
+                if (ok) {
+                    return ctx.succeed(true);
+                } else {
+                    return evaluateConditionSubExpression(ctx, expr);
+                }
+            });
         return params.reduce(reducer, ctx.succeed(false));
-    }
-}
-
+    },
+};
 
 /**
  *
@@ -187,19 +186,19 @@ export const fnAnd: Intrinsic = {
     name: 'Fn::And',
     evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
         if (params.length < 2) {
-            return ctx.fail(`Fn::And expects at least 2 params, got ${params.length}`)
+            return ctx.fail(`Fn::And expects at least 2 params, got ${params.length}`);
         }
-        const reducer = (acc: Result<boolean>, expr: Expression) => ctx.apply(acc, ok => {
-            if (!ok) {
-                return ctx.succeed(false);
-            } else {
-                return evaluateConditionSubExpression(ctx, expr);
-            }
-        })
+        const reducer = (acc: Result<boolean>, expr: Expression) =>
+            ctx.apply(acc, (ok) => {
+                if (!ok) {
+                    return ctx.succeed(false);
+                } else {
+                    return evaluateConditionSubExpression(ctx, expr);
+                }
+            });
         return params.reduce(reducer, ctx.succeed(true));
-    }
-}
-
+    },
+};
 
 /**
  * Boolean negation. Expects exactly one argument.
@@ -219,13 +218,12 @@ export const fnNot: Intrinsic = {
     name: 'Fn::Not',
     evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
         if (params.length != 1) {
-            return ctx.fail(`Fn::Not expects exactly 1 param, got ${params.length}`)
+            return ctx.fail(`Fn::Not expects exactly 1 param, got ${params.length}`);
         }
         const x = evaluateConditionSubExpression(ctx, params[0]);
-        return ctx.apply(x, v => ctx.succeed(!v));
-    }
-}
-
+        return ctx.apply(x, (v) => ctx.succeed(!v));
+    },
+};
 
 /**
  * From the docs: Compares if two values are equal. Returns true if the two values are equal or false if they aren't.
@@ -239,23 +237,24 @@ export const fnEquals: Intrinsic = {
     name: 'Fn::Equals',
     evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
         if (params.length != 2) {
-            return ctx.fail(`Fn::Equals expects exactly 2 params, got ${params.length}`)
+            return ctx.fail(`Fn::Equals expects exactly 2 params, got ${params.length}`);
         }
-        return ctx.apply(ctx.evaluate(params[0]), x =>
-            ctx.apply(ctx.evaluate(params[1]), y => {
+        return ctx.apply(ctx.evaluate(params[0]), (x) =>
+            ctx.apply(ctx.evaluate(params[1]), (y) => {
                 if (equal(x, y)) {
                     return ctx.succeed(true);
                 } else {
                     return ctx.succeed(false);
                 }
-            }));
-    }
-}
+            }),
+        );
+    },
+};
 
 /**
  * Recognize forms such as {"Condition" : "SomeOtherCondition"}. If recognized, returns the conditionName.
  */
-function parseConditionExpr(raw: Expression): string|undefined {
+function parseConditionExpr(raw: Expression): string | undefined {
     if (typeof raw !== 'object' || !('Condition' in raw)) {
         return undefined;
     }
@@ -272,14 +271,14 @@ function parseConditionExpr(raw: Expression): string|undefined {
 function evaluateConditionSubExpression(ctx: IntrinsicContext, expr: Expression): Result<boolean> {
     const firstExprConditonName = parseConditionExpr(expr);
     if (firstExprConditonName !== undefined) {
-        return evaluateCondition(ctx, firstExprConditonName)
+        return evaluateCondition(ctx, firstExprConditonName);
     } else {
-        return ctx.apply(ctx.evaluate(expr), r => mustBeBoolean(ctx, r));
+        return ctx.apply(ctx.evaluate(expr), (r) => mustBeBoolean(ctx, r));
     }
 }
 
 function mustBeBoolean(ctx: IntrinsicContext, r: any): Result<boolean> {
-    if (typeof r === "boolean") {
+    if (typeof r === 'boolean') {
         return ctx.succeed(r);
     } else {
         return ctx.fail(`Expected a boolean, got ${typeof r}`);
@@ -291,5 +290,5 @@ function evaluateCondition(ctx: IntrinsicContext, conditionName: string): Result
     if (conditionExpr === undefined) {
         return ctx.fail(`No condition '${conditionName}' found`);
     }
-    return ctx.apply(ctx.evaluate(conditionExpr), r => mustBeBoolean(ctx, r));
+    return ctx.apply(ctx.evaluate(conditionExpr), (r) => mustBeBoolean(ctx, r));
 }
