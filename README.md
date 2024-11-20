@@ -238,11 +238,232 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
 
 ## CDK Lookups
 
+CDK [lookups](https://docs.aws.amazon.com/cdk/v2/guide/context.html#context_methods) are currently disabled by default.
+If you would like to use lookups there are currently two workarounds.
+
+### Use Pulumi functions
+
+Instead of using CDK Lookups you can use Pulumi functions along with CDK
+`fromXXX` methods.
+
+**Example**
+```ts
+const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+    const stack = new pulumicdk.Stack('example-stack');
+    // use getAmiOutput to lookup the AMI instead of ec2.LookupMachineImage
+    const ami = aws.ec2.getAmiOutput({
+        owners: ['amazon'],
+        mostRecent: true,
+        filters: [
+            {
+                name: 'name',
+                values: ['al2023-ami-2023.*.*.*.*-arm64'],
+            },
+        ],
+    });
+
+    const region = aws.config.requireRegion();
+    const machineImage = ec2.MachineImage.genericLinux({
+        [region]: pulumicdk.asString(ami.imageId),
+    });
+
+    const instance = new ec2.Instance(this, 'Instance', {
+        vpc,
+        instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
+        machineImage,
+    });
+});
+```
+
+### Experimental Lookup Support
+
+Set the environment variable `PULUMI_CDK_EXPERIMENTAL_LOOKUPS=true`. This will
+allow lookups to run during preview operations, but will require you to execute
+Pulumi twice (the first execution will fail).
+
+**Example**
+```ts
+const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+    const stack = new pulumicdk.Stack('example-stack');
+    const hostedZone = aws_route53.HostedZone.fromLookup(this, 'hosted-zone', {
+        domainName: zoneName,
+    });
+
+    new aws_route53.AaaaRecord(this, 'record', {
+        zone: hostedZone,
+        target: aws_route53.RecordTarget.fromAlias(new aws_route53_targets.LoadBalancerTarget(lb)),
+    });
+});
+```
+
+```console
+PULUMI_CDK_EXPERIMENTAL_LOOKUPS=true pulumi preview
+```
+
+You will see an error message that looks something like the error message below.
+
+```console
+
+cdk:construct:StagingStack (staging-stack):
+    error: Duplicate resource URN 'urn:pulumi:project::pulumi-lookups-enabled::cdk:index:App$cdk:construct:StagingStack::staging-stack-'; try giving it a unique name
+```
+
+At this point the lookups have been performed and you should be able to run
+Pulumi commands without errors.
+
 ## CDK Aspects
+
+Pulumi CDK supports CDK Aspects, including aspects like [cdk-nag](https://github.com/cdklabs/cdk-nag)
+
+```ts
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import { AwsSolutionsChecks } from 'cdk-nag';
+
+const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+    const stack = new pulumicdk.Stack('example-stack');
+    Aspects.of(stack).add(new AwsSolutionsChecks({ verbose: true }));
+
+    new s3.Bucket(this, 'bucket');
+});
+```
+
+**Example Output**
+```console
+[Error at /test-stack/bucket/Resource] AwsSolutions-S1: The S3 Bucket has server access logs disabled. The bucket should have server access logging enabled to provide detailed records for the requests that are made to the bucket.
+[Error at /test-stack/bucket/Resource] AwsSolutions-S10: The S3 Bucket or bucket policy does not require requests to use SSL. You can use HTTPS (TLS) to help prevent potential attackers from eavesdropping on or manipulating network traffic using person-in-the-middle or similar attacks. You should allow only encrypted connections over HTTPS (TLS) using the aws:SecureTransport condition on Amazon S3 bucket policies.
+```
 
 ## CDK Policy Validation Plugins
 
+Pulumi CDK also supports [CDK Policy Validation Plugins](https://docs.aws.amazon.com/cdk/v2/guide/policy-validation-synthesis.html).
+
+```ts
+import { CfnGuardValidator } from '@cdklabs/cdk-validator-cfnguard';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+
+const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+    const stack = new pulumicdk.Stack('example-stack');
+    new s3.Bucket(this, 'bucket');
+}, {
+    appOptions: {
+      props: {
+        policyValidationBeta1: [new CfnGuardValidator()],
+      },
+    },
+});
+```
+
+**Example Output**
+```console
+Diagnostics:
+  pulumi:pulumi:Stack (pulumi-typescript-app-dev):
+    Performing Policy Validations
+    Validation failed. See the validation report above for details
+
+    Validation Report
+    -----------------
+    ╔════════════════════════════════════╗
+    ║           Plugin Report            ║
+    ║   Plugin: cdk-validator-cfnguard   ║
+    ║   Version: N/A                     ║
+    ║   Status: failure                  ║
+    ╚════════════════════════════════════╝
+    (Violations)
+    s3_bucket_level_public_access_prohibited_check (1 occurrences)
+      Occurrences:
+        - Construct Path: test-stack/bucket/Resource
+        - Template Path: /private/var/folders/3b/6mr1jkqx7r797ff75k27jfjc0000gn/T/cdk.outC3dFwa/test-stack.template.json
+        - Creation Stack:
+        └──  test-stack (test-stack)
+             │ Construct: aws-cdk-lib.Stack
+             │ Library Version: 2.166.0
+             │ Location: Run with '--debug' to include location info
+             └──  bucket (test-stack/bucket)
+                  │ Construct: aws-cdk-lib.aws_s3.Bucket
+                  │ Library Version: 2.166.0
+                  │ Location: Run with '--debug' to include location info
+                  └──  Resource (test-stack/bucket/Resource)
+                       │ Construct: aws-cdk-lib.aws_s3.CfnBucket
+                       │ Library Version: 2.166.0
+                       │ Location: Run with '--debug' to include location info
+        - Resource ID: bucket
+        - Template Locations:
+          > /Resources/bucket
+      Description: [CT.S3.PR.1]: Require an Amazon S3 bucket to have block public access settings configured
+      How to fix: [FIX]: The parameters 'BlockPublicAcls', 'BlockPublicPolicy', 'IgnorePublicAcls', 'RestrictPublicBuckets' must be set to true under the bucket-level 'PublicAccessBlockConfiguration'.
+      Rule Metadata:
+        DocumentationUrl: https://github.com/cdklabs/cdk-validator-cfnguard#bundled-control-tower-rules
+```
+
 ## Mapping AWS resources
+
+Pulumi CDK automatically maps CDK resources to [AWS CCAPI](https://www.pulumi.com/registry/packages/aws-native/)
+resources, but there are some resources that are not yet available in CCAPI. In
+these cases it is possible to manually map the CloudFormation resource to an
+[AWS Provider](https://www.pulumi.com/registry/packages/aws/) resource. A couple
+of common resources have been mapped in
+[aws-resource-mappings.ts](./src/aws-resource-mappings.ts) which can be used as
+a reference.
+
+### Simple mapping
+
+```ts
+const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+    const stack = new pulumicdk.Stack('example-stack');
+}, {
+    appOptions: {
+        remapCloudControlResource: (logicalId, typeName, props, options): ResourceMapping | undefined => {
+            if (typeName === 'AWS::ApiGatewayV2::Stage') {
+                return new aws.apigatewayv2.Stage(
+                    logicalId,
+                    {
+                        accessLogSettings: props.AccessLogSettings,
+                        apiId: props.ApiId,
+                        ...
+                    },
+                    options,
+                )
+            }
+            return undefined;
+        },
+    }
+});
+```
+
+### Mapping to multiple resources
+
+Sometimes a single CloudFormation resource maps to multiple AWS Provider
+resources. In these cases you should return the `logicalId` of the resource
+along with the resource itself.
+
+```ts
+const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+    const stack = new pulumicdk.Stack('example-stack');
+}, {
+    appOptions: {
+        remapCloudControlResource: (logicalId, typeName, props, options): ResourceMapping | undefined => {
+            if (typeName === 'AWS::SQS::QueuePolicy') {
+                const queues: string[] = props.queues ?? [];
+                return queues.flatMap((q: string, i: number) => {
+                    const id = i === 0 ? logicalId : `${logicalId}-policy-${i}`;
+                    return {
+                        logicalId: id,
+                        resource: new aws.sqs.QueuePolicy(
+                            id,
+                            {
+                                policy: rawProps.PolicyDocument,
+                                queueUrl: q,
+                            },
+                            options,
+                        ),
+                    };
+                });
+            }
+            return undefined;
+        },
+    }
+});
+```
 
 ## Using Assets
 
@@ -272,11 +493,35 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
 });
 ```
 
-## Context values
-
 ## Feature Flags
 
+Feature flags in Pulumi CDK work the exact same way as in AWS CDK and can be set
+the same way as well (e.g. `cdk.json`). You can view the currently recommended
+set of feature flags [here](https://github.com/aws/aws-cdk/blob/main/packages/aws-cdk-lib/cx-api/FEATURE_FLAGS.md#currently-recommended-cdkjson).
+
 ## Setting Pulumi options for CDK resources
+
+You can set Pulumi resource options for CDK resources by using [Transforms](https://www.pulumi.com/docs/iac/concepts/options/transforms/).
+For example, if you wanted to set `protect` on database resources you could use
+a transform like this.
+
+```ts
+const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+    const stack = new pulumicdk.Stack('example-stack');
+}, {
+    transforms: [
+        (args: pulumi.ResourceTransformArgs): pulumi.ResourceTransformResult => {
+            if (args.type === 'aws-native:rds:DbCluster') {
+                return {
+                    props: args.props,
+                    opts: pulumi.mergeOptions(args.opts, { protect: true }),
+                };
+            }
+            return undefined;
+        },
+    ]
+});
+```
 
 ## Pulumi Synthesizer
 
@@ -307,8 +552,24 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
 
 ## Unsupported Features
 
-### Cross stack references
+### Unsupported CloudFormation Features
 
+- [Fn::Transform](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-transform.html)
+- [Transforms](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-reference.html)
+- [CloudFormation helper scripts](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-helper-scripts-reference.html)
+    - cfn-init
+    - cfn-signal
+    - cfn-get-metadata
+    - cfn-hup
+- ResourceAttributes
+    - [CreationPolicy](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-creationpolicy.html)
+    - [Snapshot DeletionPolicy](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-deletionpolicy.html)
+    - [UpdatePolicy](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-updatepolicy.html)
+    - [UpdateReplacePolicy](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-updatereplacepolicy.html)
+
+### Unsupported CDK Features
+
+- Cross stack references
 
 ## AWS Cloud Control AutoNaming Config
 
@@ -376,7 +637,9 @@ create the following staging resources.
 
 See [API Docs](./api-docs/README.md) for more details.
 
-## Building locally
+## Contributing
+
+### Building locally
 
 Install dependencies, build library, and link for local usage.
 
