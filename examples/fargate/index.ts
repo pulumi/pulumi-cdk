@@ -59,29 +59,10 @@ class FargateStack extends pulumicdk.Stack {
 
 class MyApp extends pulumicdk.App {
     constructor() {
-        super(
-            'app',
-            (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-                const stack = new FargateStack(scope, 'fargatestack');
-                return { loadBalancerURL: stack.loadBalancerDNS };
-            },
-            {
-                // TODO[pulumi/aws-native#1318]
-                transforms: [
-                    (args: pulumi.ResourceTransformArgs): pulumi.ResourceTransformResult => {
-                        if (args.type === 'aws-native:ecs:TaskDefinition') {
-                            args.opts.replaceOnChanges = ['containerDefinitions'];
-                        }
-                        return {
-                            opts: {
-                                ...args.opts,
-                            },
-                            props: args.props,
-                        };
-                    },
-                ],
-            },
-        );
+        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+            const stack = new FargateStack(scope, 'fargatestack');
+            return { loadBalancerURL: stack.loadBalancerDNS };
+        });
     }
 }
 
