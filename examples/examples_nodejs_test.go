@@ -15,13 +15,18 @@
 package examples
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gorilla/websocket"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -116,6 +121,77 @@ func TestLookups(t *testing.T) {
 		})
 
 	integration.ProgramTest(t, &test)
+}
+
+func TestLookupsEnabled(t *testing.T) {
+	ctx := context.Background()
+	config, err := config.LoadDefaultConfig(ctx)
+	assert.NoError(t, err)
+	client := sts.NewFromConfig(config)
+	result, err := client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	assert.NoError(t, err)
+	accountId := *result.Account
+
+	var output bytes.Buffer
+
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir:         filepath.Join(getCwd(t), "lookups-enabled"),
+			Env:         []string{"PULUMI_CDK_EXPERIMENTAL_LOOKUPS=true"},
+			Stderr:      &output,
+			Quick:       false,
+			SkipPreview: false,
+			Config: map[string]string{
+				"zoneName":        "coolcompany.io",
+				"accountId":       accountId,
+				"pulumiResources": "false",
+			},
+		})
+
+	tester := integration.ProgramTestManualLifeCycle(t, &test)
+
+	defer func() {
+		tester.TestLifeCycleDestroy()
+		tester.TestCleanUp()
+	}()
+	err = tester.TestLifeCyclePrepare()
+	assert.NoError(t, err)
+	err = tester.TestLifeCycleInitialize()
+	assert.NoError(t, err)
+	tester.RunPulumiCommand("preview")
+	assert.Contains(t, output.String(), "Duplicate resource URN")
+
+	err = tester.TestPreviewUpdateAndEdits()
+	assert.NoError(t, err)
+}
+
+func TestLookupsEnabledFailWithoutPreview(t *testing.T) {
+	ctx := context.Background()
+	config, err := config.LoadDefaultConfig(ctx)
+	assert.NoError(t, err)
+	client := sts.NewFromConfig(config)
+	result, err := client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	assert.NoError(t, err)
+	accountId := *result.Account
+
+	var output bytes.Buffer
+
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir:           filepath.Join(getCwd(t), "lookups-enabled"),
+			Env:           []string{"PULUMI_CDK_EXPERIMENTAL_LOOKUPS=true"},
+			Stderr:        &output,
+			SkipPreview:   true,
+			ExpectFailure: true,
+			Config: map[string]string{
+				"zoneName":        "coolcompany.io",
+				"accountId":       accountId,
+				"pulumiResources": "false",
+			},
+		})
+
+	integration.ProgramTest(t, &test)
+	assert.Contains(t, output.String(), "Context lookups have been disabled")
 }
 
 func TestEventBridgeSNS(t *testing.T) {
