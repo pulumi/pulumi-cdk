@@ -148,16 +148,19 @@ export class App
         const cli = AwsCdkCli.fromCloudAssemblyDirectoryProducer(this);
         this.appProps = props.args?.props;
         this.appOptions = props.args;
+        const lookupsEnabled = process.env.PULUMI_CDK_EXPERIMENTAL_LOOKUPS === 'true';
+        const lookups = lookupsEnabled && pulumi.runtime.isDryRun();
         try {
             // TODO: support lookups https://github.com/pulumi/pulumi-cdk/issues/184
-            await cli.synth({ quiet: true, lookups: false });
+            await cli.synth({ quiet: true, lookups });
         } catch (e: any) {
             if (typeof e.message === 'string' && e.message.includes('Context lookups have been disabled')) {
                 const message = e.message as string;
                 const messageParts = message.split('Context lookups have been disabled. ');
                 const missingParts = messageParts[1].split('Missing context keys: ');
                 throw new Error(
-                    'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". \n' +
+                    'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". ' +
+                        'Or set "PULUMI_CDK_EXPERIMENTAL_LOOKUPS" to true. \n' +
                         'Missing context keys: ' +
                         missingParts[1],
                 );
