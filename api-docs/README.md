@@ -14,7 +14,7 @@ The Pulumi provider to read the schema from
 
 | Enumeration Member | Value | Defined in |
 | ------ | ------ | ------ |
-| `AWS_NATIVE` | `"aws-native"` | [types.ts:62](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/types.ts#L62) |
+| `AWS_NATIVE` | `"aws-native"` | [types.ts:62](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L62) |
 
 ## Classes
 
@@ -74,14 +74,14 @@ export const bucket = app.outputs['bucket'];
 
 ###### Defined in
 
-[stack.ts:96](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/stack.ts#L96)
+[stack.ts:96](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L96)
 
 #### Properties
 
 | Property | Modifier | Type | Default value | Description | Defined in |
 | ------ | ------ | ------ | ------ | ------ | ------ |
-| `name` | `readonly` | `string` | `undefined` | The name of the component | [stack.ts:55](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/stack.ts#L55) |
-| `outputs` | `public` | `object` | `{}` | The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs. | [stack.ts:61](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/stack.ts#L61) |
+| `name` | `readonly` | `string` | `undefined` | The name of the component | [stack.ts:55](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L55) |
+| `outputs` | `public` | `object` | `{}` | The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs. | [stack.ts:61](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L61) |
 
 ***
 
@@ -121,7 +121,7 @@ Create and register an AWS CDK stack deployed with Pulumi.
 
 ###### Defined in
 
-[stack.ts:261](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/stack.ts#L261)
+[stack.ts:261](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L261)
 
 #### Methods
 
@@ -151,7 +151,7 @@ A Pulumi Output value.
 
 ###### Defined in
 
-[stack.ts:274](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/stack.ts#L274)
+[stack.ts:274](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L274)
 
 ## Interfaces
 
@@ -163,7 +163,7 @@ AppComponent is the interface representing the Pulumi CDK App Component Resource
 
 | Property | Modifier | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ | ------ |
-| `name` | `readonly` | `string` | The name of the component | [types.ts:72](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/types.ts#L72) |
+| `name` | `readonly` | `string` | The name of the component | [types.ts:72](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L72) |
 
 ***
 
@@ -175,8 +175,8 @@ Options for creating a Pulumi CDK App Component
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| `appId?` | `string` | A unique identifier for the application that the asset staging stack belongs to. This identifier will be used in the name of staging resources created for this application, and should be unique across apps. The identifier should include lowercase characters, numbers, periods (.) and dashes ('-') only and have a maximum of 17 characters. **Default** `- generated from the pulumi project and stack name` | [types.ts:25](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/types.ts#L25) |
-| `props?` | `AppProps` | Specify the CDK Stack properties to asociate with the stack. | [types.ts:12](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/types.ts#L12) |
+| `appId?` | `string` | A unique identifier for the application that the asset staging stack belongs to. This identifier will be used in the name of staging resources created for this application, and should be unique across apps. The identifier should include lowercase characters, numbers, periods (.) and dashes ('-') only and have a maximum of 17 characters. **Default** `- generated from the pulumi project and stack name` | [types.ts:25](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L25) |
+| `props?` | `AppProps` | Specify the CDK Stack properties to asociate with the stack. | [types.ts:12](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L12) |
 
 #### Methods
 
@@ -209,7 +209,7 @@ implemented.
 
 ###### Defined in
 
-[types.ts:42](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/types.ts#L42)
+[types.ts:42](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L42)
 
 ***
 
@@ -225,7 +225,7 @@ Options specific to the Pulumi CDK App component.
 
 | Property | Type | Defined in |
 | ------ | ------ | ------ |
-| `appOptions?` | [`AppOptions`](README.md#appoptions) | [types.ts:54](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/types.ts#L54) |
+| `appOptions?` | [`AppOptions`](README.md#appoptions) | [types.ts:54](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L54) |
 
 ***
 
@@ -241,7 +241,7 @@ Options for creating a Pulumi CDK Stack
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| `props?` | `StackProps` | The CDK Stack props | [stack.ts:227](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/stack.ts#L227) |
+| `props?` | `StackProps` | The CDK Stack props | [stack.ts:227](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L227) |
 
 ## Type Aliases
 
@@ -255,7 +255,7 @@ Options for creating a Pulumi CDK Stack
 
 #### Defined in
 
-[stack.ts:24](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/stack.ts#L24)
+[stack.ts:24](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L24)
 
 ## Functions
 
@@ -279,7 +279,7 @@ A CDK token representing a list of string values.
 
 #### Defined in
 
-[output.ts:45](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/output.ts#L45)
+[output.ts:45](https://github.com/pulumi/pulumi-cdk/blob/main/src/output.ts#L45)
 
 ***
 
@@ -303,7 +303,7 @@ A CDK token representing a number value.
 
 #### Defined in
 
-[output.ts:35](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/output.ts#L35)
+[output.ts:35](https://github.com/pulumi/pulumi-cdk/blob/main/src/output.ts#L35)
 
 ***
 
@@ -327,7 +327,7 @@ A CDK token representing a string value.
 
 #### Defined in
 
-[output.ts:25](https://github.com/pulumi/pulumi-cdk/blob/890dc36200787bf0cc83014ee6ebc4bc46e0db99/src/output.ts#L25)
+[output.ts:25](https://github.com/pulumi/pulumi-cdk/blob/main/src/output.ts#L25)
 
 ## Namespaces
 

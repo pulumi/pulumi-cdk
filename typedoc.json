@@ -16,5 +16,6 @@
   "excludeReferences": true,
   "excludePrivate": true,
   "excludeExternals": true,
+  "gitRevision": "main", 
   "readme": "none"
 }
