@@ -18,11 +18,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/rand"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gorilla/websocket"
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
@@ -128,9 +130,20 @@ func TestLookupsEnabled(t *testing.T) {
 	config, err := config.LoadDefaultConfig(ctx)
 	assert.NoError(t, err)
 	client := sts.NewFromConfig(config)
+	route53Client := route53.NewFromConfig(config)
 	result, err := client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	assert.NoError(t, err)
 	accountId := *result.Account
+
+	// create a zone that we can lookup in the test
+	randomSuffix := rand.Intn(10000)
+	zoneName := fmt.Sprintf("cdkexample-%d.com", randomSuffix)
+	res, err := route53Client.CreateHostedZone(ctx, &route53.CreateHostedZoneInput{
+		Name:            &zoneName,
+		CallerReference: &zoneName,
+	})
+	require.NoError(t, err)
+	zoneId := *res.HostedZone.Id
 
 	var output bytes.Buffer
 
@@ -142,9 +155,8 @@ func TestLookupsEnabled(t *testing.T) {
 			Quick:       false,
 			SkipPreview: false,
 			Config: map[string]string{
-				"zoneName":        "coolcompany.io",
-				"accountId":       accountId,
-				"pulumiResources": "false",
+				"zoneName":  zoneName,
+				"accountId": accountId,
 			},
 		})
 
@@ -153,6 +165,9 @@ func TestLookupsEnabled(t *testing.T) {
 	defer func() {
 		tester.TestLifeCycleDestroy()
 		tester.TestCleanUp()
+		route53Client.DeleteHostedZone(ctx, &route53.DeleteHostedZoneInput{
+			Id: &zoneId,
+		})
 	}()
 	err = tester.TestLifeCyclePrepare()
 	assert.NoError(t, err)
@@ -162,7 +177,7 @@ func TestLookupsEnabled(t *testing.T) {
 	assert.Contains(t, output.String(), "Duplicate resource URN")
 
 	err = tester.TestPreviewUpdateAndEdits()
-	assert.NoError(t, err)
+	assert.NoErrorf(t, err, "Failed to preview update and edits: \n output: %s", output.String())
 }
 
 func TestLookupsEnabledFailWithoutPreview(t *testing.T) {
