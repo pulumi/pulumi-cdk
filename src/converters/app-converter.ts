@@ -148,10 +148,6 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                 this.registerResource(mapped, n);
 
                 debug(`Done creating resource for ${n.logicalId}`);
-                // TODO: process template conditions
-                // for (const [conditionId, condition] of Object.entries(cfn.Conditions || {})) {
-                //     // Do something with the condition
-                // }
             } else {
                 const r = new CdkConstruct(`${this.app.name}/${n.construct.path}`, n.construct.type, {
                     parent,
