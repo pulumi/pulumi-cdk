@@ -99,6 +99,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
     private readonly cdkStack: cdk.Stack;
+    private readonly stackOptions?: pulumi.ComponentResourceOptions;
 
     private _stackResource?: CdkConstruct;
     private readonly graph: Graph;
@@ -113,6 +114,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     constructor(host: AppComponent, readonly stack: StackManifest) {
         super(host);
         this.cdkStack = host.stacks[stack.id];
+        this.stackOptions = host.stackOptions[stack.id];
         this.graph = GraphBuilder.build(this.stack);
     }
 
@@ -125,6 +127,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         for (const n of this.graph.nodes) {
             if (n.construct.id === this.stack.id) {
                 this._stackResource = new CdkConstruct(`${this.app.name}/${n.construct.path}`, n.construct.id, {
+                    ...this.stackOptions,
                     parent: this.app.component,
                     // NOTE: Currently we make the stack depend on all the assets and then all resources
                     // have the parent as the stack. This means we deploy all assets before we deploy any resources
@@ -664,18 +667,18 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     }
 
     getAccountId(): intrinsics.Result<string> {
-        return getAccountId({ parent: this.app.component }).then((r) => r.accountId);
+        return getAccountId({ parent: this.stackResource }).then((r) => r.accountId);
     }
 
     getRegion(): intrinsics.Result<string> {
-        return getRegion({ parent: this.app.component }).then((r) => r.region);
+        return getRegion({ parent: this.stackResource }).then((r) => r.region);
     }
 
     getPartition(): intrinsics.Result<string> {
-        return getPartition({ parent: this.app.component }).then((p) => p.partition);
+        return getPartition({ parent: this.stackResource }).then((p) => p.partition);
     }
 
     getURLSuffix(): intrinsics.Result<string> {
-        return getUrlSuffix({ parent: this.app.component }).then((r) => r.urlSuffix);
+        return getUrlSuffix({ parent: this.stackResource }).then((r) => r.urlSuffix);
     }
 }

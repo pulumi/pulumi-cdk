@@ -74,14 +74,14 @@ export const bucket = app.outputs['bucket'];
 
 ###### Defined in
 
-[stack.ts:96](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L96)
+[stack.ts:105](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L105)
 
 #### Properties
 
 | Property | Modifier | Type | Default value | Description | Defined in |
 | ------ | ------ | ------ | ------ | ------ | ------ |
-| `name` | `readonly` | `string` | `undefined` | The name of the component | [stack.ts:55](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L55) |
-| `outputs` | `public` | `object` | `{}` | The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs. | [stack.ts:61](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L61) |
+| `name` | `readonly` | `string` | `undefined` | The name of the component | [stack.ts:57](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L57) |
+| `outputs` | `public` | `object` | `{}` | The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs. | [stack.ts:63](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L63) |
 
 ***
 
@@ -121,7 +121,7 @@ Create and register an AWS CDK stack deployed with Pulumi.
 
 ###### Defined in
 
-[stack.ts:264](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L264)
+[stack.ts:330](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L330)
 
 #### Methods
 
@@ -151,7 +151,7 @@ A Pulumi Output value.
 
 ###### Defined in
 
-[stack.ts:277](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L277)
+[stack.ts:432](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L432)
 
 ## Interfaces
 
@@ -233,6 +233,31 @@ Options specific to the Pulumi CDK App component.
 
 Options for creating a Pulumi CDK Stack
 
+Any Pulumi resource options provided at the Stack level will override those configured
+at the App level
+
+#### Example
+
+```ts
+new App('testapp', (scope: App) => {
+    // This stack will inherit the options from the App
+    new Stack(scope, 'teststack1');
+
+   // Override the options for this stack
+   new Stack(scope, 'teststack', {
+       providers: [
+         new native.Provider('custom-provider', { region: 'us-east-1' }),
+       ],
+       props: { env: { region: 'us-east-1' } },
+   })
+}, {
+     providers: [
+         new native.Provider('app-provider', { region: 'us-west-2' }),
+     ]
+
+})
+```
+
 #### Extends
 
 - `ComponentResourceOptions`
@@ -241,7 +266,7 @@ Options for creating a Pulumi CDK Stack
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| `props?` | `StackProps` | The CDK Stack props | [stack.ts:230](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L230) |
+| `props?` | `StackProps` | The CDK Stack props | [stack.ts:289](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L289) |
 
 ## Type Aliases
 
@@ -255,7 +280,7 @@ Options for creating a Pulumi CDK Stack
 
 #### Defined in
 
-[stack.ts:24](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L24)
+[stack.ts:26](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L26)
 
 ## Functions
 

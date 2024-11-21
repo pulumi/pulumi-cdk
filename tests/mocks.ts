@@ -23,6 +23,7 @@ export class MockAppComponent extends pulumi.ComponentResource implements AppCom
     public readonly name = 'stack';
     public readonly assemblyDir: string;
     stacks: { [artifactId: string]: CdkStack } = {};
+    stackOptions: { [artifactId: string]: pulumi.ComponentResourceOptions } = {};
     dependencies: CdkConstruct[] = [];
 
     component: pulumi.ComponentResource;
@@ -35,15 +36,17 @@ export class MockAppComponent extends pulumi.ComponentResource implements AppCom
     }
 }
 
-export async function testApp(fn: (scope: Construct) => void, options?: pulumi.ComponentResourceOptions) {
+export async function testApp(
+    fn: (scope: Construct) => void,
+    options?: pulumi.ComponentResourceOptions,
+    withEnv?: boolean,
+) {
+    const env = withEnv ? { account: '12345678912', region: 'us-east-1' } : undefined;
     class TestStack extends Stack {
         constructor(app: App, id: string) {
             super(app, id, {
                 props: {
-                    env: {
-                        region: 'us-east-1',
-                        account: '12345678912',
-                    },
+                    env,
                 },
             });
 
@@ -64,6 +67,10 @@ export async function testApp(fn: (scope: Construct) => void, options?: pulumi.C
             ...options,
         },
     );
+    await awaitApp(app);
+}
+
+export async function awaitApp(app: App): Promise<void> {
     const converter = await app.converter;
     await Promise.all(
         Array.from(converter.stacks.values()).flatMap((stackConverter) => {
@@ -83,6 +90,11 @@ export function setMocks(resources?: MockResourceArgs[]) {
                         accountId: '12345678910',
                     };
                 case 'aws-native:index:getRegion':
+                    if (args.provider?.includes('custom-region')) {
+                        return {
+                            region: args.provider,
+                        };
+                    }
                     return {
                         region: 'us-east-2',
                     };

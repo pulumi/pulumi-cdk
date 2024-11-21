@@ -248,6 +248,85 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
 });
 ```
 
+### Stack Level Providers
+
+It is also possible to customize the Providers at the Stack level. This can be
+useful in cases where you need to deploy resources to different AWS regions.
+
+```ts
+const awsProvider = new aws.Provider('aws-provider');
+const awsCCAPIProvider = new ccapi.Provider('ccapi-provider', {
+    // enable autoNaming
+    autoNaming: {
+        autoTrim: true,
+        randomSuffixMinLength: 7,
+    }
+});
+
+const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    // inherits the provider from the app
+    const defaultProviderStack = new pulumicdk.Stack('default-provider-stack');
+    const bucket = new s3.Bucket(defaultProviderStack, 'Bucket');
+
+    // use a different provider for this stack
+    const east2Stack = new pulumicdk.Stack('east2-stack', {
+        providers: [
+            new aws.Provider('east2-provider', { region: 'us-east-2' }),
+            new ccapi.Provider('east2-ccapi-provider', {
+                region: 'us-east-2',
+                autoNaming: {
+                    autoTrim: true,
+                    randomSuffixMinLength: 7,
+                },
+            }),
+        ],
+    });
+    const bucket2 = new s3.Bucket(east2Stack, 'Bucket');
+}, {
+    providers: [
+      dockerBuildProvider,
+      awsProvider,
+      awsCCAPIProvider,
+    ]
+});
+```
+
+One thing to note is that when you pass different custom providers to a Stack,
+by default the Stack becomes an [environment agnostic stack](https://docs.aws.amazon.com/cdk/v2/guide/configure-env.html#configure-env-examples).
+If you want to have the environment specified at the CDK Stack level, then you
+also need to provide the environment to the Stack Props.
+
+```ts
+const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    // inherits the provider from the app and has the CDK env auto populated
+    // based on the default provider
+    const defaultProviderStack = new pulumicdk.Stack('default-provider-stack');
+    const bucket = new s3.Bucket(defaultProviderStack, 'Bucket');
+
+    // use a different provider for this stack
+    const east2Stack = new pulumicdk.Stack('east2-stack', {
+        props: {
+            env: {
+                region: 'us-east-2',
+                account: '12345678912',
+            },
+        },
+        providers: [
+            new aws.Provider('east2-provider', { region: 'us-east-2' }),
+            new ccapi.Provider('east2-ccapi-provider', {
+                region: 'us-east-2',
+                autoNaming: {
+                    autoTrim: true,
+                    randomSuffixMinLength: 7,
+                },
+            }),
+        ],
+    });
+    const bucket2 = new s3.Bucket(east2Stack, 'Bucket');
+});
+
+```
+
 ## CDK Lookups
 
 CDK [lookups](https://docs.aws.amazon.com/cdk/v2/guide/context.html#context_methods) are currently disabled by default.
