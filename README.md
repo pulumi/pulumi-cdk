@@ -102,7 +102,7 @@ Pulumi Output value into a CDK resource you can use the [asString][./api-docs/RE
 resource, you can use the [Stack.asOutput](./api-docs/README.md#asOutput) function to convert the CDK resource
 to a Pulumi Output value.
 
-### Example
+### CDK to Pulumi Example
 
 ```ts
 import * as pulumicdk from '@pulumi/cdk';
@@ -135,18 +135,25 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
 });
 ```
 
-### L2 Example
+### Pulumi to CDK Example
 
-You can also use `asString` in combination with CDK `fromXXX` methods to up cast
-to the L2.
+CDK L2 Constructs do not normally take simple values. Instead, they take
+references to other L2 Constructs. If you want to take a Pulumi resource and
+pass that in to a CDK Construct, you first have turn the Pulumi resource into a
+reference to a CDK L2 Construct. You can do this by using `asString` in
+combination with CDK `fromXXX` methods.
 
+**Example**
 ```ts
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
     const stack = new pulumicdk.Stack('example-stack');
+
+    // create a Pulumi Resource
     const zone = new aws.route53.Zone('example-zone', {
       name: 'cooldomain.io',
     });
 
+    // Turn it into a reference to a CDK L2 Construct (IHostedZone)
     const hostedZone = aws_route53.HostedZone.fromHostedZoneAttributes(
       this,
       'hosted-zone',
@@ -157,7 +164,7 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
     );
 
     new aws_route53.CnameRecord(this, 'record', {
-      zone: hostedZone,
+      zone: hostedZone, // pass it into another L2 Construct
       domainName: 'example.com',
       recordName: 'test',
     });
@@ -168,8 +175,8 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
 ## Create Pulumi outputs
 
 In order to create Pulumi [Stack outputs](https://www.pulumi.com/docs/iac/concepts/stacks/#outputs)
-you have to add the outputs to the [App outputs](./api-docs/README.md#AppOutputs). You can do this
-in one of two ways.
+you also need to propagate the [App outputs](./api-docs/README.md#AppOutputs) all the way to the Pulumi Stack
+outputs. You can do this in one of two ways.
 
 **CfnOutput**
 
@@ -182,7 +189,7 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
     new cdk.CfnOutput(stack, 'BucketName', { value: bucket.bucketName });
 });
 
-export const bucketName = app.outputs['bucketName'];
+export const bucketName = app.outputs['BucketName'];
 
 ```
 
@@ -221,6 +228,11 @@ import * as build from '@pulumi/docker-build';
 const awsProvider = new aws.Provider('aws-provider');
 const awsCCAPIProvider = new ccapi.Provider('ccapi-provider', {
     region: 'us-east-2',
+    // enable autoNaming
+    autoNaming: {
+        autoTrim: true,
+        randomSuffixMinLength: 7,
+    }
 });
 const dockerBuildProvider = new build.Provider('docker-build');
 
@@ -239,7 +251,7 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
 ## CDK Lookups
 
 CDK [lookups](https://docs.aws.amazon.com/cdk/v2/guide/context.html#context_methods) are currently disabled by default.
-If you would like to use lookups there are currently two workarounds.
+If you would like to use lookups there are currently two options.
 
 ### Use Pulumi functions
 
@@ -310,6 +322,36 @@ cdk:construct:StagingStack (staging-stack):
 
 At this point the lookups have been performed and you should be able to run
 Pulumi commands without errors.
+
+## Using Pulumi Policy Packs
+
+You can use [Policy
+Packs](https://www.pulumi.com/docs/iac/packages-and-automation/crossguard/get-started/#get-started-with-pulumi-policy-as-code)
+with your Pulumi CDK Application. It is also possible to use CDK specific policy
+validation tools (a couple are discussed below), but it is recommended to use
+Pulumi specific tools, especially if you are creating Pulumi resources outside
+of CDK.
+
+Below is an example output using Pulumi's [Compliance Ready Policies](https://www.pulumi.com/docs/iac/packages-and-automation/crossguard/compliance-ready-policies/)
+
+```ts
+import * as s3 from 'aws-cdk-lib/aws-s3';
+
+const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+    const stack = new pulumicdk.Stack('example-stack');
+
+    new s3.Bucket(this, 'bucket');
+});
+```
+
+**Example output**
+```console
+Policies:
+    ❌ aws-compliance-ready-policies-typescript@v0.0.1 (local: ../policypack)
+        - [mandatory]  awsnative-s3-bucket-enable-server-side-encryption  (aws-native:s3:Bucket: bucket)
+          Check that S3 Bucket Server-Side Encryption (SSE) is enabled.
+          S3 Buckets Server-Side Encryption (SSE) should be enabled.
+```
 
 ## CDK Aspects
 
