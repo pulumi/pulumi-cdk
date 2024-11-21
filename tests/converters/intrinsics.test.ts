@@ -5,7 +5,6 @@ import { CloudFormationParameter } from '../../src/cfn';
 import { Mapping } from '../../src/types';
 import { PulumiResource } from '../../src/pulumi-metadata';
 
-
 describe('Fn::If', () => {
     test('picks true', async () => {
         const tc = new TestContext({conditions: {'MyCondition': true}});
@@ -107,7 +106,6 @@ describe('Fn::And', () => {
         expect(result).toEqual(ok(false));
     });
 })
-
 
 describe('Fn::Not', () => {
     test('inverts false', async () => {
@@ -292,6 +290,19 @@ describe('Ref', () => {
         const result = runIntrinsic(intrinsics.ref, tc, ['MyParam']);
         expect(result).toEqual(failed('Ref intrinsic unable to resolve MyParam: not a known logical resource or parameter reference'));
     });
+
+    test('evaluates inner expressions before resolving', async () => {
+        const tc = new TestContext({
+            parameters: {
+                'MyParam': {Type: 'String', Default: 'MyParamValue'}
+            },
+            conditions: {
+                'MyCondition': true,
+            },
+        });
+        const result = runIntrinsic(intrinsics.ref, tc, [{'Fn::If': ['MyCondition', 'MyParam', 'MyParam2']}]);
+        expect(result).toEqual(ok('MyParamValue'));
+    });
 })
 
 function runIntrinsic(fn: intrinsics.Intrinsic, tc: TestContext, args: intrinsics.Expression[]): TestResult<any> {
@@ -359,6 +370,22 @@ class TestContext implements intrinsics.IntrinsicContext {
     }
 
     evaluate(expression: intrinsics.Expression): intrinsics.Result<any> {
+        // Evaluate known heuristics.
+        const known = [intrinsics.fnAnd,
+                       intrinsics.fnEquals,
+                       intrinsics.fnIf,
+                       intrinsics.fnNot,
+                       intrinsics.fnOr,
+                       intrinsics.ref];
+        if (typeof expression === 'object' && Object.keys(expression).length == 1) {
+            for (const k of known) {
+                if (k.name === Object.keys(expression)[0]) {
+                    const args = expression[k.name];
+                    return k.evaluate(this, args)
+                }
+            }
+        }
+
         // Self-evaluate the expression. This is very incomplete.
         const result: TestResult<any> = {'ok': true, value: expression};
         return result;

@@ -299,7 +299,8 @@ export const ref: Intrinsic = {
         //
         // CF docs: "When the AWS::LanguageExtensions transform is used, you can use intrinsic functions..".
         if (typeof param !== 'string') {
-            return ctx.apply(mustBeString(ctx, ctx.evaluate(param)), name => evaluateRef(ctx, name));
+            const s = ctx.apply(ctx.evaluate(param), p => mustBeString(ctx, p));
+            return ctx.apply(s, name => evaluateRef(ctx, name));
         }
         return evaluateRef(ctx, param);
     },
