@@ -25,6 +25,8 @@ import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
 import { processSecretsManagerReferenceValue } from './secrets-manager-dynamic';
 import * as intrinsics from './intrinsics';
+import { CloudFormationParameter } from '../cfn';
+
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -665,5 +667,24 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
 
     apply<T, U>(result: intrinsics.Result<T>, fn: (value: U) => intrinsics.Result<U>): intrinsics.Result<U> {
         return lift(fn, result);
+    }
+
+    findParameter(parameterLogicalID: string): CloudFormationParameter | undefined {
+        throw new Error("TODO");
+    }
+
+    findResourceMapping(resourceLogicalID: string): Mapping<pulumi.Resource> | undefined {
+        throw new Error("TODO");
+    }
+
+    evaluateParameter(param: CloudFormationParameter): intrinsics.Result<any> {
+        throw new Error("TODO");
+    }
+
+    /**
+     * Pulumi metadata source that may inform the intrinsic evaluation.
+     */
+    tryFindResource(cfnType: string): any {
+        throw new Error("TODO");
     }
 }
