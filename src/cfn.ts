@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CloudFormationCreateReplaceChangeSetAction } from 'aws-cdk-lib/aws-codepipeline-actions';
 import { CfnDeletionPolicy } from 'aws-cdk-lib/core';
 
 /**

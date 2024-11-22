@@ -426,8 +426,15 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return obj?.Ref === 'AWS::NoValue';
     }
 
-    private resolveOutput(repr: OutputRepr): pulumi.Output<any> {
-        return OutputMap.instance().lookupOutput(repr)!;
+    /**
+     * @internal
+     */
+    public resolveOutput(repr: OutputRepr): pulumi.Output<any> {
+        const result = OutputMap.instance().lookupOutput(repr);
+        if (result === undefined) {
+            throw new Error(`@pulumi/pulumi-cdk internal failure: unable to resolveOutput ${repr.PulumiOutput}`);
+        }
+        return result;
     }
 
     private resolveIntrinsic(fn: string, params: any) {

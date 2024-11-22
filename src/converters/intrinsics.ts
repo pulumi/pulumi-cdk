@@ -365,12 +365,13 @@ function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
             return ctx.getURLSuffix();
         case 'AWS::NotificationARNs':
         case 'AWS::StackId':
-        case 'AWS::StackName':
+        case 'AWS::StackName': {
             // TODO[pulumi/pulumi-cdk#246]: these pseudo-parameters are typically used in things like names or descriptions
             // so it should be safe to substitute with a stack node ID for most applications.
             const stackNodeId = ctx.getStackNodeId();
             debug(`pulumi-cdk is replacing a Ref to a CF pseudo-parameter ${param} with the stack node ID`);
             return stackNodeId;
+        }
     }
 
     // Handle Cf template parameters.
