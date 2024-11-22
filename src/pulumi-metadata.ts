@@ -55,7 +55,7 @@ export class Metadata {
     /**
      * Non-throwing version of `findResource`.
      */
-    public tryFindResource(cfnType: string): PulumiResource|undefined {
+    public tryFindResource(cfnType: string): PulumiResource | undefined {
         const pType = typeToken(cfnType);
         if (pType in this.pulumiMetadata.resources) {
             return this.pulumiMetadata.resources[pType];

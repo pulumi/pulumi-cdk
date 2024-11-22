@@ -132,7 +132,7 @@ export interface IntrinsicContext {
     /**
      * Pulumi metadata source that may inform the intrinsic evaluation.
      */
-    tryFindResource(cfnType: string): PulumiResource|undefined;
+    tryFindResource(cfnType: string): PulumiResource | undefined;
 
     /**
      * Gets the CDK Stack Node ID.
@@ -333,18 +333,20 @@ export const ref: Intrinsic = {
 
         // Although not part of the CF spec, Output values are passed through CDK tokens as Ref structures; therefore
         // Pulumi Ref intrinsic receives them and has to handle them.
-        if (isOutputReprInstance(param)) { return ctx.resolveOutput(<OutputRepr>param); }
+        if (isOutputReprInstance(param)) {
+            return ctx.resolveOutput(<OutputRepr>param);
+        }
 
         // Unless the parameter is a literal string, it may be another expression.
         //
         // CF docs: "When the AWS::LanguageExtensions transform is used, you can use intrinsic functions..".
         if (typeof param !== 'string') {
-            const s = ctx.apply(ctx.evaluate(param), p => mustBeString(ctx, p));
-            return ctx.apply(s, name => evaluateRef(ctx, name));
+            const s = ctx.apply(ctx.evaluate(param), (p) => mustBeString(ctx, p));
+            return ctx.apply(s, (name) => evaluateRef(ctx, name));
         }
         return evaluateRef(ctx, param);
     },
-}
+};
 
 /**
  * See `ref`.
@@ -406,25 +408,25 @@ function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
         }
 
         // At this point metadata should indicate which properties to extract from the resource to compute the ref.
-        const propNames: string[] = (resMeta.cfRef.properties||[])
-            .concat(resMeta.cfRef.property ? [resMeta.cfRef.property]: [])
-            .map(x => toSdkName(x));
+        const propNames: string[] = (resMeta.cfRef.properties || [])
+            .concat(resMeta.cfRef.property ? [resMeta.cfRef.property] : [])
+            .map((x) => toSdkName(x));
 
         const propValues: any[] = [];
         for (const p of propNames) {
             if (!Object.prototype.hasOwnProperty.call(map.resource, p)) {
-                return ctx.fail(`Pulumi metadata notes a property "${p}" but no such property was found on a resource`)
+                return ctx.fail(`Pulumi metadata notes a property "${p}" but no such property was found on a resource`);
             }
             propValues.push((<any>map.resource)[p]);
         }
 
-        const delim: string = resMeta.cfRef!.delimiter || "|";
+        const delim: string = resMeta.cfRef!.delimiter || '|';
 
-        return ctx.apply(ctx.succeed(propValues), resolvedValues => {
+        return ctx.apply(ctx.succeed(propValues), (resolvedValues) => {
             let i = 0;
             for (const v of resolvedValues) {
-                if (typeof v !== "string") {
-                    return ctx.fail(`Expected property "${propNames[i]}" to resolve to a string, got ${typeof(v)}`);
+                if (typeof v !== 'string') {
+                    return ctx.fail(`Expected property "${propNames[i]}" to resolve to a string, got ${typeof v}`);
                 }
                 i++;
             }
@@ -434,7 +436,6 @@ function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
 
     return ctx.fail(`Ref intrinsic unable to resolve ${param}: not a known logical resource or parameter reference`);
 }
-
 
 /**
  * Recognize forms such as {"Condition" : "SomeOtherCondition"}. If recognized, returns the conditionName.

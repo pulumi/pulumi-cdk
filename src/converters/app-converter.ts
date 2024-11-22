@@ -25,14 +25,9 @@ import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
 import { processSecretsManagerReferenceValue } from './secrets-manager-dynamic';
 import * as intrinsics from './intrinsics';
-import {
-    CloudFormationParameter,
-    CloudFormationParameterLogicalId,
-    CloudFormationParameterWithId,
-} from '../cfn';
+import { CloudFormationParameter, CloudFormationParameterLogicalId, CloudFormationParameterWithId } from '../cfn';
 import { Metadata, PulumiResource } from '../pulumi-metadata';
 import { PulumiProvider } from '../types';
-
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -643,10 +638,8 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     }
 
     findParameter(parameterLogicalID: CloudFormationParameterLogicalId): CloudFormationParameterWithId | undefined {
-        const p: CloudFormationParameter|undefined = (this.stack.parameters||{})[parameterLogicalID];
-        return p
-            ? {...p, id: "!!"}
-            : undefined;
+        const p: CloudFormationParameter | undefined = (this.stack.parameters || {})[parameterLogicalID];
+        return p ? { ...p, id: '!!' } : undefined;
     }
 
     evaluateParameter(param: CloudFormationParameterWithId): intrinsics.Result<any> {
@@ -661,7 +654,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return this.resources.get(resourceLogicalID);
     }
 
-    tryFindResource(cfnType: string): PulumiResource|undefined {
+    tryFindResource(cfnType: string): PulumiResource | undefined {
         const m = new Metadata(PulumiProvider.AWS_NATIVE);
         return m.tryFindResource(cfnType);
     }
