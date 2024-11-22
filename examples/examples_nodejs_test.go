@@ -325,6 +325,22 @@ func TestAPIWebsocketLambdaDynamoDB(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestLookupAzs(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "lookup-azs"),
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				t.Helper()
+				t.Logf("Outputs: %v", stack.Outputs)
+				azs := stack.Outputs["azs"].([]interface{})
+				// by default the CDK will use 2 AZs so this makes sure our logic is working
+				assert.Lenf(t, azs, 3, "Expected 2 AZs, got %d", len(azs))
+			},
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {
 	base := getBaseOptions(t)
 	baseJS := base.With(integration.ProgramTestOptions{
