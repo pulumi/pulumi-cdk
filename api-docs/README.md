@@ -83,6 +83,37 @@ export const bucket = app.outputs['bucket'];
 | `name` | `readonly` | `string` | `undefined` | The name of the component | [stack.ts:57](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L57) |
 | `outputs` | `public` | `object` | `{}` | The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs. | [stack.ts:63](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L63) |
 
+#### Accessors
+
+##### env
+
+###### Get Signature
+
+> **get** **env**(): `Environment`
+
+This can be used to get the CDK Environment based on the Pulumi Provider used for the App.
+You can then use this to configure an explicit environment on Stacks.
+
+###### Example
+
+```ts
+const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
+    const stack = new pulumicdk.Stack(scope, 'pulumi-stack', {
+        props: { env: app.env },
+    });
+});
+```
+
+###### Returns
+
+`Environment`
+
+the CDK Environment configured for the App
+
+###### Defined in
+
+[stack.ts:155](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L155)
+
 ***
 
 ### Stack
@@ -121,7 +152,7 @@ Create and register an AWS CDK stack deployed with Pulumi.
 
 ###### Defined in
 
-[stack.ts:330](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L330)
+[stack.ts:336](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L336)
 
 #### Methods
 
@@ -151,7 +182,7 @@ A Pulumi Output value.
 
 ###### Defined in
 
-[stack.ts:432](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L432)
+[stack.ts:418](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L418)
 
 ## Interfaces
 
@@ -266,7 +297,7 @@ new App('testapp', (scope: App) => {
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| `props?` | `StackProps` | The CDK Stack props | [stack.ts:289](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L289) |
+| `props?` | `StackProps` | The CDK Stack props | [stack.ts:295](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L295) |
 
 ## Type Aliases
 

@@ -140,11 +140,17 @@ export class App
     }
 
     /**
-     * Because the app creates CDK Stacks in an async function, we can grab the
-     * environment from the AWS CCAPI provider used by the App and make that available
-     * as the CDK Environment for the Stacks.
+     * This can be used to get the CDK Environment based on the Pulumi Provider used for the App.
+     * You can then use this to configure an explicit environment on Stacks.
      *
-     * @internal
+     * @example
+     * const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
+     *     const stack = new pulumicdk.Stack(scope, 'pulumi-stack', {
+     *         props: { env: app.env },
+     *     });
+     * });
+     *
+     * @returns the CDK Environment configured for the App
      */
     public get env(): cdk.Environment {
         if (!this._env) {
@@ -328,27 +334,7 @@ export class Stack extends cdk.Stack {
      * @param options A bag of options that control this resource's behavior.
      */
     constructor(private readonly app: App, name: string, options?: StackOptions) {
-        const env: Writeable<cdk.Environment> = options?.props?.env ?? {};
-        const hasNativeProvider = hasProvider(options?.providers, (p) => native.Provider.isInstance(p));
-
-        if (!env.account && !hasNativeProvider) {
-            env.account = app.env.account;
-        }
-
-        // if the user has provided a separate native provider to the stack
-        // then we don't want to set the region from the app provider. The stack will
-        // be an environment agnostic (and determine the region  from the provider) unless
-        // they provide a region to the stack props.
-        if (!env.region && !hasNativeProvider) {
-            env.region = app.env.region;
-        }
-
-        super(app.app, name, {
-            // set the env based on the credentials of the App
-            // but allow the user to override it
-            ...options?.props,
-            env: env,
-        });
+        super(app.app, name, options?.props);
         Object.defineProperty(this, STACK_SYMBOL, { value: true });
 
         this.options = options;
