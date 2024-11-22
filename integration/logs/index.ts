@@ -3,6 +3,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs_destinations from 'aws-cdk-lib/aws-logs-destinations';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as pulumicdk from '@pulumi/cdk';
+import { RemovalPolicy } from 'aws-cdk-lib/core';
 
 class LogsStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
@@ -44,6 +45,7 @@ class LogsStack extends pulumicdk.Stack {
         });
         const stream = new kinesis.Stream(this, 'stream', {
             encryption: kinesis.StreamEncryption.UNENCRYPTED,
+            removalPolicy: RemovalPolicy.DESTROY,
         });
         logGroup2.addSubscriptionFilter('cdk-filter', {
             destination: new logs_destinations.KinesisDestination(stream),

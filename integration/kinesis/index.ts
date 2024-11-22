@@ -1,7 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as kinesis from 'aws-cdk-lib/aws-kinesis';
 import * as pulumicdk from '@pulumi/cdk';
-import { Duration } from 'aws-cdk-lib/core';
+import { Duration, RemovalPolicy } from 'aws-cdk-lib/core';
 
 class KinesisStack extends pulumicdk.Stack {
     kinesisStreamName: pulumi.Output<string>;
@@ -12,7 +12,8 @@ class KinesisStack extends pulumicdk.Stack {
         const kStream = new kinesis.Stream(this, 'my-stream', {
             shardCount: 3,
             retentionPeriod: Duration.hours(24),
-        })
+            removalPolicy: RemovalPolicy.DESTROY,
+        });
 
         this.kinesisStreamName = this.asOutput(kStream.streamName);
     }
