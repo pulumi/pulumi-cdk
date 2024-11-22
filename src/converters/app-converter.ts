@@ -637,15 +637,16 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return lift(fn, result);
     }
 
-    findParameter(parameterLogicalID: CloudFormationParameterLogicalId): CloudFormationParameterWithId | undefined {
-        const p: CloudFormationParameter | undefined = (this.stack.parameters || {})[parameterLogicalID];
-        return p ? { ...p, id: '!!' } : undefined;
+    findParameter(parameterLogicalId: CloudFormationParameterLogicalId): CloudFormationParameterWithId | undefined {
+        const p: CloudFormationParameter | undefined = (this.stack.parameters || {})[parameterLogicalId];
+        return p ? { ...p, id: parameterLogicalId } : undefined;
     }
 
     evaluateParameter(param: CloudFormationParameterWithId): intrinsics.Result<any> {
+        const paramName = param.id;
         const value = this.parameters.get(param.id);
-        if (value !== undefined) {
-            throw new Error(`No value for the CloudFormation ${param} parameter`);
+        if (value === undefined) {
+            throw new Error(`No value for the CloudFormation "${param.id}" parameter`);
         }
         return value;
     }
