@@ -38,7 +38,6 @@ import { PulumiProvider } from '../types';
  * AppConverter will convert all CDK resources into Pulumi resources.
  */
 export class AppConverter {
-
     // Map of stack artifactId to StackConverter
     public readonly stacks = new Map<string, StackConverter>();
 
