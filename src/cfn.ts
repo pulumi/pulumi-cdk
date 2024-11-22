@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { CloudFormationCreateReplaceChangeSetAction } from 'aws-cdk-lib/aws-codepipeline-actions';
 import { CfnDeletionPolicy } from 'aws-cdk-lib/core';
 
 /**
@@ -26,6 +27,12 @@ export interface CloudFormationParameter {
     readonly Type: string;
 
     readonly Default?: any;
+}
+
+export type CloudFormationParameterLogicalId = string;
+
+export interface CloudFormationParameterWithId extends CloudFormationParameter {
+    id: CloudFormationParameterLogicalId;
 }
 
 export interface CloudFormationResource {

@@ -25,13 +25,20 @@ import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
 import { processSecretsManagerReferenceValue } from './secrets-manager-dynamic';
 import * as intrinsics from './intrinsics';
-import { CloudFormationParameter } from '../cfn';
+import {
+    CloudFormationParameter,
+    CloudFormationParameterLogicalId,
+    CloudFormationParameterWithId,
+} from '../cfn';
+import { Metadata, PulumiResource } from '../pulumi-metadata';
+import { PulumiProvider } from '../types';
 
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
  */
 export class AppConverter {
+
     // Map of stack artifactId to StackConverter
     public readonly stacks = new Map<string, StackConverter>();
 
@@ -94,7 +101,7 @@ export class AppConverter {
  * StackConverter converts all of the resources in a CDK stack to Pulumi resources
  */
 export class StackConverter extends ArtifactConverter implements intrinsics.IntrinsicContext {
-    readonly parameters = new Map<string, any>();
+    readonly parameters = new Map<CloudFormationParameterLogicalId, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
     private readonly cdkStack: cdk.Stack;
@@ -575,11 +582,12 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                 return getRegion({ parent: this.app.component }).then((r) => r.region);
             case 'AWS::URLSuffix':
                 return getUrlSuffix({ parent: this.app.component }).then((r) => r.urlSuffix);
+
+            // TODO[pulumi/pulumi-cdk#/246]: these pseudo-parameters are typically used in things like names or
+            // descriptions so it should be safe to substitute with a stack node ID for most applications.
             case 'AWS::NotificationARNs':
             case 'AWS::StackId':
             case 'AWS::StackName':
-                // These are typically used in things like names or descriptions so I think
-                // the stack node id is a good substitute.
                 return this.cdkStack.node.id;
         }
 
@@ -669,22 +677,47 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return lift(fn, result);
     }
 
-    findParameter(parameterLogicalID: string): CloudFormationParameter | undefined {
-        throw new Error("TODO");
+    findParameter(parameterLogicalID: CloudFormationParameterLogicalId): CloudFormationParameterWithId | undefined {
+        const p: CloudFormationParameter|undefined = (this.stack.parameters||{})[parameterLogicalID];
+        return p
+            ? {...p, id: "!!"}
+            : undefined;
+    }
+
+    evaluateParameter(param: CloudFormationParameterWithId): intrinsics.Result<any> {
+        const value = this.parameters.get(param.id);
+        if (value !== undefined) {
+            throw new Error(`No value for the CloudFormation ${param} parameter`);
+        }
+        return value;
     }
 
     findResourceMapping(resourceLogicalID: string): Mapping<pulumi.Resource> | undefined {
-        throw new Error("TODO");
+        return this.resources.get(resourceLogicalID);
     }
 
-    evaluateParameter(param: CloudFormationParameter): intrinsics.Result<any> {
-        throw new Error("TODO");
+    tryFindResource(cfnType: string): PulumiResource|undefined {
+        const m = new Metadata(PulumiProvider.AWS_NATIVE);
+        return m.tryFindResource(cfnType);
     }
 
-    /**
-     * Pulumi metadata source that may inform the intrinsic evaluation.
-     */
-    tryFindResource(cfnType: string): any {
-        throw new Error("TODO");
+    getStackNodeId(): intrinsics.Result<string> {
+        return this.cdkStack.node.id;
+    }
+
+    getAccountId(): intrinsics.Result<string> {
+        return getAccountId({ parent: this.app.component }).then((r) => r.accountId);
+    }
+
+    getRegion(): intrinsics.Result<string> {
+        return getRegion({ parent: this.app.component }).then((r) => r.region);
+    }
+
+    getPartition(): intrinsics.Result<string> {
+        return getPartition({ parent: this.app.component }).then((p) => p.partition);
+    }
+
+    getURLSuffix(): intrinsics.Result<string> {
+        return getUrlSuffix({ parent: this.app.component }).then((r) => r.urlSuffix);
     }
 }

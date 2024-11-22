@@ -15,7 +15,8 @@
 import * as aws from '@pulumi/aws-native';
 import * as equal from 'fast-deep-equal';
 import * as pulumi from '@pulumi/pulumi';
-import { CloudFormationParameter } from '../cfn';
+import { debug } from '@pulumi/pulumi/log';
+import { CloudFormationParameterWithId } from '../cfn';
 import { Mapping } from '../types';
 import { PulumiResource } from '../pulumi-metadata';
 import { toSdkName } from '../naming';
@@ -93,7 +94,7 @@ export interface IntrinsicContext {
     /**
      * Resolves a logical parameter ID to a parameter, or indicates that no such parameter is defined on the template.
      */
-    findParameter(parameterLogicalID: string): CloudFormationParameter | undefined;
+    findParameter(parameterLogicalID: string): CloudFormationParameterWithId | undefined;
 
     /**
      * Resolves a logical resource ID to a Mapping.
@@ -103,7 +104,7 @@ export interface IntrinsicContext {
     /**
      * Find the current value of a given Cf parameter.
      */
-    evaluateParameter(param: CloudFormationParameter): Result<any>;
+    evaluateParameter(param: CloudFormationParameterWithId): Result<any>;
 
     /**
      * If result succeeds, use its value to call `fn` and proceed with what it returns.
@@ -126,6 +127,35 @@ export interface IntrinsicContext {
      * Pulumi metadata source that may inform the intrinsic evaluation.
      */
     tryFindResource(cfnType: string): PulumiResource|undefined;
+
+    /**
+     * Gets the CDK Stack Node ID.
+     */
+    getStackNodeId(): Result<string>;
+
+    /**
+     * The AWS account ID.
+     */
+    getAccountId(): Result<string>;
+
+    /**
+     * The AWS Region.
+     */
+    getRegion(): Result<string>;
+
+    /**
+     * The AWS partition.
+     */
+    getPartition(): Result<string>;
+
+    /**
+     * The URL suffix.
+     *
+     * Quoting the docs: "The suffix is typically amazonaws.com, but might differ by Region".
+     *
+     * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/pseudo-parameter-reference.html#cfn-pseudo-param-urlsuffix
+     */
+    getURLSuffix(): Result<string>;
 }
 
 /**
@@ -314,41 +344,23 @@ function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
     // See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/pseudo-parameter-reference.html
     switch (param) {
         case 'AWS::AccountId':
-            // return getAccountId({ parent: this.app.component }).then((r) => r.accountId);
-
-            // return ctx.fail('AWS::AccountId CF pseudo-parameter is not supported yet');
-        case 'AWS::NotificationARNs':
-                // // these are typically used in things like names or descriptions so I think
-                // // the stack node id is a good substitute.
-                // return this.cdkStack.node.id;
-
-            return ctx.fail('AWS::NotificationARNs CF pseudo-parameter is not supported yet');
+            return ctx.getAccountId();
         case 'AWS::NoValue':
-            // return undefined;
-
-            return ctx.fail('AWS::NoValue CF pseudo-parameter is not supported yet');
+            return ctx.succeed(undefined);
         case 'AWS::Partition':
-            //                 return getPartition({ parent: this.app.component }).then((p) => p.partition);
-
-            return ctx.fail('AWS::Partition CF pseudo-parameter is not supported yet');
+            return ctx.getPartition();
         case 'AWS::Region':
-            //   return getRegion({ parent: this.app.component }).then((r) => r.region);
-
-            return ctx.fail('AWS::Region CF pseudo-parameter is not supported yet');
-        case 'AWS::StackId':
-                // // these are typically used in things like names or descriptions so I think
-                // // the stack node id is a good substitute.
-                // return this.cdkStack.node.id;
-            return ctx.fail('AWS::StackId CF pseudo-parameter is not supported yet');
-        case 'AWS::StackName':
-                // // these are typically used in things like names or descriptions so I think
-                // // the stack node id is a good substitute.
-                // return this.cdkStack.node.id;
-            return ctx.fail('AWS::StackName CF pseudo-parameter is not supported yet');
+            return ctx.getRegion();
         case 'AWS::URLSuffix':
-            // return getUrlSuffix({ parent: this.app.component }).then((r) => r.urlSuffix);
-
-            return ctx.fail('AWS::URLSuffix CF pseudo-parameter is not supported yet');
+            return ctx.getURLSuffix();
+        case 'AWS::NotificationARNs':
+        case 'AWS::StackId':
+        case 'AWS::StackName':
+            // TODO[pulumi/pulumi-cdk#246]: these pseudo-parameters are typically used in things like names or descriptions
+            // so it should be safe to substitute with a stack node ID for most applications.
+            const stackNodeId = ctx.getStackNodeId();
+            debug(`pulumi-cdk is replacing a Ref to a CF pseudo-parameter ${param} with the stack node ID`);
+            return stackNodeId;
     }
 
     // Handle Cf template parameters.
