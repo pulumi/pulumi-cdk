@@ -386,7 +386,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
 
         const ref = obj.Ref;
         if (ref) {
-            return this.resolveRef(ref);
+            return intrinsics.ref.evaluate(this, [ref]);
         }
 
         const keys = Object.keys(obj);
@@ -484,7 +484,8 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                     const [template, _vars] =
                         typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 
-                    const parts: string[] = [];
+                    // parts may contain pulumi.Output values.
+                    const parts: any[] = [];
                     for (const part of parseSub(template)) {
                         parts.push(part.str);
 
@@ -492,7 +493,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                             if (part.ref.attr !== undefined) {
                                 parts.push(this.resolveAtt(part.ref.id, part.ref.attr!));
                             } else {
-                                parts.push(this.resolveRef(part.ref.id));
+                                parts.push(intrinsics.ref.evaluate(this, [part.ref.id]));
                             }
                         }
                     }
@@ -564,48 +565,6 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
             default:
                 throw new Error(`unsupported intrinsic function ${fn} (params: ${JSON.stringify(params)})`);
         }
-    }
-
-    private resolveRef(target: any): any {
-        if (typeof target !== 'string') {
-            return this.resolveOutput(<OutputRepr>target);
-        }
-
-        switch (target) {
-            case 'AWS::AccountId':
-                return getAccountId({ parent: this.app.component }).then((r) => r.accountId);
-            case 'AWS::NoValue':
-                return undefined;
-            case 'AWS::Partition':
-                return getPartition({ parent: this.app.component }).then((p) => p.partition);
-            case 'AWS::Region':
-                return getRegion({ parent: this.app.component }).then((r) => r.region);
-            case 'AWS::URLSuffix':
-                return getUrlSuffix({ parent: this.app.component }).then((r) => r.urlSuffix);
-
-            // TODO[pulumi/pulumi-cdk#/246]: these pseudo-parameters are typically used in things like names or
-            // descriptions so it should be safe to substitute with a stack node ID for most applications.
-            case 'AWS::NotificationARNs':
-            case 'AWS::StackId':
-            case 'AWS::StackName':
-                return this.cdkStack.node.id;
-        }
-
-        const mapping = this.lookup(target);
-        if ((<any>mapping).value !== undefined) {
-            return (<any>mapping).value;
-        }
-        // Due to https://github.com/pulumi/pulumi-cdk/issues/173 we have some
-        // resource which we have to special case the `id` attribute. The `Resource.id`
-        // will not contain the correct value
-        const map = <Mapping<pulumi.Resource>>mapping;
-        if (map.attributes && 'id' in map.attributes) {
-            return map.attributes.id;
-        } else if (aws.cloudformation.CustomResourceEmulator.isInstance(map.resource)) {
-            // Custom resources have a `physicalResourceId` that is used for Ref
-            return map.resource.physicalResourceId;
-        }
-        return (<pulumi.CustomResource>(<Mapping<pulumi.Resource>>mapping).resource).id;
     }
 
     private lookup(logicalId: string): Mapping<pulumi.Resource> | { value: any } {
