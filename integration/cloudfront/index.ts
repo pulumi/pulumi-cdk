@@ -89,6 +89,7 @@ class CloudFrontStack extends pulumicdk.Stack {
 
         const stream = new kinesis.Stream(this, 'stream', {
             encryption: kinesis.StreamEncryption.UNENCRYPTED,
+            removalPolicy: RemovalPolicy.DESTROY,
         });
         const realtimeLogConfig = new cloudfront.RealtimeLogConfig(this, 'realtimeLog', {
             endPoints: [cloudfront.Endpoint.fromKinesisStream(stream)],
