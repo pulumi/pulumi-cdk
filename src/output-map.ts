@@ -15,15 +15,51 @@ import * as pulumi from '@pulumi/pulumi';
 
 const glob = global as any;
 
+/**
+ * A serializable reference to an output.
+ *
+ * @internal
+ */
 export interface OutputRef {
+    /**
+     * The name of this field has to be `Ref` so that `Token.asString` CDK functionality can be called on an `OutputRef`
+     * and it can travel through the CDK internals. An alternative to this special encoding could be implementing CDK
+     * `IResolvable` on these values.
+     */
     Ref: OutputRepr;
 }
 
+/**
+ * See `OutputRef`.
+ *
+ * @internal
+ */
 export interface OutputRepr {
+    /**
+     * An arbitrary integer identifying the output.
+     */
     PulumiOutput: number;
 }
 
+/**
+ * Recognize if something is an `OutputRepr`.
+ *
+ * @internal
+ */
+export function isOutputReprInstance(x: any): boolean {
+    return typeof x === 'object' && Object.prototype.hasOwnProperty.call(x, 'PulumiOutput');
+}
+
+/**
+ * Stores Pulumi Output values in memory so that they can be encoded into serializable `OutputRef` values with unique
+ * integers for CDK interop.
+ *
+ * @internal
+ */
 export class OutputMap {
+    /**
+     * Get the global instance.
+     */
     public static instance(): OutputMap {
         if (glob.__pulumiOutputMap === undefined) {
             glob.__pulumiOutputMap = new OutputMap();
@@ -34,12 +70,18 @@ export class OutputMap {
     private readonly outputMap = new Map<number, pulumi.Output<any>>();
     private outputId = 0;
 
+    /**
+     * Stores a reference to a Pulumi Output in the map and returns a serializable reference.
+     */
     public registerOutput(o: pulumi.Output<any>): OutputRef {
         const id = this.outputId++;
         this.outputMap.set(id, o);
         return { Ref: { PulumiOutput: id } };
     }
 
+    /**
+     * Tries to look up an output reference in the map and find the original value.
+     */
     public lookupOutput(o: OutputRepr): pulumi.Output<any> | undefined {
         return this.outputMap.get(o.PulumiOutput);
     }

@@ -20,6 +20,7 @@ import { CloudFormationParameterWithId } from '../cfn';
 import { Mapping } from '../types';
 import { PulumiResource } from '../pulumi-metadata';
 import { toSdkName } from '../naming';
+import { OutputRepr, isOutputReprInstance } from '../output-map';
 
 /**
  * Models a CF Intrinsic Function.
@@ -105,6 +106,11 @@ export interface IntrinsicContext {
      * Find the current value of a given Cf parameter.
      */
     evaluateParameter(param: CloudFormationParameterWithId): Result<any>;
+
+    /**
+     * Find the value of an `OutputRepr`.
+     */
+    resolveOutput(repr: OutputRepr): Result<any>;
 
     /**
      * If result succeeds, use its value to call `fn` and proceed with what it returns.
@@ -324,6 +330,10 @@ export const ref: Intrinsic = {
             return ctx.fail(`Ref intrinsic expects exactly 1 param, got ${params.length}`);
         }
         const param = params[0];
+
+        // Although not part of the CF spec, Output values are passed through CDK tokens as Ref structures; therefore
+        // Pulumi Ref intrinsic receives them and has to handle them.
+        if (isOutputReprInstance(param)) { return ctx.resolveOutput(<OutputRepr>param); }
 
         // Unless the parameter is a literal string, it may be another expression.
         //
