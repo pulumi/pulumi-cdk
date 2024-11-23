@@ -643,7 +643,6 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     }
 
     evaluateParameter(param: CloudFormationParameterWithId): intrinsics.Result<any> {
-        const paramName = param.id;
         const value = this.parameters.get(param.id);
         if (value === undefined) {
             throw new Error(`No value for the CloudFormation "${param.id}" parameter`);
