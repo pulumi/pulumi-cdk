@@ -6,7 +6,6 @@ import { Duration } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
-import { CfnTargetGroup } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 
 class FargateStack extends pulumicdk.Stack {
@@ -34,12 +33,8 @@ class FargateStack extends pulumicdk.Stack {
             },
         });
 
-        // workaround for https://github.com/pulumi/pulumi-cdk/issues/62
-        const cfnTargetGroup = fargateService.targetGroup.node.defaultChild as CfnTargetGroup;
-        cfnTargetGroup.overrideLogicalId('LBListenerTG');
-
         // Open port 80 inbound to IPs within VPC to allow network load balancer to connect to the service
-        fargateService.service.connections.securityGroups[0].addIngressRule(
+        fargateService.service.connections.allowFrom(
             ec2.Peer.ipv4(vpc.vpcCidrBlock),
             ec2.Port.tcp(80),
             'allow http inbound from vpc',
