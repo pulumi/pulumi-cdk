@@ -236,6 +236,71 @@ func TestScalableWebhook(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestStackProvider(t *testing.T) {
+	// App will use default provider and one stack will use explicit provider
+	// with region=us-east-1
+	t.Run("With default env", func(t *testing.T) {
+		test := getJSBaseOptions(t).
+			With(integration.ProgramTestOptions{
+				Dir: filepath.Join(getCwd(t), "stack-provider"),
+				ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+					east1LogsRegion := stack.Outputs["east1LogsRegion"].(string)
+					defaultLogsRegion := stack.Outputs["defaultLogsRegion"].(string)
+					east1StackRegion := stack.Outputs["east1StackRegion"].(string)
+					defaultStackRegion := stack.Outputs["defaultStackRegion"].(string)
+					assert.Equalf(t, "us-east-1", east1LogsRegion, "Expected east1LogsRegion to be us-east-1, got %s", east1LogsRegion)
+					assert.Equalf(t, "us-east-2", defaultLogsRegion, "Expected defaultLogsRegion to be us-east-2, got %s", defaultLogsRegion)
+					assert.Equalf(t, "us-east-1", east1StackRegion, "Expected east1StackRegion to be us-east-1, got %s", east1StackRegion)
+					assert.Equalf(t, "us-east-2", defaultStackRegion, "Expected defaultStackRegion to be us-east-2, got %s", defaultStackRegion)
+				},
+			})
+
+		integration.ProgramTest(t, &test)
+	})
+
+	// App will use a custom explicit provider and one stack will use explicit provider
+	// with region=us-east-1
+	t.Run("With different env", func(t *testing.T) {
+		test := getJSBaseOptions(t).
+			With(integration.ProgramTestOptions{
+				Dir: filepath.Join(getCwd(t), "stack-provider"),
+				Config: map[string]string{
+					"default-region": "us-west-2",
+				},
+				ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+					east1LogsRegion := stack.Outputs["east1LogsRegion"].(string)
+					defaultLogsRegion := stack.Outputs["defaultLogsRegion"].(string)
+					east1StackRegion := stack.Outputs["east1StackRegion"].(string)
+					defaultStackRegion := stack.Outputs["defaultStackRegion"].(string)
+					assert.Equalf(t, "us-east-1", east1LogsRegion, "Expected east1LogsRegion to be us-east-1, got %s", east1LogsRegion)
+					assert.Equalf(t, "us-west-2", defaultLogsRegion, "Expected defaultLogsRegion to be us-west-2, got %s", defaultLogsRegion)
+					assert.Equalf(t, "us-east-1", east1StackRegion, "Expected east1StackRegion to be us-east-1, got %s", east1StackRegion)
+					assert.Equalf(t, "us-west-2", defaultStackRegion, "Expected defaultStackRegion to be us-west-2, got %s", defaultStackRegion)
+				},
+			})
+
+		integration.ProgramTest(t, &test)
+	})
+
+	t.Run("Fails with different cdk env", func(t *testing.T) {
+		var output bytes.Buffer
+		test := getJSBaseOptions(t).
+			With(integration.ProgramTestOptions{
+				Dir:           filepath.Join(getCwd(t), "stack-provider"),
+				Stderr:        &output,
+				ExpectFailure: true,
+				Config: map[string]string{
+					"cdk-region": "us-east-2",
+				},
+				ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+					assert.Contains(t, output.String(), "The stack 'teststack' has conflicting regions between the native provider (us-east-1) and the stack environment (us-east-2)")
+				},
+			})
+
+		integration.ProgramTest(t, &test)
+	})
+}
+
 func TestTheBigFan(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{

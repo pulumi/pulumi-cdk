@@ -1,4 +1,3 @@
-import * as aws from '@pulumi/aws';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
@@ -12,14 +11,12 @@ import {
 
 const config = new pulumi.Config();
 const zoneName = config.require('zoneName');
-const accountId = config.require('accountId');
-const region = aws.config.requireRegion();
 
 export class Ec2CdkStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string) {
         super(app, id, {
             props: {
-                env: { region, account: accountId },
+                env: app.env,
             },
         });
 

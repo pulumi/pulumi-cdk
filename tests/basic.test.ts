@@ -16,7 +16,8 @@ import * as aws from '@pulumi/aws';
 import * as native from '@pulumi/aws-native';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as output from '../src/output';
-import { setMocks, testApp } from './mocks';
+import { Stack, App, AppOutputs } from '../src/stack';
+import { setMocks, testApp, awaitApp, promiseOf } from './mocks';
 import { ApplicationLoadBalancer } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import { Vpc } from 'aws-cdk-lib/aws-ec2';
 import { aws_ssm } from 'aws-cdk-lib';
@@ -212,5 +213,63 @@ describe('Basic tests', () => {
                 type: 'pulumi:providers:aws-native',
             }),
         );
+    });
+});
+
+describe('Stack environment validation', () => {
+    beforeEach(() => {
+        setMocks();
+    });
+    test('app default env', async () => {
+        const app = new App('testapp', (scope: App): AppOutputs => {
+            const stack = new Stack(scope, 'teststack');
+            new s3.CfnBucket(stack, 'bucket');
+            return {
+                region: stack.asOutput(stack.region),
+            };
+        });
+        await awaitApp(app);
+        const region = await promiseOf(app.outputs['region']);
+        expect(region).toEqual('us-east-2');
+    });
+
+    test('app custom env', async () => {
+        const app = new App(
+            'testapp',
+            (scope: App): AppOutputs => {
+                const stack = new Stack(scope, 'teststack');
+                new s3.CfnBucket(stack, 'bucket');
+                return {
+                    region: stack.asOutput(stack.region),
+                };
+            },
+            {
+                providers: [new native.Provider('custom-region_us-west-2', { region: native.Region.UsWest2 })],
+            },
+        );
+        await awaitApp(app);
+        const region = await promiseOf(app.outputs['region']);
+        expect(region).toContain('us-west-2');
+    });
+
+    test('app and custom stack env', async () => {
+        const app = new App(
+            'testapp',
+            (scope: App): AppOutputs => {
+                const stack = new Stack(scope, 'teststack', {
+                    providers: [new native.Provider('custom-region_us-west-1', { region: native.Region.UsWest1 })],
+                });
+                new s3.CfnBucket(stack, 'bucket');
+                return {
+                    region: stack.asOutput(stack.region),
+                };
+            },
+            {
+                providers: [new native.Provider('custom-region_us-west-2', { region: native.Region.UsWest2 })],
+            },
+        );
+        await awaitApp(app);
+        const region = await promiseOf(app.outputs['region']);
+        expect(region).toContain('us-west-1');
     });
 });

@@ -13,6 +13,7 @@
 // limitations under the License.
 import * as cdk from 'aws-cdk-lib/core';
 import * as pulumi from '@pulumi/pulumi';
+import * as aws from '@pulumi/aws';
 import { AppComponent, AppOptions, AppResourceOptions } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
@@ -20,6 +21,7 @@ import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alp
 import { CdkConstruct } from './interop';
 import { makeUniqueId } from './cdk-logical-id';
 import * as native from '@pulumi/aws-native';
+import { warn } from '@pulumi/pulumi/log';
 
 export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
 
@@ -70,6 +72,12 @@ export class App
      */
     public readonly stacks: { [artifactId: string]: cdk.Stack } = {};
 
+    /**
+     * The Pulumi ComponentResourceOptions associated with the stack
+     * @internal
+     */
+    readonly stackOptions: { [artifactId: string]: pulumi.ComponentResourceOptions } = {};
+
     /** @internal */
     public converter: Promise<AppConverter>;
 
@@ -91,6 +99,7 @@ export class App
 
     private readonly createFunc: (scope: App) => AppOutputs | void;
     private _app?: cdk.App;
+    private _env?: cdk.Environment;
     private appProps?: cdk.AppProps;
 
     constructor(id: string, createFunc: (scope: App) => void | AppOutputs, props?: AppResourceOptions) {
@@ -131,13 +140,33 @@ export class App
     }
 
     /**
+     * This can be used to get the CDK Environment based on the Pulumi Provider used for the App.
+     * You can then use this to configure an explicit environment on Stacks.
+     *
+     * @example
+     * const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
+     *     const stack = new pulumicdk.Stack(scope, 'pulumi-stack', {
+     *         props: { env: app.env },
+     *     });
+     * });
+     *
+     * @returns the CDK Environment configured for the App
+     */
+    public get env(): cdk.Environment {
+        if (!this._env) {
+            throw new Error('cdk.Environment has not been created yet');
+        }
+        return this._env;
+    }
+
+    /**
      * @internal
      */
     public get app(): cdk.App {
         if (!this._app) {
             throw new Error('cdk.App has not been created yet');
         }
-        return this._app!;
+        return this._app;
     }
 
     protected async initialize(props: {
@@ -150,6 +179,19 @@ export class App
         this.appOptions = props.args;
         const lookupsEnabled = process.env.PULUMI_CDK_EXPERIMENTAL_LOOKUPS === 'true';
         const lookups = lookupsEnabled && pulumi.runtime.isDryRun();
+        const [account, region] = await Promise.all([
+            native
+                .getAccountId({
+                    parent: this,
+                    ...props.opts,
+                })
+                .then((account) => account.accountId),
+            native.getRegion({ parent: this, ...props.opts }).then((region) => region.region),
+        ]);
+        this._env = {
+            account,
+            region,
+        };
         try {
             // TODO: support lookups https://github.com/pulumi/pulumi-cdk/issues/184
             await cli.synth({ quiet: true, lookups });
@@ -211,6 +253,9 @@ export class App
         app.node.children.forEach((child) => {
             if (Stack.isPulumiStack(child)) {
                 this.stacks[child.artifactId] = child;
+                if (child.options) {
+                    this.stackOptions[child.artifactId] = child.options;
+                }
             }
         });
 
@@ -222,6 +267,28 @@ export class App
 
 /**
  * Options for creating a Pulumi CDK Stack
+ *
+ * Any Pulumi resource options provided at the Stack level will override those configured
+ * at the App level
+ *
+ * @example
+ * new App('testapp', (scope: App) => {
+ *     // This stack will inherit the options from the App
+ *     new Stack(scope, 'teststack1');
+ *
+ *    // Override the options for this stack
+ *    new Stack(scope, 'teststack', {
+ *        providers: [
+ *          new native.Provider('custom-provider', { region: 'us-east-1' }),
+ *        ],
+ *        props: { env: { region: 'us-east-1' } },
+ *    })
+ * }, {
+ *      providers: [
+ *          new native.Provider('app-provider', { region: 'us-west-2' }),
+ *      ]
+ *
+ * })
  */
 export interface StackOptions extends pulumi.ComponentResourceOptions {
     /**
@@ -256,16 +323,90 @@ export class Stack extends cdk.Stack {
     public converter: Promise<StackConverter>;
 
     /**
+     * @internal
+     */
+    public options?: pulumi.ComponentResourceOptions;
+
+    /**
      * Create and register an AWS CDK stack deployed with Pulumi.
      *
      * @param name The _unique_ name of the resource.
      * @param options A bag of options that control this resource's behavior.
      */
-    constructor(app: App, name: string, options?: StackOptions) {
+    constructor(private readonly app: App, name: string, options?: StackOptions) {
         super(app.app, name, options?.props);
         Object.defineProperty(this, STACK_SYMBOL, { value: true });
 
+        this.options = options;
         this.converter = app.converter.then((converter) => converter.stacks.get(this.artifactId)!);
+
+        this.validateEnv();
+    }
+
+    /**
+     * This function validates that the user has correctly configured the stack environment. There are two
+     * ways that the environment comes into play in a Pulumi CDK application. When resources are created
+     * they are created with a specific provider that is either inherited from the Stack or the App. There
+     * are some values though that CDK generates based on what environment is passed to the StackProps.
+     *
+     * Below is an example of something a user could configure (by mistake).
+     *
+     * @example
+     * new App('testapp', (scope: App) => {
+     *    new Stack(scope, 'teststack', {
+     *        providers: [
+     *          new native.Provider('native-provider', { region: 'us-east-1' }),
+     *        ],
+     *        props: { env: { region: 'us-east-2' }},
+     *    })
+     * }, {
+     *      providers: [
+     *          new native.Provider('native-provider', { region: 'us-west-2' }),
+     *      ]
+     *
+     * })
+     */
+    private validateEnv(): void {
+        const providers = providersToArray(this.options?.providers);
+        const nativeProvider = providers.find((p) => native.Provider.isInstance(p));
+        const awsProvider = providers.find((p) => aws.Provider.isInstance(p));
+
+        const awsRegion = aws.getRegionOutput({}, { parent: this.app, provider: awsProvider }).name;
+        const awsAccount = aws.getCallerIdentityOutput({}, { parent: this.app, provider: awsProvider }).accountId;
+        const nativeRegion = native.getRegionOutput({ parent: this.app, provider: nativeProvider }).region;
+        const nativeAccount = native.getAccountIdOutput({ parent: this.app, provider: nativeProvider }).accountId;
+
+        pulumi
+            .all([awsRegion, awsAccount, nativeRegion, nativeAccount])
+            .apply(([awsRegion, awsAccount, nativeRegion, nativeAccount]) => {
+                // This is to ensure that the user does not pass a different region to the provider and the stack environment.
+                if (!cdk.Token.isUnresolved(this.region) && nativeRegion !== this.region) {
+                    throw new Error(
+                        `The stack '${this.node.id}' has conflicting regions between the native provider (${nativeRegion}) and the stack environment (${this.region}).\n` +
+                            'Please ensure that the stack environment region matches the region of the native provider.',
+                    );
+                }
+
+                if (!cdk.Token.isUnresolved(this.account) && this.account !== nativeAccount) {
+                    throw new Error(
+                        `The stack '${this.node.id}' has conflicting accounts between the native provider (${nativeAccount}) and the stack environment (${this.account}).\n` +
+                            'Please ensure that the stack environment account matches the account of the native provider.',
+                    );
+                }
+
+                if (nativeAccount !== awsAccount) {
+                    warn(
+                        `The stack '${this.node.id}' uses different accounts for the AWS Provider (${awsAccount}) and the AWS CCAPI Provider (${nativeAccount}). This may be a misconfiguration.`,
+                        this.app,
+                    );
+                }
+                if (nativeRegion !== awsRegion) {
+                    warn(
+                        `The stack '${this.node.id}' uses different regions for the AWS Provider (${awsRegion}) and the AWS CCAPI Provider (${nativeRegion}). This may be a misconfiguration.`,
+                        this.app,
+                    );
+                }
+            });
     }
 
     /**
@@ -336,6 +477,12 @@ function generateAppId(): string {
         .slice(-17);
 }
 
+function providersToArray(
+    providers: pulumi.ProviderResource[] | Record<string, pulumi.ProviderResource> | undefined,
+): pulumi.ProviderResource[] {
+    return providers && !Array.isArray(providers) ? Object.values(providers) : providers ?? [];
+}
+
 /**
  * If the user has not provided the aws-native provider, we will create one by default in order
  * to enable the autoNaming feature.
@@ -347,7 +494,7 @@ function createDefaultNativeProvider(
     // will throw an error
     const region = native.config.region ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION!;
 
-    const newProviders = providers && !Array.isArray(providers) ? Object.values(providers) : providers ?? [];
+    const newProviders = providersToArray(providers);
     if (!newProviders.find((p) => native.Provider.isInstance(p))) {
         newProviders.push(
             new native.Provider('cdk-aws-native', {

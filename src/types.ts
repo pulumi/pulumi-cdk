@@ -84,6 +84,12 @@ export interface AppComponent {
     readonly stacks: { [artifactId: string]: Stack };
 
     /**
+     * The Pulumi ComponentResourceOptions associated with the stack
+     * @internal
+     */
+    readonly stackOptions: { [artifactId: string]: pulumi.ComponentResourceOptions };
+
+    /**
      * The underlying ComponentResource
      * @internal
      */

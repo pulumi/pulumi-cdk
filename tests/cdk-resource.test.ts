@@ -137,7 +137,7 @@ describe('CDK Construct tests', () => {
                     {
                         Action: 'events:PutEvents',
                         Effect: 'Allow',
-                        Principal: { AWS: 'arn:aws:iam::12345678912:root' },
+                        Principal: { AWS: 'arn:aws:iam::12345678910:root' },
                         Resource: 'testbus_arn',
                         Sid: 'cdk-testsid',
                     },
