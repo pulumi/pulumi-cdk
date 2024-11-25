@@ -24,7 +24,7 @@ import (
 )
 
 func getPrefix() string {
-	prefix := os.Getenv("GITHUB_REF")
+	prefix := os.Getenv("GITHUB_SHA")
 	if prefix == "" {
 		prefix = strconv.Itoa(rand.Intn(10000))
 	}
