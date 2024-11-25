@@ -81,7 +81,7 @@ class EventBridgeSnsStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App) => {
-            new EventBridgeSnsStack(scope, `${prefix}-eventbridge-sns-stack`);
+            new EventBridgeSnsStack(scope, `${prefix}-eventbridge-sns`);
         });
     }
 }

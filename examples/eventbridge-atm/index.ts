@@ -117,5 +117,5 @@ class EventbridgeAtmStack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new EventbridgeAtmStack(scope, `${prefix}-eventbridge-sns-stack`);
+    new EventbridgeAtmStack(scope, `${prefix}-eventbridge-atm`);
 });
