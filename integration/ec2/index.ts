@@ -25,18 +25,7 @@ class Ec2Stack extends pulumicdk.Stack {
             ipAddresses: ec2.IpAddresses.cidr('10.0.0.0/16'),
             natGateways: 1,
             vpnConnections: {
-                [`dynamic${prefix}`]: {
-                    ip: '1.2.3.4',
-                    tunnelOptions: [
-                        {
-                            preSharedKeySecret: SecretValue.unsafePlainText('secretkey1234'),
-                        },
-                        {
-                            preSharedKeySecret: SecretValue.unsafePlainText('secretkey5678'),
-                        },
-                    ],
-                },
-                [`static${prefix}`]: {
+                static: {
                     ip: '4.5.6.7',
                     staticRoutes: ['192.168.10.0/24', '192.168.20.0/24'],
                 },

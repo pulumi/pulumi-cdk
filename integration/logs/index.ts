@@ -31,7 +31,7 @@ class LogsStack extends pulumicdk.Stack {
         new logs.QueryDefinition(this, 'QueryDefinition', {
             queryString,
             logGroups: [logGroup],
-            queryDefinitionName: 'cdk-test-query',
+            queryDefinitionName: `${prefix}-cdk-test-query`,
         });
 
         logGroup.addToResourcePolicy(
