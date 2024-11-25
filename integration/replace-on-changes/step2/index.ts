@@ -1,6 +1,10 @@
 import * as aws from '@pulumi/aws';
 import * as pulumicdk from '@pulumi/cdk';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as pulumi from '@pulumi/pulumi';
+
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 
 class ReplaceOnChangesStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
@@ -22,5 +26,5 @@ class ReplaceOnChangesStack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new ReplaceOnChangesStack(scope, 'teststack');
+    new ReplaceOnChangesStack(scope, `${prefix}-replace`);
 });

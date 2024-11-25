@@ -3,6 +3,8 @@ import * as kinesis from 'aws-cdk-lib/aws-kinesis';
 import * as pulumicdk from '@pulumi/cdk';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib/core';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 class KinesisStack extends pulumicdk.Stack {
     kinesisStreamName: pulumi.Output<string>;
 
@@ -20,7 +22,7 @@ class KinesisStack extends pulumicdk.Stack {
 }
 
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    const stack = new KinesisStack(scope, 'teststack');
+    const stack = new KinesisStack(scope, `${prefix}-kinesis`);
     return {
         kinesisStreamName: stack.kinesisStreamName,
     };

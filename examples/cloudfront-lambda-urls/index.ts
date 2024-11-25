@@ -14,6 +14,8 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { RemovalPolicy } from 'aws-cdk-lib';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 class CloudFrontAppStack extends pulumicdk.Stack {
     public cloudFrontUrl: pulumi.Output<string>;
     constructor(scope: pulumicdk.App, id: string) {
@@ -59,7 +61,7 @@ class CloudFrontAppStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new CloudFrontAppStack(scope, 'cloudfront-app');
+            const stack = new CloudFrontAppStack(scope, `${prefix}-cloudfront-app`);
             return { url: stack.cloudFrontUrl };
         });
     }

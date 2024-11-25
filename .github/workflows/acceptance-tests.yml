@@ -13,7 +13,7 @@ jobs:
   acceptance-tests:
     runs-on: ubuntu-latest
     concurrency:
-      group: ${{ inputs.folder }}-test-${{ matrix.index }} # TODO: concurrent tests across PRs can cause problems
+      group: ${{ inputs.folder }}-test-${{ github.ref }}-${{ matrix.index }} # TODO: concurrent tests across PRs can cause problems
       cancel-in-progress: false
     steps:
       - name: Checkout Repo

@@ -9,7 +9,10 @@ import * as sns_sub from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as pulumicdk from '@pulumi/cdk';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 class TheBigFanStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string) {
         super(app, id);
@@ -225,5 +228,5 @@ class TheBigFanStack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new TheBigFanStack(scope, 'TheBigFanStack');
+    new TheBigFanStack(scope, `${prefix}-big-fan`);
 });

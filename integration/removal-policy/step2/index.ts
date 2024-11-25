@@ -4,6 +4,7 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Config } from '@pulumi/pulumi';
 const config = new Config();
 const bucketName = config.require('bucketName');
+const prefix = config.require('prefix');
 
 class RemovalPolicyStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
@@ -16,5 +17,5 @@ class RemovalPolicyStack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new RemovalPolicyStack(scope, 'teststack');
+    new RemovalPolicyStack(scope, `${prefix}-removal`);
 });

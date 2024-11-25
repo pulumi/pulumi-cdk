@@ -5,7 +5,10 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as secrets from 'aws-cdk-lib/aws-secretsmanager';
 import * as pulumicdk from '@pulumi/cdk';
 import { RemovalPolicy } from 'aws-cdk-lib';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 class SecretsManagerStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);
@@ -51,5 +54,5 @@ class SecretsManagerStack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new SecretsManagerStack(scope, 'teststack');
+    new SecretsManagerStack(scope, `${prefix}-secretsmanager`);
 });

@@ -9,7 +9,10 @@ import {
     aws_lambda_nodejs as lambda_nodejs,
     Duration,
 } from 'aws-cdk-lib';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 class ScalableWebhookStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string) {
         super(app, id);
@@ -81,5 +84,5 @@ class ScalableWebhookStack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new ScalableWebhookStack(scope, 'eventbridge-sns-stack');
+    new ScalableWebhookStack(scope, `${prefix}-scalable-webhook`);
 });

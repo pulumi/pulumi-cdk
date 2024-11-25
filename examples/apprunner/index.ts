@@ -2,6 +2,8 @@ import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import { Service, Source } from '@aws-cdk/aws-apprunner-alpha';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 class AppRunnerStack extends pulumicdk.Stack {
     url: pulumi.Output<string>;
 
@@ -22,7 +24,7 @@ class AppRunnerStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new AppRunnerStack(scope, 'teststack');
+            const stack = new AppRunnerStack(scope, `${prefix}-apprunner`);
             return { url: stack.url };
         });
     }

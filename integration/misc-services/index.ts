@@ -9,6 +9,8 @@ import * as pulumicdk from '@pulumi/cdk';
 import { SecretValue } from 'aws-cdk-lib';
 import { AwsCliLayer } from 'aws-cdk-lib/lambda-layer-awscli';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 class MiscServicesStack extends pulumicdk.Stack {
     public readonly repoName: pulumi.Output<string>;
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
@@ -94,7 +96,7 @@ class MiscServicesStack extends pulumicdk.Stack {
 }
 
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    const stack = new MiscServicesStack(scope, 'teststack');
+    const stack = new MiscServicesStack(scope, `${prefix}-misc`);
     return {
         repoName: stack.repoName,
     };

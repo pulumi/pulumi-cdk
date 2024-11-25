@@ -4,7 +4,10 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as pulumicdk from '@pulumi/cdk';
 import { SecretValue, Size } from 'aws-cdk-lib/core';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 class Ec2Stack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, {
@@ -161,7 +164,7 @@ class Ec2Stack extends pulumicdk.Stack {
 new pulumicdk.App(
     'app',
     (scope: pulumicdk.App) => {
-        new Ec2Stack(scope, 'teststack');
+        new Ec2Stack(scope, `${prefix}-ec2`);
     },
     {
         appOptions: {

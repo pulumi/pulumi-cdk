@@ -8,6 +8,8 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
 import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 class FargateStack extends pulumicdk.Stack {
     loadBalancerDNS: pulumi.Output<string>;
 
@@ -55,7 +57,7 @@ class FargateStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new FargateStack(scope, 'fargatestack');
+            const stack = new FargateStack(scope, `${prefix}-fargatestack`);
             return { loadBalancerURL: stack.loadBalancerDNS };
         });
     }

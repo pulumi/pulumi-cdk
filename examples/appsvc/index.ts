@@ -6,6 +6,8 @@ import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import * as aws from '@pulumi/aws';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
 const defaultVpc = pulumi.output(aws.ec2.getVpc({ default: true }));
 const defaultVpcSubnets = defaultVpc.id.apply((id) =>
     aws.ec2.getSubnets({ filters: [{ name: 'vpc-id', values: [id] }] }),
@@ -89,7 +91,7 @@ class ClusterStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new ClusterStack(scope, 'teststack');
+            const stack = new ClusterStack(scope, `${prefix}-appsvc`);
             return { serviceName: stack.serviceName };
         });
     }

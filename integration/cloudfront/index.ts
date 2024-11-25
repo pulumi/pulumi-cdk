@@ -6,6 +6,9 @@ import * as pulumicdk from '@pulumi/cdk';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
+
 class CloudFrontStack extends pulumicdk.Stack {
     public readonly bucketName: pulumi.Output<string>;
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
@@ -121,7 +124,7 @@ class CloudFrontStack extends pulumicdk.Stack {
 }
 
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    const stack = new CloudFrontStack(scope, 'teststack');
+    const stack = new CloudFrontStack(scope, `${prefix}-cloudfront`);
     return {
         bucketName: stack.bucketName,
     };
