@@ -34,7 +34,6 @@ class TheBigFanStack extends pulumicdk.Stack {
         // Status:created SNS Subscriber Queue
         const createdStatusQueue = new sqs.Queue(this, 'status-created-queue', {
             visibilityTimeout: cdk.Duration.seconds(300),
-            queueName: 'BigFanTopicStatusCreatedSubscriberQueue',
         });
 
         // Only send messages to our createdStatusQueue with a status of created
@@ -52,7 +51,6 @@ class TheBigFanStack extends pulumicdk.Stack {
         // Any other status SNS Subscriber Queue
         const anyOtherStatusQueue = new sqs.Queue(this, 'other-status-queue', {
             visibilityTimeout: cdk.Duration.seconds(300),
-            queueName: 'BigFanTopicAnyOtherStatusSubscriberQueue',
         });
 
         // Only send messages to our anyOtherStatusQueue that do not have a status of created

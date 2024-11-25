@@ -15,6 +15,7 @@
 package examples
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
@@ -31,7 +32,8 @@ func getPrefix() string {
 	if len(prefix) > 5 {
 		prefix = prefix[:5]
 	}
-	return prefix
+	// has to start with a letter
+	return fmt.Sprintf("a%s", prefix)
 }
 
 func getEnvRegion(t *testing.T) string {
