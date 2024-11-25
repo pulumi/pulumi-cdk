@@ -320,8 +320,10 @@ describe('Ref', () => {
         expect(runIntrinsic(intrinsics.ref, tc, ['AWS::URLSuffix'])).toEqual(ok('amazonaws.com.cn'));
         expect(runIntrinsic(intrinsics.ref, tc, ['AWS::NoValue'])).toEqual(ok(undefined));
 
+        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::NotificationARNs']))
+            .toEqual(failed('AWS::NotificationARNs pseudo-parameter is not yet supported in pulumi-cdk'));
+
         // These are approximations; testing the current behavior for completeness sake.
-        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::NotificationARNs'])).toEqual(ok(stackNodeId));
         expect(runIntrinsic(intrinsics.ref, tc, ['AWS::StackId'])).toEqual(ok(stackNodeId));
         expect(runIntrinsic(intrinsics.ref, tc, ['AWS::StackName'])).toEqual(ok(stackNodeId));
     });
