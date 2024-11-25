@@ -7,9 +7,12 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3ObjectLambda from 'aws-cdk-lib/aws-s3objectlambda';
 
+const config = new pulumi.Config();
+const prefix = config.require('prefix');
+
 // configurable variables
-const S3_ACCESS_POINT_NAME = 'cdk-example-test-ap';
-const OBJECT_LAMBDA_ACCESS_POINT_NAME = 's3-object-lambda-ap';
+const S3_ACCESS_POINT_NAME = `${prefix}-example-test-ap`;
+const OBJECT_LAMBDA_ACCESS_POINT_NAME = `${prefix}-s3-object-lambda-ap`;
 
 export class S3ObjectLambdaStack extends pulumicdk.Stack {
     exampleBucketArn: pulumi.Output<string>;
@@ -86,7 +89,6 @@ export class S3ObjectLambdaStack extends pulumicdk.Stack {
         const ap = new aws.s3.AccessPoint('exampleBucketAP', {
             // CDK property can be passed to a Pulumi resource
             bucket: this.asOutput(bucket.bucketName),
-            name: S3_ACCESS_POINT_NAME,
             policy: policyDoc.toJSON(),
         });
 

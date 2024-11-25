@@ -24,12 +24,6 @@ class Ec2Stack extends pulumicdk.Stack {
             vpnGateway: true,
             ipAddresses: ec2.IpAddresses.cidr('10.0.0.0/16'),
             natGateways: 1,
-            vpnConnections: {
-                static: {
-                    ip: '4.5.6.7',
-                    staticRoutes: ['192.168.10.0/24', '192.168.20.0/24'],
-                },
-            },
             subnetConfiguration: [
                 {
                     name: 'Public',
@@ -113,7 +107,7 @@ class Ec2Stack extends pulumicdk.Stack {
             availabilityZone,
             size: Size.gibibytes(10),
         });
-        const instance = new ec2.Instance(this, 'Instance', {
+        const instance = new ec2.Instance(this, `${prefix}-Instance`, {
             vpc,
             // smallest allowed for placement groups
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.M7G, ec2.InstanceSize.MEDIUM),
