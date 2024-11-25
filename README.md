@@ -97,7 +97,7 @@ Read the docs at https://docs.aws.amazon.com/apprunner
 ## Use Pulumi resources with CDK Constructs
 
 It is possible to use Pulumi and CDK resources side-by-side. In order to pass a
-Pulumi Output value into a CDK resource you can use the [asString][./api-docs/README.md#asString], [asList][./api-docs/README.md#asList], &
+Pulumi Output value into a CDK resource you can use the [asString](./api-docs/README.md#asString), [asList](./api-docs/README.md#asList), &
 [asNumber](./api-docs/README.md#asNumber) functions. Conversely, in order to pass a CDK attribute to a Pulumi
 resource, you can use the [Stack.asOutput](./api-docs/README.md#asOutput) function to convert the CDK resource
 to a Pulumi Output value.
