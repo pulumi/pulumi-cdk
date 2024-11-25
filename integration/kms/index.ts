@@ -24,7 +24,7 @@ class KmsStack extends pulumicdk.Stack {
                 principals: [role],
             }),
         );
-        key.addAlias('pulumi');
+        key.addAlias(`pulumi-${prefix}`);
     }
 }
 
