@@ -36,7 +36,6 @@ class CloudFrontStack extends pulumicdk.Stack {
         });
 
         const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'ResponseHeadersPolicy', {
-            responseHeadersPolicyName: 'MyPolicy',
             comment: 'A default policy',
             corsBehavior: {
                 accessControlAllowCredentials: false,
@@ -97,7 +96,6 @@ class CloudFrontStack extends pulumicdk.Stack {
         const realtimeLogConfig = new cloudfront.RealtimeLogConfig(this, 'realtimeLog', {
             endPoints: [cloudfront.Endpoint.fromKinesisStream(stream)],
             fields: ['timestamp', 'c-ip', 'time-to-first-byte', 'sc-status'],
-            realtimeLogConfigName: 'my-delivery-stream',
             samplingRate: 100,
         });
 
