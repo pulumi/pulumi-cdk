@@ -386,7 +386,7 @@ function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
     const map = ctx.findResourceMapping(param);
     if (map !== undefined) {
         if (map.attributes && 'id' in map.attributes) {
-            // Users my override the `id` in a custom-supplied mapping, respect this.
+            // Users may override the `id` in a custom-supplied mapping, respect this.
             return ctx.succeed(map.attributes.id);
         }
         if (aws.cloudformation.CustomResourceEmulator.isInstance(map.resource)) {
