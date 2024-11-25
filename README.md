@@ -145,6 +145,10 @@ combination with CDK `fromXXX` methods.
 
 **Example**
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+import * as aws from '@pulumi/aws';
+import * as aws_route53 from 'aws-cdk-lib/aws-route53';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
     const stack = new pulumicdk.Stack('example-stack');
 
@@ -183,6 +187,9 @@ outputs. You can do this in one of two ways.
 Any `CfnOutput` that you create automatically gets added to the `App outputs`.
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
     const stack = new pulumicdk.Stack('example-stack');
     const bucket = new s3.Bucket(stack, 'Bucket');
@@ -196,6 +203,9 @@ export const bucketName = app.outputs['BucketName'];
 **AppOutputs**
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
     const stack = new pulumicdk.Stack('example-stack');
     const bucket = new s3.Bucket(stack, 'Bucket');
@@ -254,6 +264,10 @@ It is also possible to customize the Providers at the Stack level. This can be
 useful in cases where you need to deploy resources to different AWS regions.
 
 ```ts
+import * as aws from '@pulumi/aws';
+import * as ccapi from '@pulumi/aws-native';
+import * as pulumicdk from '@pulumi/cdk';
+
 const awsProvider = new aws.Provider('aws-provider');
 const awsCCAPIProvider = new ccapi.Provider('ccapi-provider', {
     // enable autoNaming
@@ -294,9 +308,13 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
 One thing to note is that when you pass different custom providers to a Stack,
 by default the Stack becomes an [environment agnostic stack](https://docs.aws.amazon.com/cdk/v2/guide/configure-env.html#configure-env-examples).
 If you want to have the environment specified at the CDK Stack level, then you
-also need to provide the environment to the Stack Props.
+also need to provide the environment to the Stack Props, as follows:
 
 ```ts
+import * as aws from '@pulumi/aws';
+import * as ccapi from '@pulumi/aws-native';
+import * as pulumicdk from '@pulumi/cdk';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
     // inherits the provider from the app and has the CDK env auto populated
     // based on the default provider
@@ -339,6 +357,9 @@ Instead of using CDK Lookups you can use Pulumi functions along with CDK
 
 **Example**
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+import * as aws from '@pulumi/aws';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
     const stack = new pulumicdk.Stack('example-stack');
     // use getAmiOutput to lookup the AMI instead of ec2.LookupMachineImage
@@ -374,6 +395,9 @@ Pulumi twice (the first execution will fail).
 
 **Example**
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+import * as aws_route53 from 'aws-cdk-lib/aws-route53';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
     const stack = new pulumicdk.Stack('example-stack');
     const hostedZone = aws_route53.HostedZone.fromLookup(this, 'hosted-zone', {
@@ -414,6 +438,7 @@ of CDK.
 Below is an example output using Pulumi's [Compliance Ready Policies](https://www.pulumi.com/docs/iac/packages-and-automation/crossguard/compliance-ready-policies/)
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 
 const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
@@ -437,6 +462,7 @@ Policies:
 Pulumi CDK supports CDK Aspects, including aspects like [cdk-nag](https://github.com/cdklabs/cdk-nag)
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { AwsSolutionsChecks } from 'cdk-nag';
 
@@ -459,6 +485,7 @@ const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutput
 Pulumi CDK also supports [CDK Policy Validation Plugins](https://docs.aws.amazon.com/cdk/v2/guide/policy-validation-synthesis.html).
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
 import { CfnGuardValidator } from '@cdklabs/cdk-validator-cfnguard';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 
@@ -529,6 +556,9 @@ a reference.
 ### Simple mapping
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+import * as aws from '@pulumi/aws';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
     const stack = new pulumicdk.Stack('example-stack');
 }, {
@@ -558,6 +588,9 @@ resources. In these cases you should return the `logicalId` of the resource
 along with the resource itself.
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+import * as aws from '@pulumi/aws';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
     const stack = new pulumicdk.Stack('example-stack');
 }, {
@@ -595,6 +628,12 @@ you create the asset. This is because Pulumi CDK will automatically create a ECR
 Repository per image asset.
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+import * as aws from '@pulumi/aws';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
     const stack = new pulumicdk.Stack('example-stack');
 
@@ -627,6 +666,8 @@ For example, if you wanted to set `protect` on database resources you could use
 a transform like this.
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
     const stack = new pulumicdk.Stack('example-stack');
 }, {
@@ -656,13 +697,16 @@ In order to customize the settings, you can pass in a `PulumiSynthesizer` that
 you create.
 
 ```ts
+import * as pulumicdk from '@pulumi/cdk';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
     const stack = new pulumicdk.Stack('example-stack');
     const bucket = new s3.Bucket(stack, 'Bucket');
 }, {
   appOptions: {
     props: {
-      defaultStackSynthesizer: new PulumiSynthesizer({
+      defaultStackSynthesizer: new pulumicdk.PulumiSynthesizer({
         appId: `cdk-${pulumi.getStack()}`,
         autoDeleteStagingAssets: false,
       })
@@ -703,7 +747,10 @@ default. If you _are_ configuring your own `aws-native` provider then you will
 have to enable this.
 
 ```ts
-const nativeProvider = new aws_native.Provider('cdk-native-provider', {
+import * as pulumicdk from '@pulumi/cdk';
+import * as ccapi from '@pulumi/aws-native';
+
+const nativeProvider = new ccapi.Provider('cdk-native-provider', {
   region: 'us-east-2',
   autoNaming: {
     autoTrim: true,

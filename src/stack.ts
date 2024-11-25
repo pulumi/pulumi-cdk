@@ -179,13 +179,15 @@ export class App
         this.appOptions = props.args;
         const lookupsEnabled = process.env.PULUMI_CDK_EXPERIMENTAL_LOOKUPS === 'true';
         const lookups = lookupsEnabled && pulumi.runtime.isDryRun();
-        const account = await native
-            .getAccountId({
-                parent: this,
-                ...props.opts,
-            })
-            .then((account) => account.accountId);
-        const region = await native.getRegion({ parent: this, ...props.opts }).then((region) => region.region);
+        const [account, region] = await Promise.all([
+            native
+                .getAccountId({
+                    parent: this,
+                    ...props.opts,
+                })
+                .then((account) => account.accountId),
+            native.getRegion({ parent: this, ...props.opts }).then((region) => region.region),
+        ]);
         this._env = {
             account,
             region,
@@ -294,8 +296,6 @@ export interface StackOptions extends pulumi.ComponentResourceOptions {
      */
     props?: cdk.StackProps;
 }
-
-type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 
 /**
  * A Construct that represents an AWS CDK stack deployed with Pulumi.
@@ -475,16 +475,6 @@ function generateAppId(): string {
         .toLowerCase()
         .replace(/[^a-z0-9-.]/g, '-')
         .slice(-17);
-}
-
-function hasProvider(
-    providers: pulumi.ProviderResource[] | Record<string, pulumi.ProviderResource> | undefined,
-    compareFn: (resource: pulumi.ProviderResource) => boolean,
-): boolean {
-    if (!providers) {
-        return false;
-    }
-    return providersToArray(providers).some(compareFn);
 }
 
 function providersToArray(
