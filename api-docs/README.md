@@ -297,7 +297,7 @@ new App('testapp', (scope: App) => {
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| `props?` | `StackProps` | The CDK Stack props | [stack.ts:295](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L295) |
+| `props?` | `StackProps` | The CDK Stack props | [stack.ts:297](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L297) |
 
 ## Type Aliases
 
