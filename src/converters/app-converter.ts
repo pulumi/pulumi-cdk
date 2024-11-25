@@ -25,6 +25,9 @@ import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
 import { processSecretsManagerReferenceValue } from './secrets-manager-dynamic';
 import * as intrinsics from './intrinsics';
+import { CloudFormationParameter, CloudFormationParameterLogicalId, CloudFormationParameterWithId } from '../cfn';
+import { Metadata, PulumiResource } from '../pulumi-metadata';
+import { PulumiProvider } from '../types';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -92,7 +95,7 @@ export class AppConverter {
  * StackConverter converts all of the resources in a CDK stack to Pulumi resources
  */
 export class StackConverter extends ArtifactConverter implements intrinsics.IntrinsicContext {
-    readonly parameters = new Map<string, any>();
+    readonly parameters = new Map<CloudFormationParameterLogicalId, any>();
     readonly resources = new Map<string, Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
     private readonly cdkStack: cdk.Stack;
@@ -377,7 +380,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
 
         const ref = obj.Ref;
         if (ref) {
-            return this.resolveRef(ref);
+            return intrinsics.ref.evaluate(this, [ref]);
         }
 
         const keys = Object.keys(obj);
@@ -417,8 +420,15 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return obj?.Ref === 'AWS::NoValue';
     }
 
-    private resolveOutput(repr: OutputRepr): pulumi.Output<any> {
-        return OutputMap.instance().lookupOutput(repr)!;
+    /**
+     * @internal
+     */
+    public resolveOutput(repr: OutputRepr): pulumi.Output<any> {
+        const result = OutputMap.instance().lookupOutput(repr);
+        if (result === undefined) {
+            throw new Error(`@pulumi/pulumi-cdk internal failure: unable to resolveOutput ${repr.PulumiOutput}`);
+        }
+        return result;
     }
 
     private resolveIntrinsic(fn: string, params: any) {
@@ -475,7 +485,8 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                     const [template, _vars] =
                         typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 
-                    const parts: string[] = [];
+                    // parts may contain pulumi.Output values.
+                    const parts: any[] = [];
                     for (const part of parseSub(template)) {
                         parts.push(part.str);
 
@@ -483,7 +494,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                             if (part.ref.attr !== undefined) {
                                 parts.push(this.resolveAtt(part.ref.id, part.ref.attr!));
                             } else {
-                                parts.push(this.resolveRef(part.ref.id));
+                                parts.push(intrinsics.ref.evaluate(this, [part.ref.id]));
                             }
                         }
                     }
@@ -557,47 +568,6 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         }
     }
 
-    private resolveRef(target: any): any {
-        if (typeof target !== 'string') {
-            return this.resolveOutput(<OutputRepr>target);
-        }
-
-        switch (target) {
-            case 'AWS::AccountId':
-                return getAccountId({ parent: this.app.component }).then((r) => r.accountId);
-            case 'AWS::NoValue':
-                return undefined;
-            case 'AWS::Partition':
-                return getPartition({ parent: this.app.component }).then((p) => p.partition);
-            case 'AWS::Region':
-                return getRegion({ parent: this.app.component }).then((r) => r.region);
-            case 'AWS::URLSuffix':
-                return getUrlSuffix({ parent: this.app.component }).then((r) => r.urlSuffix);
-            case 'AWS::NotificationARNs':
-            case 'AWS::StackId':
-            case 'AWS::StackName':
-                // These are typically used in things like names or descriptions so I think
-                // the stack node id is a good substitute.
-                return this.cdkStack.node.id;
-        }
-
-        const mapping = this.lookup(target);
-        if ((<any>mapping).value !== undefined) {
-            return (<any>mapping).value;
-        }
-        // Due to https://github.com/pulumi/pulumi-cdk/issues/173 we have some
-        // resource which we have to special case the `id` attribute. The `Resource.id`
-        // will not contain the correct value
-        const map = <Mapping<pulumi.Resource>>mapping;
-        if (map.attributes && 'id' in map.attributes) {
-            return map.attributes.id;
-        } else if (aws.cloudformation.CustomResourceEmulator.isInstance(map.resource)) {
-            // Custom resources have a `physicalResourceId` that is used for Ref
-            return map.resource.physicalResourceId;
-        }
-        return (<pulumi.CustomResource>(<Mapping<pulumi.Resource>>mapping).resource).id;
-    }
-
     private lookup(logicalId: string): Mapping<pulumi.Resource> | { value: any } {
         const targetParameter = this.parameters.get(logicalId);
         if (targetParameter !== undefined) {
@@ -665,5 +635,47 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
 
     apply<T, U>(result: intrinsics.Result<T>, fn: (value: U) => intrinsics.Result<U>): intrinsics.Result<U> {
         return lift(fn, result);
+    }
+
+    findParameter(parameterLogicalId: CloudFormationParameterLogicalId): CloudFormationParameterWithId | undefined {
+        const p: CloudFormationParameter | undefined = (this.stack.parameters || {})[parameterLogicalId];
+        return p ? { ...p, id: parameterLogicalId } : undefined;
+    }
+
+    evaluateParameter(param: CloudFormationParameterWithId): intrinsics.Result<any> {
+        const value = this.parameters.get(param.id);
+        if (value === undefined) {
+            throw new Error(`No value for the CloudFormation "${param.id}" parameter`);
+        }
+        return value;
+    }
+
+    findResourceMapping(resourceLogicalID: string): Mapping<pulumi.Resource> | undefined {
+        return this.resources.get(resourceLogicalID);
+    }
+
+    tryFindResource(cfnType: string): PulumiResource | undefined {
+        const m = new Metadata(PulumiProvider.AWS_NATIVE);
+        return m.tryFindResource(cfnType);
+    }
+
+    getStackNodeId(): intrinsics.Result<string> {
+        return this.cdkStack.node.id;
+    }
+
+    getAccountId(): intrinsics.Result<string> {
+        return getAccountId({ parent: this.app.component }).then((r) => r.accountId);
+    }
+
+    getRegion(): intrinsics.Result<string> {
+        return getRegion({ parent: this.app.component }).then((r) => r.region);
+    }
+
+    getPartition(): intrinsics.Result<string> {
+        return getPartition({ parent: this.app.component }).then((p) => p.partition);
+    }
+
+    getURLSuffix(): intrinsics.Result<string> {
+        return getUrlSuffix({ parent: this.app.component }).then((r) => r.urlSuffix);
     }
 }

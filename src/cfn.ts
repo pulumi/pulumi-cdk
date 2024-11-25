@@ -14,9 +14,24 @@
 
 import { CfnDeletionPolicy } from 'aws-cdk-lib/core';
 
+/**
+ * Represents a CF parameter declaration from the Parameters template section.
+ *
+ * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html
+ */
 export interface CloudFormationParameter {
+    /**
+     * DataType such as 'String'.
+     */
     readonly Type: string;
+
     readonly Default?: any;
+}
+
+export type CloudFormationParameterLogicalId = string;
+
+export interface CloudFormationParameterWithId extends CloudFormationParameter {
+    id: CloudFormationParameterLogicalId;
 }
 
 export interface CloudFormationResource {

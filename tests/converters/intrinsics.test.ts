@@ -1,4 +1,13 @@
+import * as aws from '@pulumi/aws-native';
+import * as pulumi from '@pulumi/pulumi';
 import * as intrinsics from '../../src/converters/intrinsics';
+import {
+    CloudFormationParameter,
+    CloudFormationParameterLogicalId,
+    CloudFormationParameterWithId
+} from '../../src/cfn';
+import { Mapping } from '../../src/types';
+import { PulumiResource } from '../../src/pulumi-metadata';
 
 describe('Fn::If', () => {
     test('picks true', async () => {
@@ -102,7 +111,6 @@ describe('Fn::And', () => {
     });
 })
 
-
 describe('Fn::Not', () => {
     test('inverts false', async () => {
         const tc = new TestContext({});
@@ -167,6 +175,160 @@ describe('Fn::Equals', () => {
     });
 })
 
+describe('Ref', () => {
+    test('resolves a parameter by its logical ID', async () => {
+        const tc = new TestContext({parameters: {
+            'MyParam': {id: 'MyParam', Type: 'String', Default: 'MyParamValue'}
+        }});
+        const result = runIntrinsic(intrinsics.ref, tc, ['MyParam']);
+        expect(result).toEqual(ok('MyParamValue'));
+    });
+
+    test('respects "id" resource mapping provided by the user', async () => {
+        const tc = new TestContext({resources: {
+            'MyRes': {
+                resource: <any>{},
+                resourceType: 'AWS::S3::Bucket',
+                attributes: {
+                    'id': 'myID'
+                },
+            },
+        }});
+        const result = runIntrinsic(intrinsics.ref, tc, ['MyRes']);
+        expect(result).toEqual(ok('myID'));
+    });
+
+    test('resolves a CustomResource to its physical ID', async () => {
+        const tc = new TestContext({resources: {
+            'MyRes': {
+                resource: <any>{
+                    __pulumiType: (<any>aws.cloudformation.CustomResourceEmulator).__pulumiType,
+                    physicalResourceId: 'physicalID',
+                },
+                resourceType: 'AWS::CloudFormation::CustomResource',
+            },
+        }});
+        const result = runIntrinsic(intrinsics.ref, tc, ['MyRes']);
+        expect(result).toEqual(ok('physicalID'));
+    });
+
+    test('fails if Pulumi metadata indicates Ref is not supported', async () => {
+        const tc = new TestContext({
+            resources: {
+                'MyRes': {
+                    resource: <any>{},
+                    resourceType: 'AWS::S3::Bucket',
+                },
+            },
+            pulumiMetadata: {
+                'AWS::S3::Bucket': {
+                    inputs: {},
+                    outputs: {},
+                    cfRef: {
+                        notSupported: true,
+                    }
+                },
+            }
+        });
+        const result = runIntrinsic(intrinsics.ref, tc, ['MyRes']);
+        expect(result).toEqual(failed('Ref intrinsic is not supported for the AWS::S3::Bucket resource type'));
+    });
+
+    test('resolves to a property value indicated by Pulumi metadata', async () => {
+        const tc = new TestContext({
+            resources: {
+                'MyRes': {
+                    resource: <any>{stageName: 'my-stage'},
+                    resourceType: 'AWS::ApiGateway::Stage',
+                },
+            },
+            pulumiMetadata: {
+                'AWS::ApiGateway::Stage': {
+                    inputs: {},
+                    outputs: {},
+                    cfRef: {
+                        property: 'StageName',
+                    }
+                },
+            }
+        });
+        const result = runIntrinsic(intrinsics.ref, tc, ['MyRes']);
+        expect(result).toEqual(ok('my-stage'));
+    });
+
+    test('resolves to a join of several property values indicated by Pulumi metadata', async () => {
+        const tc = new TestContext({
+            resources: {
+                'MyRes': {
+                    resource: <any>{roleName: 'my-role', policyName: 'my-policy'},
+                    resourceType: 'AWS::IAM::RolePolicy',
+                },
+            },
+            pulumiMetadata: {
+                'AWS::IAM::RolePolicy': {
+                    inputs: {},
+                    outputs: {},
+                    cfRef: {
+                        properties: ['PolicyName', 'RoleName'],
+                        delimiter: '|',
+                    }
+                },
+            }
+        });
+        const result = runIntrinsic(intrinsics.ref, tc, ['MyRes']);
+        expect(result).toEqual(ok('my-policy|my-role'));
+    });
+
+    test('fails if called with an ID that does not resolve', async () => {
+        const tc = new TestContext({});
+        const result = runIntrinsic(intrinsics.ref, tc, ['MyParam']);
+        expect(result).toEqual(failed('Ref intrinsic unable to resolve MyParam: not a known logical resource or parameter reference'));
+    });
+
+    test('evaluates inner expressions before resolving', async () => {
+        const tc = new TestContext({
+            parameters: {
+                'MyParam': {id: 'MyParam', Type: 'String', Default: 'MyParamValue'}
+            },
+            conditions: {
+                'MyCondition': true,
+            },
+        });
+        const result = runIntrinsic(intrinsics.ref, tc, [{'Fn::If': ['MyCondition', 'MyParam', 'MyParam2']}]);
+        expect(result).toEqual(ok('MyParamValue'));
+    });
+
+    test('resolves pseudo-parameters', async () => {
+        const stackNodeId = 'stackNodeId';
+        const tc = new TestContext({
+            parameters: {
+                'MyParam': {id: 'MyParam', Type: 'String', Default: 'MyParamValue'}
+            },
+            conditions: {
+                'MyCondition': true,
+            },
+            accountId: '012345678901',
+            region: 'us-west-2',
+            partition: 'aws-us-gov',
+            urlSuffix: 'amazonaws.com.cn',
+            stackNodeId: stackNodeId,
+        });
+
+        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::AccountId'])).toEqual(ok('012345678901'));
+        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::Region'])).toEqual(ok('us-west-2'));
+        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::Partition'])).toEqual(ok('aws-us-gov'));
+        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::URLSuffix'])).toEqual(ok('amazonaws.com.cn'));
+        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::NoValue'])).toEqual(ok(undefined));
+
+        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::NotificationARNs']))
+            .toEqual(failed('AWS::NotificationARNs pseudo-parameter is not yet supported in pulumi-cdk'));
+
+        // These are approximations; testing the current behavior for completeness sake.
+        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::StackId'])).toEqual(ok(stackNodeId));
+        expect(runIntrinsic(intrinsics.ref, tc, ['AWS::StackName'])).toEqual(ok(stackNodeId));
+    });
+})
+
 function runIntrinsic(fn: intrinsics.Intrinsic, tc: TestContext, args: intrinsics.Expression[]): TestResult<any> {
     const result: TestResult<any> = <any>(fn.evaluate(tc, args));
     return result;
@@ -185,14 +347,53 @@ function failed<T>(errorMessage: string): TestResult<T> {
 }
 
 class TestContext implements intrinsics.IntrinsicContext {
+    accountId: string;
+    region: string;
+    partition: string;
+    urlSuffix: string;
+    stackNodeId: string;
     conditions: { [id: string]: intrinsics.Expression };
+    parameters: { [id: CloudFormationParameterLogicalId]: CloudFormationParameterWithId };
+    resources: { [id: string]: Mapping<pulumi.Resource> };
+    pulumiMetadata: { [cfnType: string]: PulumiResource };
 
-    constructor(args: {conditions?: { [id: string]: intrinsics.Expression }}) {
-        if (args.conditions) {
-            this.conditions = args.conditions;
-        } else {
-            this.conditions = {};
+    constructor(args: {
+        accountId?: string;
+        region?: string;
+        partition?: string;
+        urlSuffix?: string;
+        stackNodeId?: string;
+        conditions?: { [id: string]: intrinsics.Expression },
+        parameters?: { [id: CloudFormationParameterLogicalId]: CloudFormationParameterWithId },
+        resources?: { [id: string]: Mapping<pulumi.Resource> },
+        pulumiMetadata?: { [cfnType: string]: PulumiResource },
+    }) {
+        this.stackNodeId = args.stackNodeId || '';
+        this.accountId = args.accountId || '';
+        this.partition = args.partition || '';
+        this.region = args.region || '';
+        this.urlSuffix = args.urlSuffix || '';
+        this.conditions = args.conditions || {};
+        this.parameters = args.parameters || {};
+        this.resources = args.resources || {};
+        this.pulumiMetadata = args.pulumiMetadata || {};
+    }
+
+    tryFindResource(cfnType: string): PulumiResource|undefined {
+        if (this.pulumiMetadata.hasOwnProperty(cfnType)) {
+            return this.pulumiMetadata[cfnType];
         }
+    };
+
+    findParameter(parameterLogicalID: string): CloudFormationParameterWithId | undefined {
+        if (this.parameters.hasOwnProperty(parameterLogicalID)) {
+            return this.parameters[parameterLogicalID];
+        }
+    }
+
+    evaluateParameter(param: CloudFormationParameter): intrinsics.Result<any> {
+        // Simplistic but sufficient for this test suite.
+        return this.succeed(param.Default!);
     }
 
     findCondition(conditionName: string): intrinsics.Expression|undefined {
@@ -201,7 +402,29 @@ class TestContext implements intrinsics.IntrinsicContext {
         }
     }
 
+    findResourceMapping(resourceLogicalID: string): Mapping<pulumi.Resource> | undefined {
+        if (this.resources.hasOwnProperty(resourceLogicalID)) {
+            return this.resources[resourceLogicalID];
+        }
+    }
+
     evaluate(expression: intrinsics.Expression): intrinsics.Result<any> {
+        // Evaluate known heuristics.
+        const known = [intrinsics.fnAnd,
+                       intrinsics.fnEquals,
+                       intrinsics.fnIf,
+                       intrinsics.fnNot,
+                       intrinsics.fnOr,
+                       intrinsics.ref];
+        if (typeof expression === 'object' && Object.keys(expression).length == 1) {
+            for (const k of known) {
+                if (k.name === Object.keys(expression)[0]) {
+                    const args = expression[k.name];
+                    return k.evaluate(this, args)
+                }
+            }
+        }
+
         // Self-evaluate the expression. This is very incomplete.
         const result: TestResult<any> = {'ok': true, value: expression};
         return result;
@@ -224,5 +447,25 @@ class TestContext implements intrinsics.IntrinsicContext {
     succeed<T>(r: T): intrinsics.Result<T> {
         const result: TestResult<any> = {'ok': true, value: r};
         return result;
+    }
+
+    getAccountId(): intrinsics.Result<string> {
+        return this.succeed(this.accountId);
+    }
+
+    getRegion(): intrinsics.Result<string> {
+        return this.succeed(this.region);
+    }
+
+    getPartition(): intrinsics.Result<string> {
+        return this.succeed(this.partition);
+    }
+
+    getURLSuffix(): intrinsics.Result<string> {
+        return this.succeed(this.urlSuffix);
+    }
+
+    getStackNodeId(): intrinsics.Result<string> {
+        return this.succeed(this.stackNodeId);
     }
 }

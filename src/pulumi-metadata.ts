@@ -45,11 +45,22 @@ export class Metadata {
      * @throws UnknownCfnType if the resource is not found
      */
     public findResource(cfnType: string): PulumiResource {
+        const r = this.tryFindResource(cfnType);
+        if (r === undefined) {
+            throw new UnknownCfnType(cfnType);
+        }
+        return r;
+    }
+
+    /**
+     * Non-throwing version of `findResource`.
+     */
+    public tryFindResource(cfnType: string): PulumiResource | undefined {
         const pType = typeToken(cfnType);
         if (pType in this.pulumiMetadata.resources) {
             return this.pulumiMetadata.resources[pType];
         }
-        throw new UnknownCfnType(cfnType);
+        return undefined;
     }
 
     public types(): { [key: string]: PulumiType } {
@@ -120,9 +131,49 @@ export interface PulumiProperty extends PulumiPropertyItems {
     items?: PulumiPropertyItems;
 }
 
+/**
+ * The schema for an individual resource.
+ */
 export interface PulumiResource {
+    cfRef?: CfRefBehavior;
     inputs: { [key: string]: PulumiProperty };
     outputs: { [key: string]: PulumiProperty };
+}
+
+/**
+ * Metadata predicting the behavior of CF Ref intrinsic for a given resource.
+ *
+ * @internal
+ */
+export interface CfRefBehavior {
+    /**
+     * If set, indicates that Ref will return the value of the given Resource property directly.
+     *
+     * The property name is a CF name such as "GroupId".
+     */
+    property?: string;
+
+    /**
+     * If set, indicates that Ref will return a string value obtained by joining several Resource properties with a
+     * delimiter, typically "|".
+     */
+    properties?: string[];
+
+    /**
+     * Delimiter for `properties`, typically "|".
+     */
+    delimiter?: string;
+
+    /**
+     * If set, Ref is not supported for this resource in CF.
+     */
+    notSupported?: boolean;
+
+    /**
+     * If set, Ref is supported in CF but this metadata is not yet available in the Pulumi aws-native provider but might
+     * be added in a later version.
+     */
+    notSupportedYet?: boolean;
 }
 
 /**

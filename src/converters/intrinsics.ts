@@ -12,7 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import * as aws from '@pulumi/aws-native';
 import * as equal from 'fast-deep-equal';
+import * as pulumi from '@pulumi/pulumi';
+import { debug } from '@pulumi/pulumi/log';
+import { CloudFormationParameterWithId } from '../cfn';
+import { Mapping } from '../types';
+import { PulumiResource } from '../pulumi-metadata';
+import { toSdkName } from '../naming';
+import { OutputRepr, isOutputReprInstance } from '../output-map';
 
 /**
  * Models a CF Intrinsic Function.
@@ -85,6 +93,26 @@ export interface IntrinsicContext {
     evaluate(expression: Expression): Result<any>;
 
     /**
+     * Resolves a logical parameter ID to a parameter, or indicates that no such parameter is defined on the template.
+     */
+    findParameter(parameterLogicalID: string): CloudFormationParameterWithId | undefined;
+
+    /**
+     * Resolves a logical resource ID to a Mapping.
+     */
+    findResourceMapping(resourceLogicalID: string): Mapping<pulumi.Resource> | undefined;
+
+    /**
+     * Find the current value of a given Cf parameter.
+     */
+    evaluateParameter(param: CloudFormationParameterWithId): Result<any>;
+
+    /**
+     * Find the value of an `OutputRepr`.
+     */
+    resolveOutput(repr: OutputRepr): Result<any>;
+
+    /**
      * If result succeeds, use its value to call `fn` and proceed with what it returns.
      *
      * If result fails, do not call `fn` and proceed with the error message from `result`.
@@ -99,7 +127,41 @@ export interface IntrinsicContext {
     /**
      * Succeed with a given value.
      */
-    succeed<T>(r: T): Result<T>;
+    succeed<T>(r: pulumi.Input<T>): Result<T>;
+
+    /**
+     * Pulumi metadata source that may inform the intrinsic evaluation.
+     */
+    tryFindResource(cfnType: string): PulumiResource | undefined;
+
+    /**
+     * Gets the CDK Stack Node ID.
+     */
+    getStackNodeId(): Result<string>;
+
+    /**
+     * The AWS account ID.
+     */
+    getAccountId(): Result<string>;
+
+    /**
+     * The AWS Region.
+     */
+    getRegion(): Result<string>;
+
+    /**
+     * The AWS partition.
+     */
+    getPartition(): Result<string>;
+
+    /**
+     * The URL suffix.
+     *
+     * Quoting the docs: "The suffix is typically amazonaws.com, but might differ by Region".
+     *
+     * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/pseudo-parameter-reference.html#cfn-pseudo-param-urlsuffix
+     */
+    getURLSuffix(): Result<string>;
 }
 
 /**
@@ -252,6 +314,131 @@ export const fnEquals: Intrinsic = {
 };
 
 /**
+ * Ref intrinsic resolves pseudo-parameters, parameter logical IDs or resource logical IDs to their values.
+ *
+ * If the argument to a Ref intrinsic is not a string literal, it may be another CF expression with intrinsic functions
+ * that needs to be evaluated first.
+ *
+ * See also:
+ *
+ * - https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html
+ */
+export const ref: Intrinsic = {
+    name: 'Ref',
+    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+        if (params.length != 1) {
+            return ctx.fail(`Ref intrinsic expects exactly 1 param, got ${params.length}`);
+        }
+        const param = params[0];
+
+        // Although not part of the CF spec, Output values are passed through CDK tokens as Ref structures; therefore
+        // Pulumi Ref intrinsic receives them and has to handle them.
+        if (isOutputReprInstance(param)) {
+            return ctx.resolveOutput(<OutputRepr>param);
+        }
+
+        // Unless the parameter is a literal string, it may be another expression.
+        //
+        // CF docs: "When the AWS::LanguageExtensions transform is used, you can use intrinsic functions..".
+        if (typeof param !== 'string') {
+            const s = ctx.apply(ctx.evaluate(param), (p) => mustBeString(ctx, p));
+            return ctx.apply(s, (name) => evaluateRef(ctx, name));
+        }
+        return evaluateRef(ctx, param);
+    },
+};
+
+/**
+ * See `ref`.
+ */
+function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
+    // Handle pseudo-parameters.
+    // See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/pseudo-parameter-reference.html
+    switch (param) {
+        case 'AWS::AccountId':
+            return ctx.getAccountId();
+        case 'AWS::NoValue':
+            return ctx.succeed(undefined);
+        case 'AWS::Partition':
+            return ctx.getPartition();
+        case 'AWS::Region':
+            return ctx.getRegion();
+        case 'AWS::URLSuffix':
+            return ctx.getURLSuffix();
+        case 'AWS::NotificationARNs':
+            return ctx.fail('AWS::NotificationARNs pseudo-parameter is not yet supported in pulumi-cdk');
+        case 'AWS::StackId':
+        case 'AWS::StackName': {
+            // TODO[pulumi/pulumi-cdk#246]: these pseudo-parameters are typically used in things like names or descriptions
+            // so it should be safe to substitute with a stack node ID for most applications.
+            const stackNodeId = ctx.getStackNodeId();
+            debug(`pulumi-cdk is replacing a Ref to a CF pseudo-parameter ${param} with the stack node ID`);
+            return stackNodeId;
+        }
+    }
+
+    // Handle Cf template parameters.
+    const cfParam = ctx.findParameter(param);
+    if (cfParam !== undefined) {
+        return ctx.evaluateParameter(cfParam);
+    }
+
+    // Handle references to resources.
+    const map = ctx.findResourceMapping(param);
+    if (map !== undefined) {
+        if (map.attributes && 'id' in map.attributes) {
+            // Users may override the `id` in a custom-supplied mapping, respect this.
+            return ctx.succeed(map.attributes.id);
+        }
+        if (aws.cloudformation.CustomResourceEmulator.isInstance(map.resource)) {
+            // Custom resources have a `physicalResourceId` that is used for Ref
+            return ctx.succeed(map.resource.physicalResourceId);
+        }
+        const resMeta = ctx.tryFindResource(map.resourceType);
+
+        // If there is no metadata to suggest otherwise, assume that we can use the Pulumi id which typically will be
+        // the primaryIdentifier from CloudControl.
+        if (resMeta === undefined || !resMeta.cfRef || resMeta.cfRef.notSupportedYet) {
+            const cr = <pulumi.CustomResource>map.resource; // assume we have a custom resource.
+            return ctx.succeed(cr.id);
+        }
+
+        // Respect metadata if it suggests Ref is not supported.
+        if (resMeta.cfRef.notSupported) {
+            return ctx.fail(`Ref intrinsic is not supported for the ${map.resourceType} resource type`);
+        }
+
+        // At this point metadata should indicate which properties to extract from the resource to compute the ref.
+        const propNames: string[] = (resMeta.cfRef.properties || [])
+            .concat(resMeta.cfRef.property ? [resMeta.cfRef.property] : [])
+            .map((x) => toSdkName(x));
+
+        const propValues: any[] = [];
+        for (const p of propNames) {
+            if (!Object.prototype.hasOwnProperty.call(map.resource, p)) {
+                return ctx.fail(`Pulumi metadata notes a property "${p}" but no such property was found on a resource`);
+            }
+            propValues.push((<any>map.resource)[p]);
+        }
+
+        const delim: string = resMeta.cfRef!.delimiter || '|';
+
+        return ctx.apply(ctx.succeed(propValues), (resolvedValues) => {
+            let i = 0;
+            for (const v of resolvedValues) {
+                if (typeof v !== 'string') {
+                    return ctx.fail(`Expected property "${propNames[i]}" to resolve to a string, got ${typeof v}`);
+                }
+                i++;
+            }
+            return ctx.succeed(resolvedValues.join(delim));
+        });
+    }
+
+    return ctx.fail(`Ref intrinsic unable to resolve ${param}: not a known logical resource or parameter reference`);
+}
+
+/**
  * Recognize forms such as {"Condition" : "SomeOtherCondition"}. If recognized, returns the conditionName.
  */
 function parseConditionExpr(raw: Expression): string | undefined {
@@ -282,6 +469,14 @@ function mustBeBoolean(ctx: IntrinsicContext, r: any): Result<boolean> {
         return ctx.succeed(r);
     } else {
         return ctx.fail(`Expected a boolean, got ${typeof r}`);
+    }
+}
+
+function mustBeString(ctx: IntrinsicContext, r: any): Result<string> {
+    if (typeof r === 'string') {
+        return ctx.succeed(r);
+    } else {
+        return ctx.fail(`Expected a string, got ${typeof r}`);
     }
 }
 
