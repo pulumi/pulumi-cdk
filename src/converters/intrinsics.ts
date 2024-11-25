@@ -366,7 +366,7 @@ function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
         case 'AWS::URLSuffix':
             return ctx.getURLSuffix();
         case 'AWS::NotificationARNs':
-            return ctx.fail('AWS::NotificationARNs pseudo-parameter is not yet supported in pulumi-cdk')
+            return ctx.fail('AWS::NotificationARNs pseudo-parameter is not yet supported in pulumi-cdk');
         case 'AWS::StackId':
         case 'AWS::StackName': {
             // TODO[pulumi/pulumi-cdk#246]: these pseudo-parameters are typically used in things like names or descriptions
