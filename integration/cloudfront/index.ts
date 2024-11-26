@@ -7,7 +7,7 @@ import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 
 const config = new pulumi.Config();
-const prefix = config.require('prefix');
+const prefix = config.get('prefix') ?? 'local';
 
 class CloudFrontStack extends pulumicdk.Stack {
     public readonly bucketName: pulumi.Output<string>;

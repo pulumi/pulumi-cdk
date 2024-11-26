@@ -4,7 +4,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as pulumi from '@pulumi/pulumi';
 
 const config = new pulumi.Config();
-const prefix = config.require('prefix');
+const prefix = config.get('prefix') ?? 'local';
 
 class ReplaceOnChangesStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {

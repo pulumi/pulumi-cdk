@@ -11,7 +11,7 @@ import {
 import * as pulumi from '@pulumi/pulumi';
 
 const config = new pulumi.Config();
-const prefix = config.require('prefix');
+const prefix = config.get('prefix') ?? 'local';
 class EventBridgeSnsStack extends pulumicdk.Stack {
     constructor(scope: pulumicdk.App, id: string) {
         super(scope, id);

@@ -5,7 +5,7 @@ import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 
 const config = new pulumi.Config();
-const prefix = config.require('prefix');
+const prefix = config.get('prefix') ?? 'local';
 class AlbStack extends pulumicdk.Stack {
     url: pulumi.Output<string>;
 

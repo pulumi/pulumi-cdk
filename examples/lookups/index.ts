@@ -13,7 +13,7 @@ import {
 
 const config = new pulumi.Config();
 const zoneName = config.require('zoneName');
-const prefix = config.require('prefix');
+const prefix = config.get('prefix') ?? 'local';
 
 export class Ec2CdkStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string) {

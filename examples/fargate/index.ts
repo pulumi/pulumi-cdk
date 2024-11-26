@@ -9,7 +9,7 @@ import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
 import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 
 const config = new pulumi.Config();
-const prefix = config.require('prefix');
+const prefix = config.get('prefix') ?? 'local';
 class FargateStack extends pulumicdk.Stack {
     loadBalancerDNS: pulumi.Output<string>;
 

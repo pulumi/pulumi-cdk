@@ -8,7 +8,7 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 
 const config = new pulumi.Config();
-const prefix = config.require('prefix');
+const prefix = config.get('prefix') ?? 'local';
 class SecretsManagerStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);
