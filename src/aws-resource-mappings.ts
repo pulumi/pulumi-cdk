@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
+import { getAttributesFromResource } from './types';
 import * as aws from '@pulumi/aws';
 import { ResourceAttributeMappingArray, ResourceMapping, normalize } from './interop';
 
@@ -50,8 +51,8 @@ export function mapToAwsResource(
     const props = normalize(rawProps);
     switch (typeName) {
         // ApiGatewayV2
-        case 'AWS::ApiGatewayV2::Integration':
-            return new aws.apigatewayv2.Integration(
+        case 'AWS::ApiGatewayV2::Integration': {
+            const resource = new aws.apigatewayv2.Integration(
                 logicalId,
                 {
                     ...props,
@@ -62,6 +63,14 @@ export function mapToAwsResource(
                 },
                 options,
             );
+            return {
+                resource,
+                attributes: {
+                    ...getAttributesFromResource(resource),
+                    id: resource.id,
+                },
+            };
+        }
         case 'AWS::ApiGatewayV2::Stage':
             return new aws.apigatewayv2.Stage(
                 logicalId,

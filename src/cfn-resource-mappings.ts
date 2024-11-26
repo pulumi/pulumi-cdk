@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
+import { getAttributesFromResource } from './types';
 import * as aws from '@pulumi/aws-native';
 import { ResourceMapping, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
@@ -129,17 +130,4 @@ export function mapToCfnResource(
 
 export function attributePropertyName(attributeName: string): string {
     return toSdkName(attributeName.split('.')[0]);
-}
-
-/**
- * This can be used to get the attributes from a resource to return as part
- * of the ResourceMapping
- */
-function getAttributesFromResource(resource: pulumi.Resource): { [key: string]: any } {
-    return Object.entries(resource).reduce((prev, [k, v]) => {
-        return {
-            ...prev,
-            [k]: v,
-        };
-    }, {});
 }
