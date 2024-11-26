@@ -166,3 +166,16 @@ export function lift(f: (args: any) => any, args: any): any {
     }
     return pulumi.all(args).apply(f);
 }
+
+/**
+ * This can be used to get the attributes from a resource to return as part
+ * of the ResourceMapping
+ */
+export function getAttributesFromResource(resource: pulumi.Resource): { [key: string]: any } {
+    return Object.entries(resource).reduce((prev, [k, v]) => {
+        return {
+            ...prev,
+            [k]: v,
+        };
+    }, {});
+}

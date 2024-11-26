@@ -189,11 +189,11 @@ describe('App Converter', () => {
         ]);
         const bucket = resourceMap['AWS::S3::BucketPolicy'] as BucketPolicy;
         const bucketName = await promiseOf(bucket.bucket);
-        expect(bucketName).toEqual('examplebucketc9dfa43e_id');
+        expect(bucketName).toEqual('examplebucketc9dfa43e_name');
     });
 
     test.each([
-        ['ref', createStackManifest({ resource2Props: { Bucket: { Ref: 'resource1' } } }), 'resource1_id', undefined],
+        ['ref', createStackManifest({ resource2Props: { Bucket: { Ref: 'resource1' } } }), 'resource1_name', undefined],
         [
             'GetAtt',
             createStackManifest({
@@ -211,7 +211,7 @@ describe('App Converter', () => {
                     Bucket: { 'Fn::Join': ['', ['arn:', { Ref: 'resource1' }]] },
                 },
             }),
-            'arn:resource1_id',
+            'arn:resource1_name',
             undefined,
         ],
         [
@@ -221,7 +221,7 @@ describe('App Converter', () => {
                     Bucket: { 'Fn::Select': ['1', { 'Fn::Split': ['_', { Ref: 'resource1' }] }] },
                 },
             }),
-            'id',
+            'name',
             undefined,
         ],
         [
@@ -231,7 +231,7 @@ describe('App Converter', () => {
                     Bucket: { 'Fn::Base64': { Ref: 'resource1' } },
                 },
             }),
-            Buffer.from('resource1_id').toString('base64'),
+            Buffer.from('resource1_name').toString('base64'),
             undefined,
         ],
         [
@@ -251,7 +251,7 @@ describe('App Converter', () => {
                     Bucket: { 'Fn::Sub': 'www.${resource1}-${AWS::Region}-${AWS::AccountId}' },
                 },
             }),
-            'www.resource1_id-us-east-2-12345678910',
+            'www.resource1_name-us-east-2-12345678910',
             undefined,
         ],
         [

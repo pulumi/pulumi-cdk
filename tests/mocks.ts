@@ -13,6 +13,7 @@ import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Construct } from 'constructs';
 import { App, Stack } from '../src/stack';
 import { PulumiSynthesizerBase } from '../src/synthesizer';
+import { toSdkName } from '../src/naming';
 
 // Convert a pulumi.Output to a promise of the same type.
 export function promiseOf<T>(output: pulumi.Output<T>): Promise<T> {
@@ -120,12 +121,11 @@ export function setMocks(resources?: MockResourceArgs[]) {
                     };
                 case 'aws:secretsmanager/getSecretVersion:getSecretVersion':
                     return {
-                        secretString:
-                            args.inputs.secretId === 'json'
-                                ? JSON.stringify({
-                                      password: 'abcd',
-                                  })
-                                : 'abcd',
+                        secretString: args.inputs.secretId.startsWith('json')
+                            ? JSON.stringify({
+                                  password: 'abcd',
+                              })
+                            : 'abcd',
                     };
                 case 'aws:ecr/getCredentials:getCredentials':
                     return {
@@ -183,12 +183,18 @@ export function setMocks(resources?: MockResourceArgs[]) {
                     };
                 default:
                     resources?.push(args);
+                    const attrName = args.type.split(':')[2];
+                    const sdkName = toSdkName(attrName);
+                    const id = args.inputs.description ?? args.name;
                     return {
-                        id: args.inputs.description ?? args.name + '_id',
+                        id: id + '_id',
                         state: {
                             ...args.inputs,
-                            id: args.inputs.description ?? args.name + '_id',
-                            arn: args.name + '_arn',
+                            id: id + '_id',
+                            arn: id + '_arn',
+                            [sdkName + 'Arn']: id + '_arn',
+                            [sdkName + 'Id']: id + '_id',
+                            [sdkName + 'Name']: id + '_name',
                         },
                     };
             }
