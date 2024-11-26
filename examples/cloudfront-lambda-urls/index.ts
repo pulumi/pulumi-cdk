@@ -15,7 +15,7 @@ import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { RemovalPolicy } from 'aws-cdk-lib';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class CloudFrontAppStack extends pulumicdk.Stack {
     public cloudFrontUrl: pulumi.Output<string>;
     constructor(scope: pulumicdk.App, id: string) {

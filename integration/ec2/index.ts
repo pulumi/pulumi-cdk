@@ -7,7 +7,7 @@ import { SecretValue, Size } from 'aws-cdk-lib/core';
 import * as pulumi from '@pulumi/pulumi';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class Ec2Stack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, {

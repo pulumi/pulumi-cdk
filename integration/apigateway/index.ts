@@ -5,7 +5,7 @@ import { SpecRestApi } from './spec-rest-api';
 import * as pulumi from '@pulumi/pulumi';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class ApiGatewayStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);

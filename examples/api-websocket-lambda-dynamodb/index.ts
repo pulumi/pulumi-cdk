@@ -9,7 +9,7 @@ import { Output } from '@pulumi/pulumi';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class ChatAppStack extends pulumicdk.Stack {
     public readonly url: Output<string>;
     public readonly table: Output<string>;

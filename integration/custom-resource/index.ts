@@ -7,7 +7,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class S3DeploymentStack extends pulumicdk.Stack {
     bucketWebsiteUrl: pulumi.Output<string>;
     bucketObjectKeys: pulumi.Output<string[]>;

@@ -10,7 +10,7 @@ import { SecretValue } from 'aws-cdk-lib';
 import { AwsCliLayer } from 'aws-cdk-lib/lambda-layer-awscli';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class MiscServicesStack extends pulumicdk.Stack {
     public readonly repoName: pulumi.Output<string>;
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {

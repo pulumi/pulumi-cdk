@@ -7,7 +7,7 @@ import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class LambdaStack extends pulumicdk.Stack {
     lambdaArn: pulumi.Output<string>;
 

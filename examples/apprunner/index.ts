@@ -3,7 +3,7 @@ import * as pulumicdk from '@pulumi/cdk';
 import { Service, Source } from '@aws-cdk/aws-apprunner-alpha';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class AppRunnerStack extends pulumicdk.Stack {
     url: pulumi.Output<string>;
 

@@ -6,7 +6,7 @@ import { aws_elasticloadbalancingv2, aws_kms, aws_route53_targets } from 'aws-cd
 import * as pulumi from '@pulumi/pulumi';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class Route53Stack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);

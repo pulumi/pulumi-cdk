@@ -4,7 +4,7 @@ import * as pulumicdk from '@pulumi/cdk';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib/core';
 
 const config = new pulumi.Config();
-const prefix = config.get('prefix') ?? 'local';
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class KinesisStack extends pulumicdk.Stack {
     kinesisStreamName: pulumi.Output<string>;
 
