@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as docker from '@pulumi/docker-build';
 import { NetworkMode } from '@pulumi/docker-build';
 import * as pulumi from '@pulumi/pulumi';
+import * as ccapi from '@pulumi/aws-native';
 import * as cdk from 'aws-cdk-lib/core';
 import { translateCfnTokenToAssetToken } from 'aws-cdk-lib/core/lib/helpers-internal';
 import * as aws from '@pulumi/aws';
@@ -172,14 +173,9 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
     private readonly imageAssetVersionCount: number;
 
     /**
-     * The final CDK name of the asset S3 bucket. This may contain CDK tokens
-     */
-    private cdkBucketName?: string;
-
-    /**
      * The final Pulumi name of the asset S3 bucket
      */
-    private pulumiBucketName?: string | pulumi.Output<string>;
+    private pulumiBucketLogicalId: string;
 
     /**
      * The region from the pulumi provider
@@ -187,19 +183,9 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
     private readonly pulumiRegion: pulumi.Output<string>;
 
     /**
-     * The account id from the pulumi provider
+     * The url suffix for the S3 bucket URL
      */
-    private readonly pulumiAccount: pulumi.Output<string>;
-
-    /**
-     * The accountId which may contain CDK tokens
-     */
-    private cdkAccount?: string;
-
-    /**
-     * The region that may contain CDK tokens
-     */
-    private cdkRegion?: string;
+    private readonly urlSuffix: pulumi.Output<string>;
 
     /**
      * The resources that any file assets need to depend on
@@ -219,7 +205,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      * The same asset could be registered multiple times, but we
      * only want to upload it a single time
      */
-    private readonly seenFileAssets = new Set<string>();
+    private readonly seenFileAssets = new Map<string, aws.s3.BucketObjectv2>();
 
     /**
      * Map of `${assetName}:${assetHash}` to docker.Image that have already been created.
@@ -236,10 +222,10 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         this.appId = this.validateAppId(props.appId);
         this.imageAssetVersionCount = props.imageAssetVersionCount ?? 3;
 
-        const account = aws.getCallerIdentity({}, { parent: props.parent }).then((id) => id.accountId);
-        this.pulumiAccount = pulumi.output(account);
-        const region = aws.getRegion({}, { parent: props.parent }).then((r) => r.name);
-        this.pulumiRegion = pulumi.output(region);
+        this.pulumiRegion = aws.getRegionOutput({}, { parent: props.parent }).name;
+        this.urlSuffix = ccapi.getUrlSuffixOutput({ parent: props.parent }).urlSuffix;
+        this.pulumiBucketLogicalId = this._stagingBucketName ?? `pulumi-cdk-${this.appId}-staging`;
+
         const id = `${stackPrefix}-${this.appId}`;
         // create a wrapper component resource that we can depend on
         this.stagingStack = new CdkConstruct(id, 'StagingStack', { parent: props.parent });
@@ -285,7 +271,6 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
             const repo = new aws.ecr.Repository(
                 repoName,
                 {
-                    name: repoName,
                     // prevents you from pushing an image with a tag that already exists in the repository
                     // @see https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-tag-mutability.html
                     imageTagMutability: 'IMMUTABLE',
@@ -330,16 +315,10 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      * CDK application.
      */
     private getCreateBucket(): aws.s3.BucketV2 {
-        // The pulumi resources can use the actual output values for account/region
-        this.pulumiBucketName =
-            this._stagingBucketName ??
-            pulumi.interpolate`pulumi-cdk-${this.appId}-staging-${this.pulumiAccount}-${this.pulumiRegion}`;
-
         if (!this.stagingBucket) {
             this.stagingBucket = new aws.s3.BucketV2(
-                'pulumi-cdk-staging-bucket',
+                this.pulumiBucketLogicalId,
                 {
-                    bucket: this.pulumiBucketName,
                     forceDestroy: this.autoDeleteStagingAssets,
                 },
                 {
@@ -349,7 +328,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
             );
 
             const encryption = new aws.s3.BucketServerSideEncryptionConfigurationV2(
-                'staging-bucket-encryption',
+                `${this.pulumiBucketLogicalId}-encryption`,
                 {
                     bucket: this.stagingBucket.bucket,
                     rules: [
@@ -365,7 +344,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
 
             // Many AWS account safety checkers will complain when buckets aren't versioned
             const versioning = new aws.s3.BucketVersioningV2(
-                'staging-bucket-versioning',
+                `${this.pulumiBucketLogicalId}-versioning`,
                 {
                     bucket: this.stagingBucket.bucket,
                     versioningConfiguration: {
@@ -376,7 +355,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
             );
 
             const lifecycle = new aws.s3.BucketLifecycleConfigurationV2(
-                'staging-bucket-lifecycle',
+                `${this.pulumiBucketLogicalId}-lifecycle`,
                 {
                     bucket: this.stagingBucket.bucket,
                     rules: [
@@ -422,7 +401,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
                 ],
             });
             const policy = new aws.s3.BucketPolicy(
-                'staging-bucket-policy',
+                `${this.pulumiBucketLogicalId}-policy`,
                 {
                     bucket: this.stagingBucket.bucket,
                     policy: policyDoc,
@@ -477,8 +456,6 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
             throw new Error(`Stack ${stack.stackName} must be created within an App`);
         }
         this.outdir = app.assetOutdir;
-        this.cdkRegion = stack.region;
-        this.cdkAccount = stack.account;
     }
 
     /**
@@ -490,15 +467,12 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      * @hidden
      */
     public addFileAsset(asset: cdk.FileAssetSource): cdk.FileAssetLocation {
-        assertBound(this.cdkAccount);
-        assertBound(this.cdkRegion);
-        // The name that CDK uses needs to include CDK intrinsics so we use the CDK account/region
-        this.cdkBucketName =
-            this._stagingBucketName ?? `pulumi-cdk-${this.appId}-staging-${this.cdkAccount}-${this.cdkRegion}`;
         if (asset.fileName === this.boundStack.templateFile) {
+            // This isn't going to be used so the actual bucketName doesn't need to be correct
+            // We won't be uploading the template to S3
             return this.cloudFormationLocationFromFileAsset(
                 this.assetManifest.defaultAddFileAsset(this.boundStack, asset, {
-                    bucketName: translateCfnTokenToAssetToken(this.cdkBucketName),
+                    bucketName: translateCfnTokenToAssetToken(this.pulumiBucketLogicalId),
                     bucketPrefix: asset.deployTime ? DEPLOY_TIME_PREFIX : undefined,
                 }),
             );
@@ -511,35 +485,56 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         }
 
         const location = this.assetManifest.defaultAddFileAsset(this.boundStack, asset, {
-            bucketName: translateCfnTokenToAssetToken(this.cdkBucketName),
+            // this can't contain Output values so just use the LogicalId. This Information
+            // is just for debugging purposes so the correct value isn't necessary
+            bucketName: this.pulumiBucketLogicalId,
             bucketPrefix: asset.deployTime ? DEPLOY_TIME_PREFIX : undefined,
         });
 
         // Assets can be registered multiple times, but we should only create the resource once
         if (this.seenFileAssets.has(asset.sourceHash)) {
-            return this.cloudFormationLocationFromFileAsset(location);
+            return this.locationFromFileAsset(asset.sourceHash);
         }
-        this.seenFileAssets.add(asset.sourceHash);
 
-        // Don't upload the CloudFormation template
-        if (asset.fileName !== this.boundStack.templateFile) {
-            const assetFile = path.join(this.outdir, asset.fileName);
-            const outputPath =
-                asset.packaging === cdk.FileAssetPackaging.ZIP_DIRECTORY
-                    ? zipDirectory(assetFile, assetFile + '.zip')
-                    : assetFile;
+        const assetFile = path.join(this.outdir, asset.fileName);
+        const outputPath =
+            asset.packaging === cdk.FileAssetPackaging.ZIP_DIRECTORY
+                ? zipDirectory(assetFile, assetFile + '.zip')
+                : assetFile;
 
-            new aws.s3.BucketObjectv2(
-                `${this.stagingStack.name}/${asset.sourceHash}`,
-                {
-                    source: outputPath,
-                    bucket: stagingBucket.bucket,
-                    key: location.objectKey,
-                },
-                { parent: this.stagingStack, dependsOn: this.fileDependencies },
-            );
-        }
-        return this.cloudFormationLocationFromFileAsset(location);
+        const object = new aws.s3.BucketObjectv2(
+            `${this.stagingStack.name}/${asset.sourceHash}`,
+            {
+                source: outputPath,
+                bucket: stagingBucket.bucket,
+                key: location.objectKey,
+            },
+            {
+                parent: this.stagingStack,
+                dependsOn: this.fileDependencies,
+                // We have lifecycle policies on the bucket to handle
+                // object deletion. If the asset hash changes and we upload
+                // a new object we don't want to necessarily delete the old one
+                retainOnDelete: true,
+            },
+        );
+        this.seenFileAssets.set(asset.sourceHash, object);
+        return this.locationFromFileAsset(asset.sourceHash);
+    }
+
+    private locationFromFileAsset(assetSourceHash: string): cdk.FileAssetLocation {
+        assertBound(this.stagingBucket);
+        const fileAsset = this.seenFileAssets.get(assetSourceHash)!;
+        const httpUrl = asString(
+            pulumi.interpolate`https://s3.${this.pulumiRegion}.${this.urlSuffix}/${this.stagingBucket.bucket}/${fileAsset.key}`,
+        );
+        const s3ObjectUrl = asString(pulumi.interpolate`s3://${this.stagingBucket.bucket}/${fileAsset.key}`);
+        return {
+            bucketName: asString(this.stagingBucket.bucket),
+            objectKey: asString(fileAsset.key),
+            s3ObjectUrl: s3ObjectUrl,
+            httpUrl,
+        };
     }
 
     /**
@@ -596,7 +591,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         // Assets can be registered multiple times, but we should only create the resource once
         if (this.seenImageAssets.has(assetKey)) {
             return {
-                repositoryName: repoName,
+                repositoryName: asString(repo.name),
                 imageUri: asString(this.seenImageAssets.get(assetKey)!.ref),
             };
         }
@@ -651,7 +646,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         this.seenImageAssets.set(assetKey, image);
 
         return {
-            repositoryName: repoName,
+            repositoryName: asString(repo.name),
             imageUri: asString(image.ref),
         };
     }

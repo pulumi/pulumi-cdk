@@ -158,16 +158,17 @@ export function setMocks(resources?: MockResourceArgs[]) {
                             ref: args.inputs.tags[0] + '@sha256:abcdefghijk1023',
                         },
                     };
-                case 'aws:ecr/repository:Repository':
+                case 'aws:ecr/repository:Repository': {
                     resources?.push(args);
                     return {
-                        id: args.inputs.name + '_id',
+                        id: args.name + '_id',
                         state: {
                             ...args.inputs,
                             arn: args.name + '_arn',
-                            repositoryUrl: '12345678910.dkr.ecr.us-east-1.amazonaws.com/' + args.inputs.name,
+                            repositoryUrl: '12345678910.dkr.ecr.us-east-1.amazonaws.com/' + args.name,
                         },
                     };
+                }
                 case 'aws-native:cloudformation:CustomResourceEmulator':
                     resources?.push(args);
                     return {
