@@ -841,4 +841,3 @@ Run Pulumi examples:
 ```
 $ yarn test-examples
 ```
-
