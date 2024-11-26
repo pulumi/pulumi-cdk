@@ -238,7 +238,6 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
 
     private stackDependsOn(dependencies: Set<ArtifactConverter>): pulumi.Resource[] {
         const dependsOn: pulumi.Resource[] = [];
-        dependsOn.push(...this.app.dependencies);
         for (const d of dependencies) {
             if (d instanceof StackConverter) {
                 dependsOn.push(d.stackResource);
