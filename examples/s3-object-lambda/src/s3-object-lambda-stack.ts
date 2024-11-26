@@ -62,7 +62,7 @@ export class S3ObjectLambdaStack extends pulumicdk.Stack {
             sourceAccount: cdk.Aws.ACCOUNT_ID,
         });
 
-        const objectLambdaAP = new s3ObjectLambda.AccessPoint(this, 's3ObjectLambdaAP', {
+        const objectLambdaAP = new s3ObjectLambda.AccessPoint(this, 's3-object-lambda-ap', {
             bucket,
             handler: retrieveTransformedObjectLambda,
         });
