@@ -32,6 +32,11 @@ export function mapToCfnResource(
             // lowercase letters.
             return new aws.s3.Bucket(logicalId.toLowerCase(), props, options);
 
+        case 'AWS::S3::AccessPoint':
+            // Lowercase the access point to comply with the resource's naming constraints, which only allow
+            // lowercase letters.
+            return new aws.s3.AccessPoint(logicalId.toLowerCase(), props, options);
+
         case 'AWS::ECR::Repository':
             // Lowercase the repository name to comply with the Repository resource's naming constraints, which only allow
             // lowercase letters.
