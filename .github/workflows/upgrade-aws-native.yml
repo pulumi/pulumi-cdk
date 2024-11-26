@@ -37,9 +37,13 @@ jobs:
     - name: Commit changes
       run: >-
         git add examples
+
         git add integration
+
         git add package.json
+
         git add yarn.lock
+
         git add schemas
 
         git commit -m "Updating @pulumi/aws-native dependency" || echo "ignore commit failure, may be empty"
