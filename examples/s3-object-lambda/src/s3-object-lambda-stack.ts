@@ -8,7 +8,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3ObjectLambda from 'aws-cdk-lib/aws-s3objectlambda';
 
 // configurable variables
-const S3_ACCESS_POINT_NAME = 'example-test-ap';
+const S3_ACCESS_POINT_NAME = 'cdk-example-test-ap';
 const OBJECT_LAMBDA_ACCESS_POINT_NAME = 's3-object-lambda-ap';
 
 export class S3ObjectLambdaStack extends pulumicdk.Stack {
