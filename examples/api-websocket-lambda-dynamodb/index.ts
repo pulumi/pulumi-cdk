@@ -1,3 +1,4 @@
+import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import { AssetCode, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { WebSocketApi, WebSocketStage } from 'aws-cdk-lib/aws-apigatewayv2';
@@ -7,6 +8,8 @@ import { WebSocketLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integra
 import { Output } from '@pulumi/pulumi';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class ChatAppStack extends pulumicdk.Stack {
     public readonly url: Output<string>;
     public readonly table: Output<string>;
@@ -99,7 +102,7 @@ class ChatAppStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new ChatAppStack(scope, 'chat-app');
+            const stack = new ChatAppStack(scope, `${prefix}-chat-app`);
             return {
                 url: stack.url,
                 table: stack.table,

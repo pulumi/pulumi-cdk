@@ -6,6 +6,9 @@ import * as pulumicdk from '@pulumi/cdk';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
+
 class CloudFrontStack extends pulumicdk.Stack {
     public readonly bucketName: pulumi.Output<string>;
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
@@ -33,7 +36,6 @@ class CloudFrontStack extends pulumicdk.Stack {
         });
 
         const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'ResponseHeadersPolicy', {
-            responseHeadersPolicyName: 'MyPolicy',
             comment: 'A default policy',
             corsBehavior: {
                 accessControlAllowCredentials: false,
@@ -94,7 +96,6 @@ class CloudFrontStack extends pulumicdk.Stack {
         const realtimeLogConfig = new cloudfront.RealtimeLogConfig(this, 'realtimeLog', {
             endPoints: [cloudfront.Endpoint.fromKinesisStream(stream)],
             fields: ['timestamp', 'c-ip', 'time-to-first-byte', 'sc-status'],
-            realtimeLogConfigName: 'my-delivery-stream',
             samplingRate: 100,
         });
 
@@ -121,7 +122,7 @@ class CloudFrontStack extends pulumicdk.Stack {
 }
 
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    const stack = new CloudFrontStack(scope, 'teststack');
+    const stack = new CloudFrontStack(scope, `${prefix}-cloudfront`);
     return {
         bucketName: stack.bucketName,
     };

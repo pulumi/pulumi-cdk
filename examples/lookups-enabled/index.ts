@@ -11,6 +11,7 @@ import {
 
 const config = new pulumi.Config();
 const zoneName = config.require('zoneName');
+const prefix = config.get('prefix') ?? pulumi.getStack();
 
 export class Ec2CdkStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string) {
@@ -71,7 +72,7 @@ export class Ec2CdkStack extends pulumicdk.Stack {
 }
 
 const app = new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new Ec2CdkStack(scope, 'teststack');
+    new Ec2CdkStack(scope, `${prefix}-lookups-enabled`);
 });
 
 export const imageId = app.outputs['imageId'];

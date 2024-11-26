@@ -8,7 +8,10 @@ import {
     aws_sns_subscriptions,
     aws_sqs,
 } from 'aws-cdk-lib';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class EventBridgeSnsStack extends pulumicdk.Stack {
     constructor(scope: pulumicdk.App, id: string) {
         super(scope, id);
@@ -78,7 +81,7 @@ class EventBridgeSnsStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App) => {
-            new EventBridgeSnsStack(scope, 'eventbridge-sns-stack');
+            new EventBridgeSnsStack(scope, `${prefix}-eventbridge-sns`);
         });
     }
 }

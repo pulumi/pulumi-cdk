@@ -9,7 +9,10 @@ import * as sns_sub from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as pulumicdk from '@pulumi/cdk';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class TheBigFanStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string) {
         super(app, id);
@@ -31,7 +34,6 @@ class TheBigFanStack extends pulumicdk.Stack {
         // Status:created SNS Subscriber Queue
         const createdStatusQueue = new sqs.Queue(this, 'status-created-queue', {
             visibilityTimeout: cdk.Duration.seconds(300),
-            queueName: 'BigFanTopicStatusCreatedSubscriberQueue',
         });
 
         // Only send messages to our createdStatusQueue with a status of created
@@ -49,7 +51,6 @@ class TheBigFanStack extends pulumicdk.Stack {
         // Any other status SNS Subscriber Queue
         const anyOtherStatusQueue = new sqs.Queue(this, 'other-status-queue', {
             visibilityTimeout: cdk.Duration.seconds(300),
-            queueName: 'BigFanTopicAnyOtherStatusSubscriberQueue',
         });
 
         // Only send messages to our anyOtherStatusQueue that do not have a status of created
@@ -225,5 +226,5 @@ class TheBigFanStack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new TheBigFanStack(scope, 'TheBigFanStack');
+    new TheBigFanStack(scope, `${prefix}-big-fan`);
 });

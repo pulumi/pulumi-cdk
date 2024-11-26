@@ -4,6 +4,8 @@ import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class AlbStack extends pulumicdk.Stack {
     url: pulumi.Output<string>;
 
@@ -45,7 +47,7 @@ class AlbStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new AlbStack(scope, 'teststack');
+            const stack = new AlbStack(scope, `${prefix}-alb`);
             return { url: stack.url };
         });
     }

@@ -4,7 +4,10 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as pulumicdk from '@pulumi/cdk';
 import { SecretValue, Size } from 'aws-cdk-lib/core';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class Ec2Stack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, {
@@ -21,23 +24,6 @@ class Ec2Stack extends pulumicdk.Stack {
             vpnGateway: true,
             ipAddresses: ec2.IpAddresses.cidr('10.0.0.0/16'),
             natGateways: 1,
-            vpnConnections: {
-                dynamic: {
-                    ip: '1.2.3.4',
-                    tunnelOptions: [
-                        {
-                            preSharedKeySecret: SecretValue.unsafePlainText('secretkey1234'),
-                        },
-                        {
-                            preSharedKeySecret: SecretValue.unsafePlainText('secretkey5678'),
-                        },
-                    ],
-                },
-                static: {
-                    ip: '4.5.6.7',
-                    staticRoutes: ['192.168.10.0/24', '192.168.20.0/24'],
-                },
-            },
             subnetConfiguration: [
                 {
                     name: 'Public',
@@ -121,7 +107,7 @@ class Ec2Stack extends pulumicdk.Stack {
             availabilityZone,
             size: Size.gibibytes(10),
         });
-        const instance = new ec2.Instance(this, 'Instance', {
+        const instance = new ec2.Instance(this, `${prefix}-Instance`, {
             vpc,
             // smallest allowed for placement groups
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.M7G, ec2.InstanceSize.MEDIUM),
@@ -161,7 +147,7 @@ class Ec2Stack extends pulumicdk.Stack {
 new pulumicdk.App(
     'app',
     (scope: pulumicdk.App) => {
-        new Ec2Stack(scope, 'teststack');
+        new Ec2Stack(scope, `${prefix}-ec2`);
     },
     {
         appOptions: {

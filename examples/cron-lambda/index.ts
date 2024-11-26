@@ -6,6 +6,8 @@ import { Duration } from 'aws-cdk-lib';
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class LambdaStack extends pulumicdk.Stack {
     lambdaArn: pulumi.Output<string>;
 
@@ -37,7 +39,7 @@ class LambdaStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new LambdaStack(scope, 'teststack');
+            const stack = new LambdaStack(scope, `${prefix}-cron-lambda`);
             return { lambdaArn: stack.lambdaArn };
         });
     }

@@ -8,7 +8,10 @@ import {
     aws_lambda as lambda,
     aws_lambda_nodejs as lambda_nodejs,
 } from 'aws-cdk-lib';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class EventbridgeAtmStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string) {
         super(app, id);
@@ -114,5 +117,5 @@ class EventbridgeAtmStack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new EventbridgeAtmStack(scope, 'eventbridge-sns-stack');
+    new EventbridgeAtmStack(scope, `${prefix}-eventbridge-atm`);
 });

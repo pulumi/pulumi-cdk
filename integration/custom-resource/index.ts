@@ -6,6 +6,8 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class S3DeploymentStack extends pulumicdk.Stack {
     bucketWebsiteUrl: pulumi.Output<string>;
     bucketObjectKeys: pulumi.Output<string[]>;
@@ -56,7 +58,7 @@ class S3DeploymentStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new S3DeploymentStack(scope, 's3deployment');
+            const stack = new S3DeploymentStack(scope, `${prefix}-s3deployment`);
             return {
                 bucketWebsiteUrl: stack.bucketWebsiteUrl,
                 bucketObjectKeys: stack.bucketObjectKeys,

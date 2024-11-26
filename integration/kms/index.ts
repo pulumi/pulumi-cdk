@@ -2,7 +2,10 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as pulumicdk from '@pulumi/cdk';
 import { Duration } from 'aws-cdk-lib';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class KmsStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);
@@ -21,10 +24,10 @@ class KmsStack extends pulumicdk.Stack {
                 principals: [role],
             }),
         );
-        key.addAlias('pulumi');
+        key.addAlias(`pulumi-${prefix}`);
     }
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new KmsStack(scope, 'teststack');
+    new KmsStack(scope, `${prefix}-kms`);
 });

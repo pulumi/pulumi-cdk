@@ -4,7 +4,10 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as path from 'path';
 import * as pulumicdk from '@pulumi/cdk';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 export class Ec2CdkStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string) {
         super(app, id);
@@ -86,7 +89,7 @@ export class Ec2CdkStack extends pulumicdk.Stack {
 class MyApp extends pulumicdk.App {
     constructor() {
         super('app', (scope: pulumicdk.App) => {
-            new Ec2CdkStack(scope, 'teststack');
+            new Ec2CdkStack(scope, `${prefix}-ec2`);
         });
     }
 }

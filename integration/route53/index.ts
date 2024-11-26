@@ -3,7 +3,10 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as pulumicdk from '@pulumi/cdk';
 import { Duration } from 'aws-cdk-lib/core';
 import { aws_elasticloadbalancingv2, aws_kms, aws_route53_targets } from 'aws-cdk-lib';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class Route53Stack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);
@@ -80,5 +83,5 @@ class Route53Stack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new Route53Stack(scope, 'teststack');
+    new Route53Stack(scope, `${prefix}-route53`);
 });

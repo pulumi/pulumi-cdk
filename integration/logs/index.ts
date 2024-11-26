@@ -4,7 +4,10 @@ import * as logs_destinations from 'aws-cdk-lib/aws-logs-destinations';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as pulumicdk from '@pulumi/cdk';
 import { RemovalPolicy } from 'aws-cdk-lib/core';
+import * as pulumi from '@pulumi/pulumi';
 
+const config = new pulumi.Config();
+const prefix = config.get('prefix') ?? pulumi.getStack();
 class LogsStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);
@@ -28,7 +31,7 @@ class LogsStack extends pulumicdk.Stack {
         new logs.QueryDefinition(this, 'QueryDefinition', {
             queryString,
             logGroups: [logGroup],
-            queryDefinitionName: 'cdk-test-query',
+            queryDefinitionName: `${prefix}-cdk-test-query`,
         });
 
         logGroup.addToResourcePolicy(
@@ -55,5 +58,5 @@ class LogsStack extends pulumicdk.Stack {
 }
 
 new pulumicdk.App('app', (scope: pulumicdk.App) => {
-    new LogsStack(scope, 'teststack');
+    new LogsStack(scope, `${prefix}-logs`);
 });

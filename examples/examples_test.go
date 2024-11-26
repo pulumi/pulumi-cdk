@@ -15,11 +15,26 @@
 package examples
 
 import (
+	"fmt"
+	"math/rand"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/pulumi/pulumi/pkg/v3/testing/integration"
 )
+
+func getPrefix() string {
+	prefix := os.Getenv("GITHUB_SHA")
+	if prefix == "" {
+		prefix = strconv.Itoa(rand.Intn(10000))
+	}
+	if len(prefix) > 5 {
+		prefix = prefix[:5]
+	}
+	// has to start with a letter
+	return fmt.Sprintf("a%s", prefix)
+}
 
 func getEnvRegion(t *testing.T) string {
 	envRegion := os.Getenv("AWS_REGION")
@@ -41,10 +56,13 @@ func getCwd(t *testing.T) string {
 
 func getBaseOptions(t *testing.T) integration.ProgramTestOptions {
 	envRegion := getEnvRegion(t)
+	prefix := getPrefix()
+	t.Logf("using prefix: %s", prefix)
 	return integration.ProgramTestOptions{
 		Config: map[string]string{
 			"aws:region":        envRegion,
 			"aws-native:region": envRegion,
+			"prefix":            prefix,
 		},
 		// some flakiness in some resource creation
 		// @see https://github.com/pulumi/pulumi-aws-native/issues/1714
