@@ -9,7 +9,7 @@ import {
     ISynthesisSession,
 } from 'aws-cdk-lib/core';
 import { AppComponent, AppOptions } from '../src/types';
-import { MockCallArgs, MockResourceArgs } from '@pulumi/pulumi/runtime';
+import { MockCallArgs, MockCallResult, MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Construct } from 'constructs';
 import { App, Stack } from '../src/stack';
 import { PulumiSynthesizerBase } from '../src/synthesizer';
@@ -82,9 +82,12 @@ export async function awaitApp(app: App): Promise<void> {
     await Promise.all(app.dependencies.flatMap((d) => promiseOf(d.urn)));
 }
 
-export function setMocks(resources?: MockResourceArgs[]) {
+export function setMocks(resources?: MockResourceArgs[], overrides?: { [pulumiType: string]: MockCallResult }) {
     const mocks: pulumi.runtime.Mocks = {
         call: (args: MockCallArgs): { [id: string]: any } => {
+            if (overrides && args.token in overrides) {
+                return overrides[args.token];
+            }
             switch (args.token) {
                 case 'aws-native:index:getAccountId':
                     return {
@@ -118,6 +121,11 @@ export function setMocks(resources?: MockResourceArgs[]) {
                 case 'aws:index/getRegion:getRegion':
                     return {
                         name: 'us-east-2',
+                    };
+                case 'aws:ssm/getParameter:getParameter':
+                    return {
+                        type: 'String',
+                        value: 'abcd',
                     };
                 case 'aws:secretsmanager/getSecretVersion:getSecretVersion':
                     return {
@@ -181,7 +189,7 @@ export function setMocks(resources?: MockResourceArgs[]) {
                             },
                         },
                     };
-                default:
+                default: {
                     resources?.push(args);
                     const attrName = args.type.split(':')[2];
                     const sdkName = toSdkName(attrName);
@@ -197,6 +205,7 @@ export function setMocks(resources?: MockResourceArgs[]) {
                             [sdkName + 'Name']: id + '_name',
                         },
                     };
+                }
             }
         },
     };

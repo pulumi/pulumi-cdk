@@ -181,6 +181,37 @@ func TestReplaceOnChanges(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestSsmDynamic(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "ssm-dynamic"),
+			EditDirs: []integration.EditDir{
+				{
+					Dir:      filepath.Join(getCwd(t), "ssm-dynamic/step2"),
+					Additive: true,
+					ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+						t.Logf("\nOutputs: %v\n\n", stack.Outputs)
+
+						stringValue := stack.Outputs["stringValue"].(string)
+						assert.Equal(t, "testvalue", stringValue)
+
+						stringListValue := stack.Outputs["stringListValue"].([]interface{})
+						assert.Equal(t, []interface{}{"abcd", "xyz"}, stringListValue)
+
+						dynamicStringValue := stack.Outputs["dynamicStringValue"].(string)
+						assert.Equal(t, "testvalue", dynamicStringValue)
+
+						dyanmicStringListValue := stack.Outputs["dynamicStringListValue"].([]interface{})
+						assert.Equal(t, []interface{}{"abcd", "xyz"}, dyanmicStringListValue)
+
+					},
+				},
+			},
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func TestRemovalPolicy(t *testing.T) {
 	// Since we are creating two tests we have to set `NoParallel` on each test
 	// and set parallel here.

@@ -28,6 +28,7 @@ import * as intrinsics from './intrinsics';
 import { CloudFormationParameter, CloudFormationParameterLogicalId, CloudFormationParameterWithId } from '../cfn';
 import { Metadata, PulumiResource } from '../pulumi-metadata';
 import { PulumiProvider } from '../types';
+import { processSSMReferenceValue } from './ssm-dynamic';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -411,6 +412,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
             .reduce((result, [k, v]) => {
                 let value = this.processIntrinsics(v);
                 value = processSecretsManagerReferenceValue(this.stackResource, value);
+                value = processSSMReferenceValue(this.stackResource, value);
                 return {
                     ...result,
                     [k]: value,
