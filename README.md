@@ -1,4 +1,4 @@
-# Pulumi CDK Adapter (preview)
+# Pulumi CDK Adapter
 
 The Pulumi CDK Adapter is a library that enables
 [Pulumi](https://github.com/pulumi/pulumi) programs to use [AWS
@@ -9,9 +9,6 @@ Pulumi program, and having the resulting AWS resources be deployed and managed
 via Pulumi.  Outputs of resources defined in a Pulumi program can be passed
 into AWS CDK Constructs, and outputs from AWS CDK stacks can be used as inputs
 to other Pulumi resources.
-
-> Note: Currently, the Pulumi CDK Adapter preview is available only for
-> TypeScript/JavaScript users.
 
 For example, to construct an [AWS AppRunner `Service`
 resource](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-apprunner-alpha-readme.html)
