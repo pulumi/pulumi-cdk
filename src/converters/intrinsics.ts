@@ -394,6 +394,14 @@ function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
             // Custom resources have a `physicalResourceId` that is used for Ref
             return ctx.succeed(map.resource.physicalResourceId);
         }
+
+        const pType = (<any>map.resource).__pulumiType;
+        if (!pType.startsWith('aws-native:')) {
+            // For non-aws-native resources (i.e. AWS Provider), fallback to using the id
+            // if this is incorrect users will have to provide a mapping with the correct id
+            const cr = <pulumi.CustomResource>map.resource; // assume we have a custom resource.
+            return ctx.succeed(cr.id);
+        }
         const resMeta = ctx.tryFindResource(map.resourceType);
 
         // If there is no metadata to suggest otherwise, assume that we can use the Pulumi id which typically will be
