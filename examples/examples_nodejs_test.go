@@ -90,7 +90,15 @@ func TestFargate(t *testing.T) {
 func TestS3ObjectLambda(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
-			Dir: filepath.Join(getCwd(t), "s3-object-lambda"),
+			Dir:                  filepath.Join(getCwd(t), "s3-object-lambda"),
+			ExpectRefreshChanges: false,
+			EditDirs: []integration.EditDir{
+				{
+					Dir:             filepath.Join(getCwd(t), "s3-object-lambda"),
+					ExpectNoChanges: true,
+					Additive:        true,
+				},
+			},
 		})
 
 	integration.ProgramTest(t, &test)
