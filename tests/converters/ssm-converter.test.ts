@@ -73,7 +73,7 @@ describe('process reference value', () => {
         const value = resolveSSMDynamicPlaintextReference(parent, '{{resolve:ssm:MySecret}}');
         await expect(pulumi.isSecret(value)).resolves.toBe(false);
         const paramValue = await promiseOf(pulumi.unsecret(value));
-        expect(paramValue).toEqual(['abcd', 'efgh']);
+        expect(paramValue).toEqual('abcd,efgh');
     });
 
     test('SecureString value', async () => {
@@ -225,6 +225,6 @@ describe('SSM tests', () => {
         // THEN
         const subnet = converter.resources.get('db')?.resource as native.rds.DbInstance;
         const value = await promiseOf(subnet.masterUserSecret);
-        expect(value).toEqual(['abcd', 'efgh']);
+        expect(value).toEqual('abcd,efgh');
     });
 });
