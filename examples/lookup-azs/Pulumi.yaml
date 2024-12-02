@@ -1,0 +1,3 @@
+name: pulumi-aws-cdk-lookups-azs
+runtime: nodejs
+description: lookup azs example for CDK
