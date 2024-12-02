@@ -88,6 +88,7 @@ export class Ec2CdkStack extends pulumicdk.Stack {
 
         const ssmName = ec2.AmazonLinuxImage.ssmParameterName({
             generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2023,
+            cpuType: ec2.AmazonLinuxCpuType.ARM_64,
         });
         new ec2.Instance(this, 'ssm-instance', {
             vpc,
