@@ -1042,14 +1042,14 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
-"@pulumi/aws-native@^1.11.0":
+"@pulumi/aws-native@1.11.0":
   version "1.11.0"
   resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.11.0.tgz#8123519fcd2da40446994436fca56b1fdb73fa41"
   integrity sha512-Frb/S/Z1kG8Q7TiuoDguCu3Z9yKX3YHyBiSJZ0/VMqJ2+XuUfHBDdZar6F5SoWsXoEUVmz115gsSQGYvQ2FPYQ==
   dependencies:
     "@pulumi/pulumi" "^3.136.0"
 
-"@pulumi/aws@^6.56.0":
+"@pulumi/aws@6.61.0":
   version "6.61.0"
   resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-6.61.0.tgz#dd4f11d39a74e16c22507a581c1a92a98302e363"
   integrity sha512-7ZqwEj6Zh3+bmB8OVCCin93qqlUeBGpp76YjiwghfMa3Q4hvpDsi1tEu7/+3QDPWxH/HRbp6AeHQ8UYw0HalTg==
@@ -1059,14 +1059,14 @@
     mime "^2.0.0"
     resolve "^1.7.1"
 
-"@pulumi/docker-build@^0.0.7":
+"@pulumi/docker-build@0.0.7":
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/@pulumi/docker-build/-/docker-build-0.0.7.tgz#c56582dbc2d6f6a07ceebb9201a7904cd2278e6e"
   integrity sha512-yiPvQefRS3Z+5NtG5VK2pYTds0pCQh21INpoWY8gKFrqs166ZFVrPrMXelmsjABnmkG5ZNlkHanU7HqAExn55Q==
   dependencies:
     "@pulumi/pulumi" "^3.136.0"
 
-"@pulumi/docker@^4.5.0":
+"@pulumi/docker@4.5.7":
   version "4.5.7"
   resolved "https://registry.yarnpkg.com/@pulumi/docker/-/docker-4.5.7.tgz#56ec0782a1a52b5a1dc16230dcd7e07c0b94be01"
   integrity sha512-z0rr1PoJXemafrNl0oPjQJlGRNbMKN0z50cKhmcuMVsiNTt36cDLXw7kpclgddgdwkM6ZU5zMRyaA1rcNuXTlg==
