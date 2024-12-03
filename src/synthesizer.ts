@@ -502,10 +502,12 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
                 ? zipDirectory(assetFile, assetFile + '.zip')
                 : assetFile;
 
+        const fileAsset = new pulumi.asset.FileAsset(outputPath);
+
         const object = new aws.s3.BucketObjectv2(
             `${this.stagingStack.name}/${asset.sourceHash}`,
             {
-                source: outputPath,
+                source: fileAsset,
                 bucket: stagingBucket.bucket,
                 key: location.objectKey,
             },
