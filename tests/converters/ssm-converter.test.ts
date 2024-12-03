@@ -1,11 +1,10 @@
 import * as pulumi from '@pulumi/pulumi';
 import { StackConverter } from '../../src/converters/app-converter';
 import {
+    parseDynamicValue,
     parseSSMDynamicSecureStringReference,
     parseSSMDynamicPlaintextReference,
-    resolveSSMDynamicPlaintextReference,
-    resolveSSMDynamicSecureStringReference,
-} from '../../src/converters/ssm-dynamic';
+} from '../../src/converters/dynamic-references';
 import * as native from '@pulumi/aws-native';
 import { MockAppComponent, promiseOf, setMocks } from '../mocks';
 import { StackManifest } from '../../src/assembly';
@@ -55,7 +54,7 @@ describe('process reference value', () => {
             },
         });
         const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
-        const value = resolveSSMDynamicPlaintextReference(parent, '{{resolve:ssm:MySecret}}');
+        const value = parseDynamicValue(parent, '{{resolve:ssm:MySecret}}');
         await expect(pulumi.isSecret(value)).resolves.toBe(false);
         const paramValue = await promiseOf(pulumi.unsecret(value));
         expect(paramValue).toEqual('abcd');
@@ -70,7 +69,7 @@ describe('process reference value', () => {
             },
         });
         const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
-        const value = resolveSSMDynamicPlaintextReference(parent, '{{resolve:ssm:MySecret}}');
+        const value = parseDynamicValue(parent, '{{resolve:ssm:MySecret}}');
         await expect(pulumi.isSecret(value)).resolves.toBe(false);
         const paramValue = await promiseOf(pulumi.unsecret(value));
         expect(paramValue).toEqual('abcd,efgh');
@@ -85,7 +84,7 @@ describe('process reference value', () => {
             },
         });
         const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
-        const value = resolveSSMDynamicSecureStringReference(parent, '{{resolve:ssm-secure:MySecret}}');
+        const value = parseDynamicValue(parent, '{{resolve:ssm-secure:MySecret}}');
         await expect(pulumi.isSecret(value)).resolves.toBe(true);
         const paramValue = await promiseOf(pulumi.unsecret(value));
         expect(paramValue).toEqual('abcd');

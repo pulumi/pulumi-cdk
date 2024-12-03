@@ -1,9 +1,6 @@
 import * as pulumi from '@pulumi/pulumi';
 import { StackConverter } from '../../src/converters/app-converter';
-import {
-    parseDynamicSecretReference,
-    processSecretsManagerReferenceValue,
-} from '../../src/converters/secrets-manager-dynamic';
+import { parseDynamicSecretReference, parseDynamicValue } from '../../src/converters/dynamic-references';
 import * as native from '@pulumi/aws-native';
 import { MockAppComponent, promiseOf, setMocks } from '../mocks';
 import { StackManifest } from '../../src/assembly';
@@ -79,7 +76,7 @@ describe('parseDynamicSecretReference', () => {
 describe('process reference value', () => {
     test('string secretsmanager value', async () => {
         const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
-        const value = processSecretsManagerReferenceValue(parent, '{{resolve:secretsmanager:MySecret}}');
+        const value = parseDynamicValue(parent, '{{resolve:secretsmanager:MySecret}}');
         await expect(pulumi.isSecret(value)).resolves.toBe(true);
         const secretValue = await promiseOf(pulumi.unsecret(value));
         expect(secretValue).toEqual('abcd');
@@ -88,7 +85,7 @@ describe('process reference value', () => {
     test('output secretsmanager value', async () => {
         const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
         const outputValue = pulumi.output('{{resolve:secretsmanager:MySecret}}');
-        const value = processSecretsManagerReferenceValue(parent, outputValue);
+        const value = parseDynamicValue(parent, outputValue);
         const secretValue = await promiseOf(pulumi.unsecret(value));
         expect(secretValue).toEqual('abcd');
     });
@@ -96,13 +93,13 @@ describe('process reference value', () => {
     test('output normal value', async () => {
         const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
         const outputValue = pulumi.output('somevalue');
-        const value = await promiseOf(processSecretsManagerReferenceValue(parent, outputValue));
+        const value = await promiseOf(parseDynamicValue(parent, outputValue));
         expect(value).toEqual('somevalue');
     });
 
     test('normal value', async () => {
         const parent = new MockAppComponent('/tmp/foo/bar/does/not/exist');
-        const value = processSecretsManagerReferenceValue(parent, 'somevalue');
+        const value = parseDynamicValue(parent, 'somevalue');
         expect(value).toEqual('somevalue');
     });
 });
