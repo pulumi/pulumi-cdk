@@ -1,3 +1,4 @@
+import * as aws from '@pulumi/aws';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -6,6 +7,7 @@ import * as pulumicdk from '@pulumi/cdk';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 import * as pulumi from '@pulumi/pulumi';
 
+const region = aws.config.requireRegion();
 const config = new pulumi.Config();
 const prefix = config.get('prefix') ?? pulumi.getStack();
 export class Ec2CdkStack extends pulumicdk.Stack {
@@ -82,6 +84,18 @@ export class Ec2CdkStack extends pulumicdk.Stack {
         });
         new cdk.CfnOutput(this, 'ssh command', {
             value: 'ssh -i cdk-key.pem -o IdentitiesOnly=yes ec2-user@' + ec2Instance.instancePublicIp,
+        });
+
+        const ssmName = ec2.AmazonLinuxImage.ssmParameterName({
+            generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2023,
+            cpuType: ec2.AmazonLinuxCpuType.ARM_64,
+        });
+        new ec2.Instance(this, 'ssm-instance', {
+            vpc,
+            instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
+            machineImage: ec2.MachineImage.genericLinux({
+                [region]: `{{resolve:ssm:${ssmName}}}`,
+            }),
         });
     }
 }

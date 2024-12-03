@@ -23,11 +23,11 @@ import { OutputMap, OutputRepr } from '../output-map';
 import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
-import { processSecretsManagerReferenceValue } from './secrets-manager-dynamic';
 import * as intrinsics from './intrinsics';
 import { CloudFormationParameter, CloudFormationParameterLogicalId, CloudFormationParameterWithId } from '../cfn';
 import { Metadata, PulumiResource } from '../pulumi-metadata';
 import { PulumiProvider } from '../types';
+import { parseDynamicValue } from './dynamic-references';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -410,7 +410,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
             .filter(([_, v]) => !this.isNoValue(v))
             .reduce((result, [k, v]) => {
                 let value = this.processIntrinsics(v);
-                value = processSecretsManagerReferenceValue(this.stackResource, value);
+                value = parseDynamicValue(this.stackResource, value);
                 return {
                     ...result,
                     [k]: value,
