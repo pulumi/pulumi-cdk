@@ -5,7 +5,7 @@
     "@types/node": "^10.0.0"
   },
   "dependencies": {
-    "@pulumi/aws": "^6.0.0",
+    "@pulumi/aws": "6.61.0",
     "@pulumi/aws-native": "^1.11.0",
     "@pulumi/cdk": "^0.5.0",
     "@pulumi/pulumi": "^3.0.0",
