@@ -551,10 +551,10 @@
     mime "^2.0.0"
     resolve "^1.7.1"
 
-"@pulumi/cdk@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.0.0.tgz#52164d1e9070e8ca9620823143a9d6b803d3aa74"
-  integrity sha512-dP+oroG+TuLwabBGZVeIjHdYlVlZEOSplLXNEqOhHCRmhlKudh9iea9pFwQgDU/1c/w6hC01PqOnE6o39IfiQA==
+"@pulumi/cdk@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.1.0.tgz#abfa9d38b0c8c8e98ddaa01a9a7fab2b574766a3"
+  integrity sha512-FMgNuC4G8Gi04UsTJ0ZLCNPCIX10/NvV4uOmqVfjC0uq4S778hKqPrx+eENnEYh+9OAcqlJZpHhYlHuv5pazOw==
   dependencies:
     "@aws-cdk/cli-lib-alpha" "^2.161.1-alpha.0"
     "@types/glob" "^8.1.0"

@@ -6,7 +6,7 @@
     "dependencies": {
         "@pulumi/aws": "6.62.2",
         "@pulumi/aws-native": "1.12.0",
-        "@pulumi/cdk": "0.5.0",
+        "@pulumi/cdk": "1.1.0",
         "@pulumi/docker-build": "0.0.7",
         "@pulumi/pulumi": "3.142.0",
         "@types/express": "^5.0.0",
