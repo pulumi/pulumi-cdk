@@ -522,24 +522,24 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
-"@pulumi/aws-native@^1.9.0":
+"@pulumi/aws-native@1.12.0":
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.12.0.tgz#df9153d34d7a10fc1b906d02ffcfc4eb1b742e50"
   integrity sha512-13HN5z4Pf1OnZmVi0Y0Bfpsz5jrDTeZsiYh6gLeVdjPCAQrNDK/xUGW4VoJurO2PgyIo357J6Hu0d2GrxtmPwg==
   dependencies:
     "@pulumi/pulumi" "^3.136.0"
 
-"@pulumi/aws@6.61.0":
-  version "6.61.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-6.61.0.tgz#dd4f11d39a74e16c22507a581c1a92a98302e363"
-  integrity sha512-7ZqwEj6Zh3+bmB8OVCCin93qqlUeBGpp76YjiwghfMa3Q4hvpDsi1tEu7/+3QDPWxH/HRbp6AeHQ8UYw0HalTg==
+"@pulumi/aws@6.62.2":
+  version "6.62.2"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-6.62.2.tgz#8d0fda654f1399f25e9f4e0372477f911d420962"
+  integrity sha512-fswLY9VolPrcLFaQ+4UqHXwQQn5Bjje/Rg4cWXOCnXP79qdXHAn4zqrraeYza9al5UHLmwl/npyH8N2ZYmjveQ==
   dependencies:
     "@pulumi/pulumi" "^3.136.0"
     builtin-modules "3.0.0"
     mime "^2.0.0"
     resolve "^1.7.1"
 
-"@pulumi/cdk@^0.5.0":
+"@pulumi/cdk@0.5.0":
   version "0.5.0"
   resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-0.5.0.tgz#7d40dc75c3cf40f70b2d8a3f9304527d21c7c32e"
   integrity sha512-AS9AFWrXwUBs9oB+zDNvrFpZmiQ2+uBU/2CCiq0yMXjsWkeqepnhSN3R46O92qOA3B0cZFRDV7MBC3TLA1qeTw==
@@ -547,14 +547,14 @@
     "@types/glob" "^8.1.0"
     archiver "^7.0.1"
 
-"@pulumi/docker-build@^0.0.7":
+"@pulumi/docker-build@0.0.7":
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/@pulumi/docker-build/-/docker-build-0.0.7.tgz#c56582dbc2d6f6a07ceebb9201a7904cd2278e6e"
   integrity sha512-yiPvQefRS3Z+5NtG5VK2pYTds0pCQh21INpoWY8gKFrqs166ZFVrPrMXelmsjABnmkG5ZNlkHanU7HqAExn55Q==
   dependencies:
     "@pulumi/pulumi" "^3.136.0"
 
-"@pulumi/pulumi@^3.0.0", "@pulumi/pulumi@^3.136.0":
+"@pulumi/pulumi@3.142.0", "@pulumi/pulumi@^3.136.0":
   version "3.142.0"
   resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-3.142.0.tgz#dd7bb330576f170365fa711f0b5f87394b964885"
   integrity sha512-2RP4EDIDj4A980u/KThEUe5h5b0LcSaOqw9cA8Cxi3SiP+GC91zecJNbko4GOSR8kxsNd8EY327pVxt7fjTKhA==
@@ -2801,7 +2801,16 @@ streamx@^2.15.0:
   optionalDependencies:
     bare-events "^2.2.0"
 
-"string-width-cjs@npm:string-width@^4.2.0", string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
+"string-width-cjs@npm:string-width@^4.2.0":
+  version "4.2.3"
+  resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
+  integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
+  dependencies:
+    emoji-regex "^8.0.0"
+    is-fullwidth-code-point "^3.0.0"
+    strip-ansi "^6.0.1"
+
+string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -2833,7 +2842,14 @@ string_decoder@~1.1.1:
   dependencies:
     safe-buffer "~5.1.0"
 
-"strip-ansi-cjs@npm:strip-ansi@^6.0.1", strip-ansi@^6.0.0, strip-ansi@^6.0.1:
+"strip-ansi-cjs@npm:strip-ansi@^6.0.1":
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
+  integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
+  dependencies:
+    ansi-regex "^5.0.1"
+
+strip-ansi@^6.0.0, strip-ansi@^6.0.1:
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
@@ -3007,7 +3023,16 @@ which@^4.0.0:
   dependencies:
     isexe "^3.1.1"
 
-"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
+"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
+  integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
+  dependencies:
+    ansi-styles "^4.0.0"
+    string-width "^4.1.0"
+    strip-ansi "^6.0.0"
+
+wrap-ansi@^7.0.0:
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
