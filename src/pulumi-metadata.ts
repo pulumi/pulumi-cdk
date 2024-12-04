@@ -373,7 +373,7 @@ export function normalizeObject(key: string[], value: any, cfnType?: string, pul
             });
             return result;
         } catch (e) {
-            debug(`error reading pulumi schema: ${e}`);
+            debug(`[CDK Adapter] error reading pulumi schema: ${e}`);
             // fallback to processing without the schema
             return normalizeGenericResourceObject(key, value);
         }

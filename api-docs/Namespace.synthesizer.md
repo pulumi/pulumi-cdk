@@ -54,15 +54,15 @@ resources and deploy the assets themselves.
 
 ###### Defined in
 
-[synthesizer.ts:217](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L217)
+[synthesizer.ts:218](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L218)
 
 #### Properties
 
 | Property | Modifier | Type | Default value | Description | Overrides | Defined in |
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-| `stagingBucket?` | `public` | `BucketV2` | `undefined` | The app-scoped, environment-keyed staging bucket. | - | [synthesizer.ts:159](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L159) |
-| `stagingRepos` | `readonly` | `Record`\<`string`, `Repository`\> | `{}` | The app-scoped, environment-keyed ecr repositories associated with this app. | - | [synthesizer.ts:164](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L164) |
-| `stagingStack` | `readonly` | `CdkConstruct` | `undefined` | The Pulumi ComponentResource wrapper which contains all of the staging resources. This can be added to the `dependsOn` of the main stack to ensure the staging assets are created first | [`PulumiSynthesizerBase`](Namespace.synthesizer.md#pulumisynthesizerbase).`stagingStack` | [synthesizer.ts:154](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L154) |
+| `stagingBucket?` | `public` | `BucketV2` | `undefined` | The app-scoped, environment-keyed staging bucket. | - | [synthesizer.ts:160](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L160) |
+| `stagingRepos` | `readonly` | `Record`\<`string`, `Repository`\> | `{}` | The app-scoped, environment-keyed ecr repositories associated with this app. | - | [synthesizer.ts:165](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L165) |
+| `stagingStack` | `readonly` | `CdkConstruct` | `undefined` | The Pulumi ComponentResource wrapper which contains all of the staging resources. This can be added to the `dependsOn` of the main stack to ensure the staging assets are created first | [`PulumiSynthesizerBase`](Namespace.synthesizer.md#pulumisynthesizerbase).`stagingStack` | [synthesizer.ts:155](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L155) |
 
 #### Methods
 
@@ -82,7 +82,7 @@ Returns the S3 key prefix that will be used for deploy time assets.
 
 ###### Defined in
 
-[synthesizer.ts:115](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L115)
+[synthesizer.ts:116](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L116)
 
 ##### getStagingBucket()
 
@@ -101,7 +101,7 @@ and custom resource responses.
 
 ###### Defined in
 
-[synthesizer.ts:416](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L416)
+[synthesizer.ts:417](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L417)
 
 ***
 
@@ -136,7 +136,7 @@ creates Pulumi resources then you should extend this class.
 
 | Property | Modifier | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ | ------ |
-| `stagingStack` | `abstract` | `CdkConstruct` | The Pulumi ComponentResource wrapper which contains all of the staging resources. This can be added to the `dependsOn` of the main stack to ensure the staging assets are created first | [synthesizer.ts:104](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L104) |
+| `stagingStack` | `abstract` | `CdkConstruct` | The Pulumi ComponentResource wrapper which contains all of the staging resources. This can be added to the `dependsOn` of the main stack to ensure the staging assets are created first | [synthesizer.ts:105](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L105) |
 
 #### Methods
 
@@ -152,7 +152,7 @@ Returns the S3 key prefix that will be used for deploy time assets.
 
 ###### Defined in
 
-[synthesizer.ts:115](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L115)
+[synthesizer.ts:116](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L116)
 
 ##### getStagingBucket()
 
@@ -167,7 +167,7 @@ and custom resource responses.
 
 ###### Defined in
 
-[synthesizer.ts:110](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L110)
+[synthesizer.ts:111](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L111)
 
 ## Interfaces
 
@@ -177,10 +177,10 @@ and custom resource responses.
 
 | Property | Modifier | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ | ------ |
-| `appId` | `readonly` | `string` | A unique identifier for the application that the staging stack belongs to. This identifier will be used in the name of staging resources created for this application, and should be unique across CDK apps. The identifier should include lowercase characters, numbers, periods (.) and dashes ('-') only and have a maximum of 17 characters. | [synthesizer.ts:29](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L29) |
-| `autoDeleteStagingAssets?` | `readonly` | `boolean` | Auto deletes objects in the staging S3 bucket and images in the staging ECR repositories. This will also delete the S3 buckets and ECR repositories themselves when all objects / images are removed. **Default** `true` | [synthesizer.ts:74](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L74) |
-| `deployTimeFileAssetLifetime?` | `readonly` | `Duration` | The lifetime for deploy time file assets. Assets that are only necessary at deployment time (for instance, CloudFormation templates and Lambda source code bundles) will be automatically deleted after this many days. Assets that may be read from the staging bucket during your application's run time will not be deleted. Set this to the length of time you wish to be able to roll back to previous versions of your application without having to do a new `cdk synth` and re-upload of assets. **Default** `- Duration.days(30)` | [synthesizer.ts:53](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L53) |
-| `imageAssetVersionCount?` | `readonly` | `number` | The maximum number of image versions to store in a repository. Previous versions of an image can be stored for rollback purposes. Once a repository has more than 3 image versions stored, the oldest version will be discarded. This allows for sensible garbage collection while maintaining a few previous versions for rollback scenarios. **Default** `- up to 3 versions stored` | [synthesizer.ts:86](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L86) |
-| `parent?` | `readonly` | `Resource` | The parent resource for any Pulumi resources created by the Synthesizer | [synthesizer.ts:91](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L91) |
-| `stagingBucketName?` | `readonly` | `string` | Explicit name for the staging bucket **Default** `- a well-known name unique to this app/env.` | [synthesizer.ts:36](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L36) |
-| `stagingStackNamePrefix?` | `readonly` | `string` | Specify a custom prefix to be used as the staging stack name and construct ID. The prefix will be appended before the appId, which is required to be part of the stack name and construct ID to ensure uniqueness. **Default** `'staging-stack'` | [synthesizer.ts:63](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L63) |
+| `appId` | `readonly` | `string` | A unique identifier for the application that the staging stack belongs to. This identifier will be used in the name of staging resources created for this application, and should be unique across CDK apps. The identifier should include lowercase characters, numbers, periods (.) and dashes ('-') only and have a maximum of 17 characters. | [synthesizer.ts:30](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L30) |
+| `autoDeleteStagingAssets?` | `readonly` | `boolean` | Auto deletes objects in the staging S3 bucket and images in the staging ECR repositories. This will also delete the S3 buckets and ECR repositories themselves when all objects / images are removed. **Default** `true` | [synthesizer.ts:75](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L75) |
+| `deployTimeFileAssetLifetime?` | `readonly` | `Duration` | The lifetime for deploy time file assets. Assets that are only necessary at deployment time (for instance, CloudFormation templates and Lambda source code bundles) will be automatically deleted after this many days. Assets that may be read from the staging bucket during your application's run time will not be deleted. Set this to the length of time you wish to be able to roll back to previous versions of your application without having to do a new `cdk synth` and re-upload of assets. **Default** `- Duration.days(30)` | [synthesizer.ts:54](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L54) |
+| `imageAssetVersionCount?` | `readonly` | `number` | The maximum number of image versions to store in a repository. Previous versions of an image can be stored for rollback purposes. Once a repository has more than 3 image versions stored, the oldest version will be discarded. This allows for sensible garbage collection while maintaining a few previous versions for rollback scenarios. **Default** `- up to 3 versions stored` | [synthesizer.ts:87](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L87) |
+| `parent?` | `readonly` | `Resource` | The parent resource for any Pulumi resources created by the Synthesizer | [synthesizer.ts:92](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L92) |
+| `stagingBucketName?` | `readonly` | `string` | Explicit name for the staging bucket **Default** `- a well-known name unique to this app/env.` | [synthesizer.ts:37](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L37) |
+| `stagingStackNamePrefix?` | `readonly` | `string` | Specify a custom prefix to be used as the staging stack name and construct ID. The prefix will be appended before the appId, which is required to be part of the stack name and construct ID to ensure uniqueness. **Default** `'staging-stack'` | [synthesizer.ts:64](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L64) |

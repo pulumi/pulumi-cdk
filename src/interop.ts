@@ -96,6 +96,20 @@ export type ResourceAttributeMappingArray = (ResourceAttributeMapping & { logica
 export type ResourceMapping = ResourceAttributeMapping | pulumi.Resource | ResourceAttributeMappingArray;
 
 /**
+ * extract a list of pulumi resources from a ResourceMapping
+ * @internal
+ */
+export function resourcesFromResourceMapping(mapping: ResourceMapping): pulumi.Resource[] {
+    if (Array.isArray(mapping)) {
+        return mapping.map((m) => m.resource);
+    } else if (pulumi.Resource.isInstance(mapping)) {
+        return [mapping];
+    } else {
+        return [mapping.resource];
+    }
+}
+
+/**
  * @internal
  */
 export class CdkConstruct extends pulumi.ComponentResource {

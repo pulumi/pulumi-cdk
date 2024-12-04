@@ -179,3 +179,14 @@ export function getAttributesFromResource(resource: pulumi.Resource): { [key: st
         };
     }, {});
 }
+
+/**
+ * Custom error class to control error formats
+ *
+ * @internal
+ */
+export class CdkAdapterError extends Error {
+    constructor(message: string) {
+        super(`[CDK Adapter] ${message}`);
+    }
+}

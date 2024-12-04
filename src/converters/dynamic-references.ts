@@ -1,6 +1,5 @@
 import * as aws from '@pulumi/aws';
 import * as pulumi from '@pulumi/pulumi';
-import { lift } from '../types';
 
 /**
  * The regular expression used to match an SSM plaintext dynamic reference.

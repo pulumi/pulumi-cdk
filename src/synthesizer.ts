@@ -9,6 +9,7 @@ import * as aws from '@pulumi/aws';
 import { CdkConstruct } from './interop';
 import { zipDirectory } from './zip';
 import { asString } from './output';
+import { CdkAdapterError } from './types';
 
 /**
  * Deploy time assets will be put in this S3 bucket prefix
@@ -259,7 +260,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      */
     private getCreateRepo(asset: cdk.DockerImageAssetSource): CreateRepoResponse {
         if (!asset.assetName) {
-            throw new Error("Docker image assets must include 'assetName' in the asset source definition");
+            throw new CdkAdapterError("Docker image assets must include 'assetName' in the asset source definition");
         }
         const repoName = `${this.appId}/${asset.assetName}`
             .toLocaleLowerCase()
@@ -481,7 +482,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
         assertBound(this.outdir);
 
         if (asset.executable || !asset.fileName) {
-            throw new Error(`file assets produced by commands are not yet supported`);
+            throw new CdkAdapterError(`file assets produced by commands are not yet supported`);
         }
 
         const location = this.assetManifest.defaultAddFileAsset(this.boundStack, asset, {
@@ -580,7 +581,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
     addDockerImageAsset(asset: cdk.DockerImageAssetSource): cdk.DockerImageAssetLocation {
         assertBound(this.outdir);
         if (asset.executable || !asset.directoryName) {
-            throw new Error(`Docker image assets produced by commands are not yet supported`);
+            throw new CdkAdapterError(`Docker image assets produced by commands are not yet supported`);
         }
 
         const { repoName, repo } = this.getCreateRepo(asset);

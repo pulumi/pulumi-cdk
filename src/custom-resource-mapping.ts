@@ -18,6 +18,7 @@ import { ResourceMapping } from './interop';
 import { Stack } from 'aws-cdk-lib/core';
 import { PulumiSynthesizerBase } from './synthesizer';
 import { debug } from '@pulumi/pulumi/log';
+import { CdkAdapterError } from './types';
 
 export function mapToCustomResource(
     logicalId: string,
@@ -31,7 +32,7 @@ export function mapToCustomResource(
     if (isCustomResource(typeName)) {
         const synth = stack.synthesizer;
         if (!(synth instanceof PulumiSynthesizerBase)) {
-            throw new Error(
+            throw new CdkAdapterError(
                 `Synthesizer of stack ${stack.node.id} does not support custom resources. It must inherit from ${PulumiSynthesizerBase.name}.`,
             );
         }
