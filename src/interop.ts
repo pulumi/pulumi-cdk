@@ -97,6 +97,7 @@ export type ResourceMapping = ResourceAttributeMapping | pulumi.Resource | Resou
 
 /**
  * extract a list of pulumi resources from a ResourceMapping
+ * @internal
  */
 export function resourcesFromResourceMapping(mapping: ResourceMapping): pulumi.Resource[] {
     if (Array.isArray(mapping)) {

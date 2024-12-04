@@ -87,25 +87,3 @@ The normalized resource properties
 #### Defined in
 
 [interop.ts:41](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L41)
-
-***
-
-### resourcesFromResourceMapping()
-
-> **resourcesFromResourceMapping**(`mapping`): `pulumi.Resource`[]
-
-extract a list of pulumi resources from a ResourceMapping
-
-#### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `mapping` | [`ResourceMapping`](Namespace.interop.md#resourcemapping) |
-
-#### Returns
-
-`pulumi.Resource`[]
-
-#### Defined in
-
-[interop.ts:101](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L101)
