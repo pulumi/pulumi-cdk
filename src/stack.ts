@@ -14,7 +14,7 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws';
-import { AppComponent, AppOptions, AppResourceOptions } from './types';
+import { AppComponent, AppOptions, AppResourceOptions, CdkAdapterError } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
@@ -154,7 +154,7 @@ export class App
      */
     public get env(): cdk.Environment {
         if (!this._env) {
-            throw new Error('[CDK Adapter] cdk.Environment has not been created yet');
+            throw new CdkAdapterError('cdk.Environment has not been created yet');
         }
         return this._env;
     }
@@ -164,7 +164,7 @@ export class App
      */
     public get app(): cdk.App {
         if (!this._app) {
-            throw new Error('[CDK Adapter] cdk.App has not been created yet');
+            throw new CdkAdapterError('cdk.App has not been created yet');
         }
         return this._app;
     }
@@ -200,8 +200,8 @@ export class App
                 const message = e.message as string;
                 const messageParts = message.split('Context lookups have been disabled. ');
                 const missingParts = messageParts[1].split('Missing context keys: ');
-                throw new Error(
-                    '[CDK Adapter] Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". ' +
+                throw new CdkAdapterError(
+                    'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". ' +
                         'Or set "PULUMI_CDK_EXPERIMENTAL_LOOKUPS" to true. \n' +
                         'Missing context keys: ' +
                         missingParts[1],
@@ -381,15 +381,15 @@ export class Stack extends cdk.Stack {
             .apply(([awsRegion, awsAccount, nativeRegion, nativeAccount]) => {
                 // This is to ensure that the user does not pass a different region to the provider and the stack environment.
                 if (!cdk.Token.isUnresolved(this.region) && nativeRegion !== this.region) {
-                    throw new Error(
-                        `[CDK Adapter] The stack '${this.node.id}' has conflicting regions between the native provider (${nativeRegion}) and the stack environment (${this.region}).\n` +
+                    throw new CdkAdapterError(
+                        `The stack '${this.node.id}' has conflicting regions between the native provider (${nativeRegion}) and the stack environment (${this.region}).\n` +
                             'Please ensure that the stack environment region matches the region of the native provider.',
                     );
                 }
 
                 if (!cdk.Token.isUnresolved(this.account) && this.account !== nativeAccount) {
-                    throw new Error(
-                        `[CDK Adapter] The stack '${this.node.id}' has conflicting accounts between the native provider (${nativeAccount}) and the stack environment (${this.account}).\n` +
+                    throw new CdkAdapterError(
+                        `The stack '${this.node.id}' has conflicting accounts between the native provider (${nativeAccount}) and the stack environment (${this.account}).\n` +
                             'Please ensure that the stack environment account matches the account of the native provider.',
                     );
                 }
