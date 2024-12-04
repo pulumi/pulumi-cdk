@@ -101,7 +101,7 @@ and custom resource responses.
 
 ###### Defined in
 
-[synthesizer.ts:416](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L416)
+[synthesizer.ts:418](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L418)
 
 ***
 

@@ -5,7 +5,7 @@ import { AssemblyManifestReader, StackManifest } from '../assembly';
 import { ConstructInfo, Graph, GraphBuilder, GraphNode } from '../graph';
 import { ArtifactConverter } from './artifact-converter';
 import { lift, Mapping, AppComponent } from '../types';
-import { CdkConstruct, ResourceAttributeMapping, ResourceMapping } from '../interop';
+import { CdkConstruct, ResourceAttributeMapping, ResourceMapping, resourcesFromResourceMapping } from '../interop';
 import { debug, warn } from '@pulumi/pulumi/log';
 import {
     cidr,
@@ -83,7 +83,7 @@ export class AppConverter {
 
         const stackConverter = this.stacks.get(artifact.id);
         if (!stackConverter) {
-            throw new Error(`missing CDK Stack for artifact ${artifact.id}`);
+            throw new Error(`[CDK Adapter] missing CDK Stack for artifact ${artifact.id}`);
         }
         stackConverter.convert(dependencies);
         done[artifact.id] = stackConverter;
@@ -210,7 +210,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
             : mapped;
         if (!mainResource) {
             throw new Error(
-                `Resource mapping for ${node.logicalId} of type ${cfn.Type} did not return a primary resource. \n` +
+                `[CDK Adapter] Resource mapping for ${node.logicalId} of type ${cfn.Type} did not return a primary resource. \n` +
                     'Examine your code in "remapCloudControlResource"',
             );
         }
@@ -250,10 +250,10 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         // TODO: support arbitrary parameters?
 
         if (!typeName.startsWith('AWS::SSM::Parameter::')) {
-            throw new Error(`unsupported parameter ${logicalId} of type ${typeName}`);
+            throw new Error(`[CDK Adapter] unsupported parameter ${logicalId} of type ${typeName}`);
         }
         if (defaultValue === undefined) {
-            throw new Error(`unsupported parameter ${logicalId} with no default value`);
+            throw new Error(`[CDK Adapter] unsupported parameter ${logicalId} with no default value`);
         }
 
         function parameterValue(parent: pulumi.Resource): any {
@@ -281,25 +281,33 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         if (this.app.appOptions?.remapCloudControlResource !== undefined) {
             const res = this.app.appOptions.remapCloudControlResource(logicalId, typeName, props, options);
             if (res !== undefined) {
-                debug(`remapped ${logicalId}`);
+                resourcesFromResourceMapping(res).forEach((r) =>
+                    debug(`[CDK Adapter] remapped type ${typeName} with logicalId ${logicalId}`, r),
+                );
                 return res;
             }
         }
 
         const awsMapping = mapToAwsResource(logicalId, typeName, props, options);
         if (awsMapping !== undefined) {
-            debug(`mapped ${logicalId} to classic AWS resource(s)`);
+            resourcesFromResourceMapping(awsMapping).forEach((r) =>
+                debug(`[CDK Adapter] mapped type ${typeName} with logicalId ${logicalId} to AWS Provider resource`, r),
+            );
             return awsMapping;
         }
 
         const customResourceMapping = mapToCustomResource(logicalId, typeName, props, options, this.cdkStack);
         if (customResourceMapping !== undefined) {
-            debug(`mapped ${logicalId} to custom resource(s)`);
+            resourcesFromResourceMapping(customResourceMapping).forEach((r) =>
+                debug(`[CDK Adapter] mapped type ${typeName} with logicalId ${logicalId} to Custom resource`, r),
+            );
             return customResourceMapping;
         }
 
         const cfnMapping = mapToCfnResource(logicalId, typeName, props, options);
-        debug(`mapped ${logicalId} to native AWS resource(s)`);
+        resourcesFromResourceMapping(cfnMapping).forEach((r) =>
+            debug(`[CDK Adapter] mapped type ${typeName} with logicalId ${logicalId} to CCAPI resource`, r),
+        );
         return cfnMapping;
     }
 
@@ -506,20 +514,24 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
 
             case 'Fn::Transform': {
                 // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-macros.html
-                throw new Error('Fn::Transform is not supported – Cfn Template Macros are not supported yet');
+                throw new Error(
+                    '[CDK Adapter] Fn::Transform is not supported – Cfn Template Macros are not supported yet',
+                );
             }
 
             case 'Fn::ImportValue': {
                 // TODO: support cross cfn stack references?
                 // This is related to the Export Name from outputs https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html
                 // We might revisit this once the CDKTF supports cross stack references
-                throw new Error(`Fn::ImportValue is not yet supported.`);
+                throw new Error(`[CDK Adapter] Fn::ImportValue is not yet supported.`);
             }
 
             case 'Fn::FindInMap': {
                 return lift(([mappingLogicalName, topLevelKey, secondLevelKey]) => {
                     if (params.length !== 3) {
-                        throw new Error(`Fn::FindInMap requires exactly 3 parameters, got ${params.length}`);
+                        throw new Error(
+                            `[CDK Adapter] Fn::FindInMap requires exactly 3 parameters, got ${params.length}`,
+                        );
                     }
                     if (!this.stack.mappings) {
                         throw new Error(`No mappings found in stack`);
@@ -566,7 +578,9 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
             }
 
             default:
-                throw new Error(`unsupported intrinsic function ${fn} (params: ${JSON.stringify(params)})`);
+                throw new Error(
+                    `[CDK Adapter] unsupported intrinsic function ${fn} (params: ${JSON.stringify(params)})`,
+                );
         }
     }
 
@@ -610,7 +624,9 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         const descs = Object.getOwnPropertyDescriptors(mapping.attributes || mapping.resource);
         const d = descs[propertyName];
         if (!d) {
-            throw new Error(`No property ${propertyName} for attribute ${attribute} on resource ${logicalId}`);
+            throw new Error(
+                `[CDK Adapter] No property ${propertyName} for attribute ${attribute} on resource ${logicalId}`,
+            );
         }
         return d.value;
     }

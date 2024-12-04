@@ -32,7 +32,7 @@ export function mapToCustomResource(
         const synth = stack.synthesizer;
         if (!(synth instanceof PulumiSynthesizerBase)) {
             throw new Error(
-                `Synthesizer of stack ${stack.node.id} does not support custom resources. It must inherit from ${PulumiSynthesizerBase.name}.`,
+                `[CDK Adapter] Synthesizer of stack ${stack.node.id} does not support custom resources. It must inherit from ${PulumiSynthesizerBase.name}.`,
             );
         }
 

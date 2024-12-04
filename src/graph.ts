@@ -91,7 +91,7 @@ export interface GraphNode {
 function typeFromCfn(cfnType: string): string {
     const typeParts = cfnType.split('::');
     if (typeParts.length !== 3) {
-        throw new Error(`Expected cfn type in format 'AWS::Service::Resource', got ${cfnType}`);
+        throw new Error(`[CDK Adapter] Expected cfn type in format 'AWS::Service::Resource', got ${cfnType}`);
     }
     return typeParts[2];
 }
@@ -202,7 +202,7 @@ export class GraphBuilder {
                 this.cfnElementNodes.set(logicalId, node);
             } else {
                 throw new Error(
-                    `Something went wrong: resourceType ${resource.Type} does not equal CfnType ${cfnType}`,
+                    `[CDK Adapter] Something went wrong: resourceType ${resource.Type} does not equal CfnType ${cfnType}`,
                 );
             }
             if (resource.Type === 'AWS::EC2::VPCCidrBlock') {
@@ -260,7 +260,7 @@ export class GraphBuilder {
         if (unmappedResources.length > 0) {
             const total = Object.keys(this.stack.resources).length;
             throw new Error(
-                `${unmappedResources.length} out of ${total} CDK resources failed to map to Pulumi resources.`,
+                `[CDK Adapter] ${unmappedResources.length} out of ${total} CDK resources failed to map to Pulumi resources.`,
             );
         }
 
@@ -270,19 +270,23 @@ export class GraphBuilder {
             Object.entries(this._vpcCidrBlockNodes).forEach(([logicalId, node]) => {
                 const resource = node.resource;
                 if (!resource) {
-                    throw new Error(`Something went wrong. CFN Resource not found for VPCCidrBlock ${logicalId}`);
+                    throw new Error(
+                        `[CDK Adapter] Something went wrong. CFN Resource not found for VPCCidrBlock ${logicalId}`,
+                    );
                 }
                 const vpcRef = resource.Properties.VpcId;
                 if (typeof vpcRef === 'object' && 'Ref' in vpcRef) {
                     const vpcLogicalId = this.cfnElementNodes.get(vpcRef.Ref)?.logicalId;
                     if (!vpcLogicalId) {
-                        throw new Error(`VPC resource ${vpcRef.Ref} not found for VPCCidrBlock ${node.logicalId}`);
+                        throw new Error(
+                            `[CDK Adapter] VPC resource ${vpcRef.Ref} not found for VPCCidrBlock ${node.logicalId}`,
+                        );
                     }
                     const vpcNode = this.vpcNodes[vpcLogicalId];
                     // currently the CDK VPC only supports a single VPCCidrBlock per VPC so for now we won't allow multiple
                     // if we get requests for this we can update this to support multiple
                     if (vpcNode.vpcCidrBlockNode) {
-                        throw new Error(`VPC ${vpcLogicalId} already has a VPCCidrBlock`);
+                        throw new Error(`[CDK Adapter] VPC ${vpcLogicalId} already has a VPCCidrBlock`);
                     }
                     vpcNode.vpcCidrBlockNode = node;
                 }
