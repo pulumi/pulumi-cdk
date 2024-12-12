@@ -21,7 +21,7 @@
     }
   },
   "resolutions": {
-    "@pulumi/pulumi": "3.142.0",
+    "@pulumi/pulumi": "3.143.0",
     "wrap-ansi": "7.0.0",
     "string-width": "4.1.0"
   },
@@ -31,7 +31,7 @@
     "@pulumi/aws-native": "1.15.0",
     "@pulumi/docker": "4.5.7",
     "@pulumi/docker-build": "0.0.8",
-    "@pulumi/pulumi": "3.142.0",
+    "@pulumi/pulumi": "3.143.0",
     "@types/archiver": "^6.0.2",
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.2",
