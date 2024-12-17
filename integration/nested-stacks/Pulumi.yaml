@@ -1,0 +1,3 @@
+name: nested-stacks
+runtime: nodejs
+description: CDK custom resource example

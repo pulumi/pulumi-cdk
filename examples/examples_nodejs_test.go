@@ -17,6 +17,7 @@ package examples
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"path/filepath"
@@ -239,6 +240,32 @@ func TestScalableWebhook(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "scalable-webhook"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
+func TestEks(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "eks"),
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				t.Helper()
+				require.NotEmpty(t, stack.Outputs["albAddress"], "Expected albAddress to be set")
+				t.Logf("Outputs: %v", stack.Outputs)
+				albAddress := stack.Outputs["albAddress"].(string)
+				require.NotEmpty(t, stack.Outputs["clusterName"], "Expected clusterName to be set")
+
+				integration.AssertHTTPResultWithRetry(t, fmt.Sprintf("http://%s:80", albAddress), nil, 10*time.Minute, func(body string) bool {	
+					t.Logf("Body: %s", body)
+					var data map[string]interface{}
+					err := json.Unmarshal([]byte(body), &data)
+					require.NoError(t, err)
+					require.NotNil(t, data)
+					require.NotEmpty(t, data["message"], "Expected message to be set")
+					return assert.Contains(t, body, "greetings from podinfo")
+				})
+			},
 		})
 
 	integration.ProgramTest(t, &test)

@@ -166,6 +166,23 @@ func TestCustomResource(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+func TestNestedStacks(t *testing.T) {
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "nested-stacks"),
+			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+				t.Logf("Outputs: %v", stack.Outputs)
+				bucketUrl := stack.Outputs["bucketWebsiteUrl"].(string)
+				assert.NotEmpty(t, bucketUrl)
+				integration.AssertHTTPResultWithRetry(t, bucketUrl, nil, 60*time.Second, func(body string) bool {
+					return assert.Equal(t, "Hello, World!", body, "Body should equal 'Hello, World!', got %s", body)
+				})
+			},
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func TestReplaceOnChanges(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{

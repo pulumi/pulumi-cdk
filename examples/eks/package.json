@@ -1,0 +1,18 @@
+{
+    "name": "pulumi-aws-cdk",
+    "devDependencies": {
+        "@types/node": "^10.0.0"
+    },
+    "dependencies": {
+        "@pulumi/aws": "6.65.0",
+        "@pulumi/aws-native": "1.15.0",
+        "@pulumi/cdk": "1.3.0",
+        "@pulumi/docker-build": "0.0.7",
+        "@pulumi/pulumi": "3.143.0",
+        "@types/express": "^5.0.0",
+        "aws-cdk-lib": "2.173.1",
+        "constructs": "10.3.0",
+        "esbuild": "^0.24.0",
+        "@aws-cdk/lambda-layer-kubectl-v31": "^2.0.0"
+    }
+}
