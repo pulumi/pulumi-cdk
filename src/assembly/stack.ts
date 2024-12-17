@@ -1,13 +1,7 @@
 import * as path from 'path';
 import { DestinationIdentifier, FileManifestEntry } from 'cdk-assets';
-import {
-    CloudFormationMapping,
-    CloudFormationParameter,
-    CloudFormationResource,
-    CloudFormationTemplate,
-    CloudFormationCondition,
-} from '../cfn';
-import { ConstructTree, StackMetadata } from './types';
+import { CloudFormationResource, CloudFormationTemplate, NestedStackTemplate } from '../cfn';
+import { ConstructTree, StackAddress, StackMetadata } from './types';
 import { FileAssetPackaging, FileDestination } from 'aws-cdk-lib/cloud-assembly-schema';
 
 /**
@@ -77,6 +71,11 @@ export interface StackManifestProps {
      * A list of artifact ids that this stack depends on
      */
     readonly dependencies: string[];
+
+    /**
+     * The nested stack CloudFormation templates, indexed by their tree path.
+     */
+    readonly nestedStacks: { [path: string]: NestedStackTemplate };
 }
 
 /**
@@ -100,42 +99,13 @@ export class StackManifest {
      */
     public readonly templatePath: string;
 
-    /**
-     * The Outputs from the CFN Stack
-     */
-    public readonly outputs?: { [id: string]: any };
-
-    /**
-     * The Parameters from the CFN Stack
-     */
-    public readonly parameters?: { [id: string]: CloudFormationParameter };
-
-    /**
-     * Map of resource logicalId to CloudFormation template resource fragment
-     */
-    public readonly resources: { [logicalId: string]: CloudFormationResource };
-
-    /**
-     * The Mappings from the CFN Stack
-     * @see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/mappings-section-structure.html
-     */
-    public readonly mappings?: CloudFormationMapping;
-
-    /**
-     * CloudFormation conditions from the template.
-     *
-     * @internal
-     */
-    public readonly conditions?: { [id: string]: CloudFormationCondition };
+    public readonly stacks: { [path: string]: CloudFormationTemplate };
 
     private readonly metadata: StackMetadata;
     public readonly dependencies: string[];
 
     constructor(props: StackManifestProps) {
         this.dependencies = props.dependencies;
-        this.outputs = props.template.Outputs;
-        this.parameters = props.template.Parameters;
-        this.mappings = props.template.Mappings;
         this.metadata = props.metadata;
         this.templatePath = props.templatePath;
         this.id = props.id;
@@ -143,50 +113,105 @@ export class StackManifest {
         if (!props.template.Resources) {
             throw new Error('CloudFormation template has no resources!');
         }
-        this.resources = props.template.Resources;
-        this.conditions = props.template.Conditions;
+
+        this.stacks = {
+            [props.tree.path]: props.template,
+            ...props.nestedStacks,
+        };
     }
 
     /**
-     * Get the CloudFormation logicalId for the CFN resource at the given Construct path
+     * Checks if the stack is the root stack
+     * @param stackPath - The path to the stack
+     * @returns whether the stack is the root stack
+     */
+    public isRootStack(stackPath: string): boolean {
+        return stackPath === this.constructTree.path;
+    }
+
+    /**
+     * Get the root stack template
+     * @returns the root stack template
+     */
+    public getRootStack(): CloudFormationTemplate {
+        return this.stacks[this.constructTree.path];
+    }
+
+    /**
+     * Get the CloudFormation stack address for the CFN resource at the given Construct path
      *
      * @param path - The construct path
-     * @returns the logicalId of the resource
-     * @throws error if the construct path does not relate to a CFN resource with a logicalId
+     * @returns the metadata of the resource
+     * @throws error if the construct path does not relate to a CFN resource
      */
-    public logicalIdForPath(path: string): string {
+    public resourceAddressForPath(path: string): StackAddress {
         if (path in this.metadata) {
             return this.metadata[path];
         }
-        throw new Error(`Could not find logicalId for path ${path}`);
+        throw new Error(`Could not find stack address for path ${path}`);
     }
 
     /**
      * Get the CloudFormation template fragment of the resource with the given
-     * logicalId
+     * logicalId in the given stack
      *
+     * @param stackPath - The path to the stack
      * @param logicalId - The CFN LogicalId of the resource
      * @returns The resource portion of the CFN template
      */
-    public resourceWithLogicalId(logicalId: string): CloudFormationResource {
-        if (logicalId in this.resources) {
-            return this.resources[logicalId];
+    public resourceWithLogicalId(stackPath: string, logicalId: string): CloudFormationResource {
+        const stackTemplate = this.stacks[stackPath];
+        if (!stackTemplate) {
+            throw new Error(`Could not find stack template for path ${stackPath}`);
+        }
+        const resourcesToSearch = stackTemplate.Resources ?? {};
+        if (logicalId in resourcesToSearch) {
+            return resourcesToSearch[logicalId];
         }
         throw new Error(`Could not find resource with logicalId '${logicalId}'`);
     }
 
     /**
-     * Get the CloudFormation template fragment of the resource with the given
-     * CDK construct path
+     * Get the nested stack path from the path of the nested stack resource (i.e. 'AWS::CloudFormation::Stack').
+     * For Nested Stacks, there's two nodes in the tree that are of interest. The first node is the `AWS::CloudFormation::Stack` resource,
+     * it's located at the path `parent/${NESTED_STACK_NAME}.NestedStack/${NESTED_STACK_NAME}.NestedStackResource`.
+     * This is the input to the function. The second node houses all of the children resources of the nested stack.
+     * It's located at the path `parent/${NESTED_STACK_NAME}`. This is the the return value of the function.
      *
-     * @param path - The construct path to find the CFN Resource for
-     * @returns The resource portion of the CFN template
+     * The tree structure looks like this:
+     * ```
+     * Root
+     * ├── MyNestedStack.NestedStack
+     * │   └── AWS::CloudFormation::Stack (Nested Stack Resource)
+     * │       └── Properties
+     * │           └── Parameters
+     * │               └── MyParameter
+     * │
+     * ├── MyNestedStack (Nested Stack Node - Path returned by this function)
+     * │   ├── ChildResource1
+     * │   │   └── Properties
+     * │   └── ChildResource2
+     * │       └── Properties
+     * ```
+     *
+     * @param nestedStackResourcePath - The path to the nested stack resource in the construct tree
+     * @param logicalId - The logicalId of the nested stack
+     * @returns The path to the nested stack wrapper node in the construct tree
      */
-    public resourceWithPath(path: string): CloudFormationResource {
-        const logicalId = this.logicalIdForPath(path);
-        if (logicalId && logicalId in this.resources) {
-            return this.resources[logicalId];
+    public static getNestedStackPath(nestedStackResourcePath: string, logicalId: string): string {
+        const cdkPathParts = nestedStackResourcePath.split('/');
+        if (cdkPathParts.length < 3) {
+            throw new Error(
+                `Failed to detect the nested stack path for ${logicalId}. The path is too short ${nestedStackResourcePath}, expected at least 3 parts`,
+            );
         }
-        throw new Error(`Could not find resource with logicalId '${logicalId}'`);
+        const nestedStackPath = cdkPathParts.slice(0, -1).join('/');
+        if (nestedStackPath.endsWith('.NestedStack')) {
+            return nestedStackPath.slice(0, -'.NestedStack'.length);
+        } else {
+            throw new Error(
+                `Failed to detect the nested stack path for ${logicalId}. The path does not end with '.NestedStack': ${nestedStackPath}`,
+            );
+        }
     }
 }

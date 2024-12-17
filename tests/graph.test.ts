@@ -24,9 +24,10 @@ describe('GraphBuilder', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/example-bucket/Resource': 'examplebucketC9DFA43E',
-                'stack/example-bucket/Policy/Resource': 'examplebucketPolicyE09B485E',
+                'stack/example-bucket/Resource': { stackPath: 'stack', id: 'examplebucketC9DFA43E' },
+                'stack/example-bucket/Policy/Resource': { stackPath: 'stack', id: 'examplebucketPolicyE09B485E' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -109,7 +110,7 @@ describe('GraphBuilder', () => {
                     type: 'aws-cdk-lib:Stack',
                     parent: undefined,
                 },
-                logicalId: undefined,
+                resourceAddress: undefined,
                 resource: undefined,
                 incomingEdges: ['stack/example-bucket'],
                 outgoingEdges: [],
@@ -125,7 +126,7 @@ describe('GraphBuilder', () => {
                     id: 'example-bucket',
                     type: 'aws-cdk-lib/aws_s3:Bucket',
                 },
-                logicalId: undefined,
+                resourceAddress: undefined,
                 resource: undefined,
                 incomingEdges: ['stack/example-bucket/Resource', 'stack/example-bucket/Policy'],
                 outgoingEdges: ['stack'],
@@ -145,7 +146,7 @@ describe('GraphBuilder', () => {
                     Type: 'AWS::S3::Bucket',
                     Properties: {},
                 },
-                logicalId: 'examplebucketC9DFA43E',
+                resourceAddress: { stackPath: 'stack', id: 'examplebucketC9DFA43E' },
                 incomingEdges: ['stack/example-bucket/Policy/Resource'],
                 outgoingEdges: ['stack/example-bucket'],
             },
@@ -160,7 +161,7 @@ describe('GraphBuilder', () => {
                     id: 'Policy',
                     type: 'aws-cdk-lib/aws_s3:BucketPolicy',
                 },
-                logicalId: undefined,
+                resourceAddress: undefined,
                 resource: undefined,
                 incomingEdges: ['stack/example-bucket/Policy/Resource'],
                 outgoingEdges: ['stack/example-bucket'],
@@ -184,7 +185,7 @@ describe('GraphBuilder', () => {
                         },
                     },
                 },
-                logicalId: 'examplebucketPolicyE09B485E',
+                resourceAddress: { stackPath: 'stack', id: 'examplebucketPolicyE09B485E' },
                 incomingEdges: [],
                 outgoingEdges: ['stack/example-bucket/Policy', 'stack/example-bucket/Resource'],
             },
@@ -192,7 +193,7 @@ describe('GraphBuilder', () => {
     ])('Parses the graph correctly', (graph, path, expected) => {
         const actual = graph.nodes.find((node) => node.construct.path === path);
         expect(actual).toBeDefined();
-        expect(actual!.logicalId).toEqual(expected.logicalId);
+        expect(actual!.resourceAddress).toEqual(expected.resourceAddress);
         expect(actual!.resource).toEqual(expected.resource);
         expect(actual!.construct.parent?.id).toEqual(expected.construct.parent);
         expect(actual!.construct.type).toEqual(expected.construct.type);
@@ -251,10 +252,11 @@ test('vpc with ipv6 cidr block', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/vpc': 'vpc',
-                'stack/cidr': 'cidr',
-                'stack/other': 'other',
+                'stack/vpc': { stackPath: 'stack', id: 'vpc' },
+                'stack/cidr': { stackPath: 'stack', id: 'cidr' },
+                'stack/other': { stackPath: 'stack', id: 'other' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -316,8 +318,8 @@ test('vpc with ipv6 cidr block', () => {
     expect(nodes[3].construct.type).toEqual('Resource');
 
     // The other resource should have it's edge swapped to the cidr resource
-    expect(Array.from(nodes[2].incomingEdges.values())[0].logicalId).toEqual('other');
-    expect(Array.from(nodes[3].outgoingEdges.values())[1].logicalId).toEqual('cidr');
+    expect(Array.from(nodes[2].incomingEdges.values())[0].resourceAddress).toEqual({ stackPath: 'stack', id: 'other' });
+    expect(Array.from(nodes[3].outgoingEdges.values())[1].resourceAddress).toEqual({ stackPath: 'stack', id: 'cidr' });
 });
 
 test('vpc with multiple ipv6 cidr blocks fails', () => {
@@ -327,11 +329,12 @@ test('vpc with multiple ipv6 cidr blocks fails', () => {
                 id: 'stack',
                 templatePath: 'test/stack',
                 metadata: {
-                    'stack/vpc': 'vpc',
-                    'stack/cidr': 'cidr',
-                    'stack/cidr2': 'cidr2',
-                    'stack/other': 'other',
+                    'stack/vpc': { stackPath: 'stack', id: 'vpc' },
+                    'stack/cidr': { stackPath: 'stack', id: 'cidr' },
+                    'stack/cidr2': { stackPath: 'stack', id: 'cidr2' },
+                    'stack/other': { stackPath: 'stack', id: 'other' },
                 },
+                nestedStacks: {},
                 tree: {
                     path: 'stack',
                     id: 'stack',
@@ -399,7 +402,7 @@ test('vpc with multiple ipv6 cidr blocks fails', () => {
                 dependencies: [],
             }),
         ).nodes;
-    }).toThrow(/VPC vpc already has a VPCCidrBlock/);
+    }).toThrow(/VPC vpc in stack stack already has a VPCCidrBlock/);
 });
 
 test('pulumi resource type name fallsback when fqn not available', () => {
@@ -410,9 +413,10 @@ test('pulumi resource type name fallsback when fqn not available', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/example-bucket/Resource': 'examplebucketC9DFA43E',
-                'stack/example-bucket/Policy/Resource': 'examplebucketPolicyE09B485E',
+                'stack/example-bucket/Resource': { stackPath: 'stack', id: 'examplebucketC9DFA43E' },
+                'stack/example-bucket/Policy/Resource': { stackPath: 'stack', id: 'examplebucketPolicyE09B485E' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -490,7 +494,7 @@ test('parses custom resources', () => {
     const stackManifest = new StackManifest(props);
     const graph = GraphBuilder.build(stackManifest);
 
-    const deployWebsiteCR = graph.nodes.find((node) => node.logicalId === 'DeployWebsiteCustomResourceD116527B');
+    const deployWebsiteCR = graph.nodes.find((node) => node.resourceAddress?.id === 'DeployWebsiteCustomResourceD116527B');
     expect(deployWebsiteCR).toBeDefined();
     expect(deployWebsiteCR?.construct.type).toEqual('aws-cdk-lib:CfnResource');
     expect(deployWebsiteCR?.resource).toBeDefined();
@@ -506,7 +510,7 @@ test('parses custom resources', () => {
         'a386ba9b8c0d9b386083b2f6952db278a5a0ce88f497484eb5e62172219468fd.zip',
     ]);
 
-    const testRole = graph.nodes.find((node) => node.logicalId === 'CustomResourceRoleAB1EF463');
+    const testRole = graph.nodes.find((node) => node.resourceAddress?.id === 'CustomResourceRoleAB1EF463');
     expect(testRole).toBeDefined();
     const policies = testRole?.resource?.Properties?.Policies;
     expect(policies).toBeDefined();

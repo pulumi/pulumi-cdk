@@ -1,11 +1,17 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as aws from '@pulumi/aws-native';
 import * as pulumi from '@pulumi/pulumi';
-import { AssemblyManifestReader, StackManifest } from '../assembly';
+import { AssemblyManifestReader, StackAddress, StackManifest } from '../assembly';
 import { ConstructInfo, Graph, GraphBuilder, GraphNode } from '../graph';
 import { ArtifactConverter } from './artifact-converter';
 import { lift, Mapping, AppComponent, CdkAdapterError } from '../types';
-import { CdkConstruct, ResourceAttributeMapping, ResourceMapping, resourcesFromResourceMapping } from '../interop';
+import {
+    CdkConstruct,
+    NestedStackConstruct,
+    ResourceAttributeMapping,
+    ResourceMapping,
+    resourcesFromResourceMapping,
+} from '../interop';
 import { debug, warn } from '@pulumi/pulumi/log';
 import {
     cidr,
@@ -18,16 +24,18 @@ import {
 } from '@pulumi/aws-native';
 import { mapToAwsResource } from '../aws-resource-mappings';
 import { attributePropertyName, mapToCfnResource } from '../cfn-resource-mappings';
-import { CloudFormationResource, getDependsOn } from '../cfn';
+import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from '../cfn';
 import { OutputMap, OutputRepr } from '../output-map';
 import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
 import { mapToCustomResource } from '../custom-resource-mapping';
 import * as intrinsics from './intrinsics';
-import { CloudFormationParameter, CloudFormationParameterLogicalId, CloudFormationParameterWithId } from '../cfn';
+import { CloudFormationParameter, CloudFormationParameterWithId } from '../cfn';
 import { Metadata, PulumiResource } from '../pulumi-metadata';
 import { PulumiProvider } from '../types';
 import { parseDynamicValue } from './dynamic-references';
+import { StackMap } from '../stack-map';
+import { NestedStackParameter } from './intrinsics';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -95,9 +103,11 @@ export class AppConverter {
  * StackConverter converts all of the resources in a CDK stack to Pulumi resources
  */
 export class StackConverter extends ArtifactConverter implements intrinsics.IntrinsicContext {
-    readonly parameters = new Map<CloudFormationParameterLogicalId, any>();
-    readonly resources = new Map<string, Mapping<pulumi.Resource>>();
+    readonly parameters = new StackMap<any>();
+    readonly resources = new StackMap<Mapping<pulumi.Resource>>();
     readonly constructs = new Map<ConstructInfo, pulumi.Resource>();
+    readonly nestedStackParameters = new StackMap<NestedStackParameter>();
+    readonly nestedStackNodes = new StackMap<GraphNode>();
     private readonly cdkStack: cdk.Stack;
     private readonly stackOptions?: pulumi.ComponentResourceOptions;
 
@@ -116,13 +126,18 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         this.cdkStack = host.stacks[stack.id];
         this.stackOptions = host.stackOptions[stack.id];
         this.graph = GraphBuilder.build(this.stack);
+        this.graph.nestedStackNodes.forEach(
+            (node) => node.resourceAddress && this.nestedStackNodes.set(node.resourceAddress, node),
+        );
     }
 
     public convert(dependencies: Set<ArtifactConverter>) {
         // process parameters first because resources will reference them
-        for (const [logicalId, value] of Object.entries(this.stack.parameters ?? {})) {
-            this.mapParameter(logicalId, value.Type, value.Default);
-        }
+        Object.entries(this.stack.stacks).forEach(([stackPath, stack]) => {
+            for (const [logicalId, value] of Object.entries(stack.Parameters ?? {})) {
+                this.mapParameter({ stackPath, id: logicalId }, value.Type, value.Default);
+            }
+        });
 
         for (const n of this.graph.nodes) {
             if (n.construct.id === this.stack.id) {
@@ -143,17 +158,29 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                 throw new Error(`Construct at path ${n.construct.path} should be created in the scope of a Stack`);
             }
             const parent = this.constructs.get(n.construct.parent)!;
-            if (n.resource && n.logicalId) {
+            if (this.graph.nestedStackNodes.has(n.construct.path)) {
+                const nestedStack = this.stack.stacks[n.construct.path];
+                if (!nestedStack) {
+                    throw new Error(`Could not find nested stack template for path ${n.construct.path}`);
+                }
+
+                // this is a nested stack, we create a special construct for it to handle outputs
+                const r = new NestedStackConstruct(`${this.app.name}/${n.construct.path}`, {
+                    parent,
+                });
+
+                this.registerResource(r, n);
+            } else if (n.resource && n.resourceAddress) {
                 const cfn = n.resource;
                 debug(`Processing node with template: ${JSON.stringify(cfn)}`);
-                debug(`Creating resource for ${n.logicalId}`);
-                const props = this.processIntrinsics(cfn.Properties);
-                const options = this.processOptions(n.logicalId, cfn, parent);
+                debug(`Creating resource ${n.resourceAddress.id} in stack ${n.resourceAddress.stackPath}`);
+                const props = this.processIntrinsics(cfn.Properties, n.resourceAddress.stackPath);
+                const options = this.processOptions(n.resourceAddress, cfn, parent);
 
-                const mapped = this.mapResource(n.logicalId, cfn.Type, props, options);
+                const mapped = this.mapResource(n.resourceAddress, cfn.Type, props, options);
                 this.registerResource(mapped, n);
 
-                debug(`Done creating resource for ${n.logicalId}`);
+                debug(`Done creating resource ${n.resourceAddress.id} in stack ${n.resourceAddress.stackPath}`);
             } else {
                 const r = new CdkConstruct(`${this.app.name}/${n.construct.path}`, n.construct.type, {
                     parent,
@@ -198,27 +225,29 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
      */
     private registerResource(mapped: ResourceMapping, node: GraphNode): void {
         const cfn = node.resource;
+        const resourceAddress = node.resourceAddress;
         // This should always be set because we only call this function when it is, but
         // TypeScript doesn't know that.
-        if (!cfn) {
+        if (!cfn || !resourceAddress) {
             throw new Error('Cannot map a resource without a CloudFormation resource');
         }
+
         const mainResource: ResourceAttributeMapping | undefined = Array.isArray(mapped)
-            ? mapped.find((res) => res.logicalId === node.logicalId)
+            ? mapped.find((res) => res.logicalId === resourceAddress.id)
             : pulumi.Resource.isInstance(mapped)
             ? { resource: mapped }
             : mapped;
         if (!mainResource) {
             throw new CdkAdapterError(
-                `Resource mapping for ${node.logicalId} of type ${cfn.Type} did not return a primary resource. \n` +
+                `Resource mapping for ${resourceAddress.id} of type ${cfn.Type} did not return a primary resource. \n` +
                     'Examine your code in "remapCloudControlResource"',
             );
         }
         const otherResources: pulumi.Resource[] | undefined = Array.isArray(mapped)
             ? mapped
-                  .filter((map) => map.logicalId !== node.logicalId)
+                  .filter((map) => map.logicalId !== resourceAddress.id)
                   .flatMap((m) => {
-                      this.resources.set(m.logicalId, {
+                      this.resources.set(resourceAddress, {
                           resource: m.resource,
                           attributes: m.attributes,
                           resourceType: cfn.Type,
@@ -233,7 +262,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
             otherResources,
         };
         this.constructs.set(node.construct, mainResource.resource);
-        this.resources.set(node.logicalId!, resourceMapping);
+        this.resources.set(resourceAddress, resourceMapping);
     }
 
     private stackDependsOn(dependencies: Set<ArtifactConverter>): pulumi.Resource[] {
@@ -246,14 +275,45 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return dependsOn;
     }
 
-    private mapParameter(logicalId: string, typeName: string, defaultValue: any | undefined) {
-        // TODO: support arbitrary parameters?
+    private mapParameter(stackAddress: StackAddress, typeName: string, defaultValue: any | undefined) {
+        if (!this.stack.isRootStack(stackAddress.stackPath)) {
+            // This is a nested stack. We need to look up the "AWS::CloudFormation::Stack" from the parent stack and then find the
+            // parameter in `Properties.Parameters` of the "AWS::CloudFormation::Stack" resource.
+            // This parameter cannot be resolved immediately because the nested stack resource is not created yet.
+            // Instead we'll store the parameter in `nestedStackParameters` and resolve it later on demand.
+
+            const nestedStackNode = this.graph.nestedStackNodes.get(stackAddress.stackPath);
+            if (!nestedStackNode) {
+                throw new CdkAdapterError(`Could not find nested stack node for ${stackAddress.stackPath}`);
+            }
+
+            const nestedStackResource = nestedStackNode.resource;
+            const nestedStackAddress = nestedStackNode.resourceAddress;
+            if (!nestedStackResource || !nestedStackAddress) {
+                throw new CdkAdapterError(`Could not find nested stack resource for ${stackAddress.stackPath}`);
+            }
+
+            // if the parameter is set by the parent stack, we can use it directly. Otherwise, we fall through
+            // and handle it like any other parameter
+            const nestedStackParameter = nestedStackResource.Properties?.Parameters?.[stackAddress.id];
+            if (nestedStackParameter) {
+                this.nestedStackParameters.set(stackAddress, {
+                    expression: nestedStackParameter,
+                    stackPath: nestedStackAddress.stackPath,
+                });
+                return;
+            }
+        }
 
         if (!typeName.startsWith('AWS::SSM::Parameter::')) {
-            throw new CdkAdapterError(`unsupported parameter ${logicalId} of type ${typeName}`);
+            throw new CdkAdapterError(
+                `unsupported parameter ${stackAddress.id} of type ${typeName} in stack ${stackAddress.stackPath}`,
+            );
         }
         if (defaultValue === undefined) {
-            throw new CdkAdapterError(`unsupported parameter ${logicalId} with no default value`);
+            throw new CdkAdapterError(
+                `unsupported parameter ${stackAddress.id} with no default value in stack ${stackAddress.stackPath}`,
+            );
         }
 
         function parameterValue(parent: pulumi.Resource): any {
@@ -269,46 +329,60 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
             return key;
         }
 
-        this.parameters.set(logicalId, parameterValue(this.app.component));
+        this.parameters.set(stackAddress, parameterValue(this.app.component));
     }
 
     private mapResource(
-        logicalId: string,
+        resourceAddress: StackAddress,
         typeName: string,
         props: any,
         options: pulumi.ResourceOptions,
     ): ResourceMapping {
         if (this.app.appOptions?.remapCloudControlResource !== undefined) {
-            const res = this.app.appOptions.remapCloudControlResource(logicalId, typeName, props, options);
+            const res = this.app.appOptions.remapCloudControlResource(resourceAddress.id, typeName, props, options);
             if (res !== undefined) {
                 resourcesFromResourceMapping(res).forEach((r) =>
-                    debug(`[CDK Adapter] remapped type ${typeName} with logicalId ${logicalId}`, r),
+                    debug(`[CDK Adapter] remapped type ${typeName} with logicalId ${resourceAddress.id}`, r),
                 );
                 return res;
             }
         }
 
-        const awsMapping = mapToAwsResource(logicalId, typeName, props, options);
+        const awsMapping = mapToAwsResource(resourceAddress.id, typeName, props, options);
         if (awsMapping !== undefined) {
             resourcesFromResourceMapping(awsMapping).forEach((r) =>
-                debug(`[CDK Adapter] mapped type ${typeName} with logicalId ${logicalId} to AWS Provider resource`, r),
+                debug(
+                    `[CDK Adapter] mapped type ${typeName} with logicalId ${resourceAddress.id} to AWS Provider resource`,
+                    r,
+                ),
             );
             return awsMapping;
         }
 
-        const customResourceMapping = mapToCustomResource(logicalId, typeName, props, options, this.cdkStack);
+        const customResourceMapping = mapToCustomResource(resourceAddress.id, typeName, props, options, this.cdkStack);
         if (customResourceMapping !== undefined) {
             resourcesFromResourceMapping(customResourceMapping).forEach((r) =>
-                debug(`[CDK Adapter] mapped type ${typeName} with logicalId ${logicalId} to Custom resource`, r),
+                debug(
+                    `[CDK Adapter] mapped type ${typeName} with logicalId ${resourceAddress.id} to Custom resource`,
+                    r,
+                ),
             );
             return customResourceMapping;
         }
 
-        const cfnMapping = mapToCfnResource(logicalId, typeName, props, options);
+        const cfnMapping = mapToCfnResource(resourceAddress.id, typeName, props, options);
         resourcesFromResourceMapping(cfnMapping).forEach((r) =>
-            debug(`[CDK Adapter] mapped type ${typeName} with logicalId ${logicalId} to CCAPI resource`, r),
+            debug(`[CDK Adapter] mapped type ${typeName} with logicalId ${resourceAddress.id} to CCAPI resource`, r),
         );
         return cfnMapping;
+    }
+
+    private getStackTemplate(stackPath: string): CloudFormationTemplate {
+        const stack = this.stack.stacks[stackPath];
+        if (!stack) {
+            throw new Error(`Could not find stack template for ${stackPath}`);
+        }
+        return stack;
     }
 
     /**
@@ -323,7 +397,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
      * @param resource - The CloudFormation resource
      * @returns - The retainOnDelete value
      */
-    private getRetainOnDelete(logicalId: string, resource: CloudFormationResource): boolean | undefined {
+    private getRetainOnDelete(stackAddress: StackAddress, resource: CloudFormationResource): boolean | undefined {
         if (resource.DeletionPolicy === undefined) {
             return undefined;
         }
@@ -336,25 +410,32 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                 // if it fails to deploy. Pulumi does not have the same behavior, so we will treat it as RETAIN
                 return true;
             case cdk.CfnDeletionPolicy.SNAPSHOT:
-                warn(`DeletionPolicy Snapshot is not supported. Resource '${logicalId}' will be retained.`);
+                warn(
+                    `DeletionPolicy Snapshot is not supported. Resource '${stackAddress.id}' in stack '${stackAddress.stackPath}' will be retained.`,
+                );
                 return true;
         }
     }
 
     private processOptions(
-        logicalId: string,
+        stackAddress: StackAddress,
         resource: CloudFormationResource,
         parent: pulumi.Resource,
     ): pulumi.ResourceOptions {
         const dependsOn = getDependsOn(resource);
-        const retainOnDelete = this.getRetainOnDelete(logicalId, resource);
+        const retainOnDelete = this.getRetainOnDelete(stackAddress, resource);
         return {
             parent: parent,
             retainOnDelete,
             dependsOn: dependsOn?.flatMap((id) => {
-                const resource = this.resources.get(id);
+                const resource = this.resources.get({
+                    id,
+                    stackPath: stackAddress.stackPath,
+                });
                 if (resource === undefined) {
-                    throw new Error(`Something went wrong, resource with logicalId '${id}' not found`);
+                    throw new Error(
+                        `Something went wrong, resource with logicalId '${id}' not found in stack '${stackAddress.stackPath}'`,
+                    );
                 }
                 if (resource.otherResources && resource.otherResources.length > 0) {
                     return resource.otherResources;
@@ -367,10 +448,39 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     /** @internal */
     asOutputValue<T>(v: T): T {
         const value = this.cdkStack.resolve(v);
-        return this.processIntrinsics(value) as T;
+        try {
+            return this.processIntrinsics(value, this.stack.constructTree.path) as T;
+        } catch (e) {
+            // If value is not found in the current stack, try the other stacks
+            let foundValue = null;
+            let foundStack = null;
+
+            for (const [stackPath, _] of this.graph.nestedStackNodes) {
+                if (stackPath === this.stack.constructTree.path) continue;
+
+                try {
+                    const result = this.processIntrinsics(value, stackPath);
+                    if (foundValue !== null) {
+                        throw new CdkAdapterError(
+                            `Value found in multiple stacks: ${foundStack} and ${stackPath}. Pulumi cannot resolve this value.`,
+                        );
+                    }
+                    foundValue = result;
+                    foundStack = stackPath;
+                } catch {
+                    // Continue searching other stacks
+                }
+            }
+
+            if (foundValue !== null) {
+                return foundValue as T;
+            }
+
+            throw e; // Re-throw original error if not found in any stack
+        }
     }
 
-    public processIntrinsics(obj: any): any {
+    public processIntrinsics(obj: any, stackPath: string): any {
         try {
             debug(`Processing intrinsics for ${JSON.stringify(obj)}`);
         } catch {
@@ -385,17 +495,17 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         }
 
         if (Array.isArray(obj)) {
-            return obj.filter((x) => !this.isNoValue(x)).map((x) => this.processIntrinsics(x));
+            return obj.filter((x) => !this.isNoValue(x)).map((x) => this.processIntrinsics(x, stackPath));
         }
 
         const ref = obj.Ref;
         if (ref) {
-            return intrinsics.ref.evaluate(this, [ref]);
+            return intrinsics.ref.evaluate(this, [ref], stackPath);
         }
 
         const keys = Object.keys(obj);
         if (keys.length == 1 && keys[0]?.startsWith('Fn::')) {
-            return this.resolveIntrinsic(keys[0], obj[keys[0]]);
+            return this.resolveIntrinsic(keys[0], obj[keys[0]], stackPath);
         }
 
         // This is where we can do any final processing on the resolved value
@@ -417,7 +527,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return Object.entries(obj)
             .filter(([_, v]) => !this.isNoValue(v))
             .reduce((result, [k, v]) => {
-                let value = this.processIntrinsics(v);
+                let value = this.processIntrinsics(v, stackPath);
                 value = parseDynamicValue(this.stackResource, value);
                 return {
                     ...result,
@@ -441,7 +551,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return result;
     }
 
-    private resolveIntrinsic(fn: string, params: any) {
+    private resolveIntrinsic(fn: string, params: any, stackPath: string) {
         switch (fn) {
             case 'Fn::GetAtt': {
                 const logicalId = params[0];
@@ -451,30 +561,26 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                 // Ipv6 cidr blocks are added to the VPC through a separate VpcCidrBlock resource
                 // Due to [pulumi/pulumi-aws-native#1798] the `Ipv6CidrBlocks` attribute will always be empty
                 // and we need to instead pull the `Ipv6CidrBlock` attribute from the VpcCidrBlock resource.
-                if (
-                    logicalId in this.graph.vpcNodes &&
-                    attributeName === 'Ipv6CidrBlocks' &&
-                    this.graph.vpcNodes[logicalId].vpcCidrBlockNode?.logicalId
-                ) {
-                    return [
-                        this.resolveAtt(this.graph.vpcNodes[logicalId].vpcCidrBlockNode.logicalId, 'Ipv6CidrBlock'),
-                    ];
+                const vpcNodeAddress = this.graph.vpcNodes.get({ stackPath, id: logicalId })?.vpcCidrBlockNode
+                    ?.resourceAddress;
+                if (attributeName === 'Ipv6CidrBlocks' && vpcNodeAddress) {
+                    return [this.resolveAtt(vpcNodeAddress, 'Ipv6CidrBlock')];
                 }
 
-                return this.resolveAtt(params[0], params[1]);
+                return this.resolveAtt({ id: params[0], stackPath }, params[1]);
             }
 
             case 'Fn::Join':
-                return lift(([delim, strings]) => strings.join(delim), this.processIntrinsics(params));
+                return lift(([delim, strings]) => strings.join(delim), this.processIntrinsics(params, stackPath));
 
             case 'Fn::Select':
-                return lift(([index, list]) => list[index], this.processIntrinsics(params));
+                return lift(([index, list]) => list[index], this.processIntrinsics(params, stackPath));
 
             case 'Fn::Split':
-                return lift(([delim, str]) => str.split(delim), this.processIntrinsics(params));
+                return lift(([delim, str]) => str.split(delim), this.processIntrinsics(params, stackPath));
 
             case 'Fn::Base64':
-                return lift((str) => Buffer.from(str).toString('base64'), this.processIntrinsics(params));
+                return lift((str) => Buffer.from(str).toString('base64'), this.processIntrinsics(params, stackPath));
 
             case 'Fn::Cidr': {
                 return lift(
@@ -484,11 +590,14 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                             count: parseInt(count, 10),
                             cidrBits: parseInt(cidrBits, 10),
                         }).then((r) => r.subnets),
-                    this.processIntrinsics(params),
+                    this.processIntrinsics(params, stackPath),
                 );
             }
             case 'Fn::GetAZs':
-                return lift(([region]) => getAzs({ region }).then((r) => r.azs), this.processIntrinsics(params));
+                return lift(
+                    ([region]) => getAzs({ region }).then((r) => r.azs),
+                    this.processIntrinsics(params, stackPath),
+                );
 
             case 'Fn::Sub':
                 return lift((params) => {
@@ -502,15 +611,15 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
 
                         if (part.ref !== undefined) {
                             if (part.ref.attr !== undefined) {
-                                parts.push(this.resolveAtt(part.ref.id, part.ref.attr!));
+                                parts.push(this.resolveAtt({ id: part.ref.id, stackPath }, part.ref.attr!));
                             } else {
-                                parts.push(intrinsics.ref.evaluate(this, [part.ref.id]));
+                                parts.push(intrinsics.ref.evaluate(this, [part.ref.id], stackPath));
                             }
                         }
                     }
 
                     return lift((parts) => parts.map((v: any) => v.toString()).join(''), parts);
-                }, this.processIntrinsics(params));
+                }, this.processIntrinsics(params, stackPath));
 
             case 'Fn::Transform': {
                 // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-macros.html
@@ -529,17 +638,21 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                     if (params.length !== 3) {
                         throw new CdkAdapterError(`Fn::FindInMap requires exactly 3 parameters, got ${params.length}`);
                     }
-                    if (!this.stack.mappings) {
+                    const stack = this.stack.stacks[stackPath];
+                    if (!stack) {
+                        throw new Error(`No stack found for ${stackPath}`);
+                    }
+                    if (!stack.Mappings) {
                         throw new Error(`No mappings found in stack`);
                     }
-                    if (!(mappingLogicalName in this.stack.mappings)) {
+                    if (!(mappingLogicalName in stack.Mappings)) {
                         throw new Error(
-                            `Mapping ${mappingLogicalName} not found in mappings. Available mappings are ${Object.keys(
-                                this.stack.mappings,
+                            `Mapping ${mappingLogicalName} not found in mappings of stack ${stackPath}. Available mappings are ${Object.keys(
+                                stack.Mappings,
                             )}`,
                         );
                     }
-                    const topLevelMapping = this.stack.mappings[mappingLogicalName];
+                    const topLevelMapping = stack.Mappings[mappingLogicalName];
                     if (!(topLevelKey in topLevelMapping)) {
                         throw new Error(
                             `Key ${topLevelKey} not found in mapping ${mappingLogicalName}. Available keys are ${Object.keys(
@@ -558,19 +671,19 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
 
                     const value = secondLevelMapping[secondLevelKey];
                     return value;
-                }, this.processIntrinsics(params));
+                }, this.processIntrinsics(params, stackPath));
             }
 
             case 'Fn::Equals': {
-                return intrinsics.fnEquals.evaluate(this, params);
+                return intrinsics.fnEquals.evaluate(this, params, stackPath);
             }
 
             case 'Fn::If': {
-                return intrinsics.fnIf.evaluate(this, params);
+                return intrinsics.fnIf.evaluate(this, params, stackPath);
             }
 
             case 'Fn::Or': {
-                return intrinsics.fnOr.evaluate(this, params);
+                return intrinsics.fnOr.evaluate(this, params, stackPath);
             }
 
             default:
@@ -578,29 +691,48 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         }
     }
 
-    private lookup(logicalId: string): Mapping<pulumi.Resource> | { value: any } {
-        const targetParameter = this.parameters.get(logicalId);
+    private lookup(stackAddress: StackAddress): Mapping<pulumi.Resource> | { value: any } {
+        const targetParameter = this.parameters.get(stackAddress);
         if (targetParameter !== undefined) {
             return { value: targetParameter };
         }
-        const targetMapping = this.resources.get(logicalId);
+        const targetMapping = this.resources.get(stackAddress);
         if (targetMapping !== undefined) {
             return targetMapping;
         }
-        throw new Error(`missing reference for ${logicalId}`);
+        throw new Error(`missing reference for ${stackAddress.id} in stack ${stackAddress.stackPath}`);
     }
 
-    private resolveAtt(logicalId: string, attribute: string) {
-        const mapping = <Mapping<pulumi.Resource>>this.lookup(logicalId);
+    private resolveAtt(resourceAddress: StackAddress, attribute: string) {
+        const mapping = <Mapping<pulumi.Resource>>this.lookup(resourceAddress);
 
         debug(
-            `Resource: ${logicalId} - resourceType: ${mapping.resourceType} - ${Object.getOwnPropertyNames(
-                mapping.resource,
-            )}`,
+            `Resource: ${resourceAddress.id} - stackPath: ${resourceAddress.stackPath} - resourceType: ${
+                mapping.resourceType
+            } - ${Object.getOwnPropertyNames(mapping.resource)}`,
         );
 
         // If this resource has explicit attribute mappings, those mappings will use PascalCase, not camelCase.
         const propertyName = mapping.attributes !== undefined ? attribute : attributePropertyName(attribute);
+
+        if (NestedStackConstruct.isNestedStackConstruct(mapping.resource)) {
+            const nestedStackNode = this.nestedStackNodes.get(resourceAddress);
+            if (!nestedStackNode) {
+                throw new Error(`Could not find nested stack node for path ${resourceAddress.stackPath}`);
+            }
+
+            const nestedStack = this.stack.stacks[nestedStackNode.construct.path];
+            if (!nestedStack) {
+                throw new Error(`Could not find nested stack template for path ${nestedStackNode.construct.path}`);
+            }
+
+            const outputName = attribute.replace(/^Outputs\./, '');
+            if (nestedStack.Outputs?.[outputName]?.Value) {
+                return this.processIntrinsics(nestedStack.Outputs[outputName].Value, nestedStackNode.construct.path);
+            }
+
+            throw new Error(`No output ${outputName} found in nested stack ${nestedStackNode.construct.path}`);
+        }
 
         // CFN CustomResources have a `data` property that contains the attributes. It is part of the response
         // of the Lambda Function backing the Custom Resource.
@@ -609,7 +741,9 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                 const descs = Object.getOwnPropertyDescriptors(attrs);
                 const d = descs[attribute];
                 if (!d) {
-                    throw new Error(`No attribute ${attribute} on custom resource ${logicalId}`);
+                    throw new Error(
+                        `No attribute ${attribute} on custom resource ${resourceAddress.id} in stack ${resourceAddress.stackPath}`,
+                    );
                 }
                 return d.value;
             });
@@ -619,22 +753,23 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         const d = descs[propertyName];
         if (!d) {
             throw new CdkAdapterError(
-                `No property ${propertyName} for attribute ${attribute} on resource ${logicalId}`,
+                `No property ${propertyName} for attribute ${attribute} on resource ${resourceAddress.id} in stack ${resourceAddress.stackPath}`,
             );
         }
         return d.value;
     }
 
-    findCondition(conditionName: string): intrinsics.Expression | undefined {
-        if (conditionName in (this.stack.conditions || {})) {
-            return this.stack.conditions![conditionName];
+    findCondition(stackAddress: StackAddress): intrinsics.Expression | undefined {
+        const template = this.getStackTemplate(stackAddress.stackPath);
+        if (stackAddress.id in (template.Conditions || {})) {
+            return template.Conditions![stackAddress.id];
         } else {
             return undefined;
         }
     }
 
-    evaluate(expression: intrinsics.Expression): intrinsics.Result<any> {
-        return this.processIntrinsics(expression);
+    evaluate(expression: intrinsics.Expression, stackPath: string): intrinsics.Result<any> {
+        return this.processIntrinsics(expression, stackPath);
     }
 
     fail(msg: string): intrinsics.Result<any> {
@@ -649,21 +784,32 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return lift(fn, result);
     }
 
-    findParameter(parameterLogicalId: CloudFormationParameterLogicalId): CloudFormationParameterWithId | undefined {
-        const p: CloudFormationParameter | undefined = (this.stack.parameters || {})[parameterLogicalId];
-        return p ? { ...p, id: parameterLogicalId } : undefined;
+    findParameter(stackAddress: StackAddress): CloudFormationParameterWithId | undefined {
+        const template = this.getStackTemplate(stackAddress.stackPath);
+        const p: CloudFormationParameter | undefined = (template.Parameters || {})[stackAddress.id];
+        return p ? { ...p, stackAddress } : undefined;
     }
 
     evaluateParameter(param: CloudFormationParameterWithId): intrinsics.Result<any> {
-        const value = this.parameters.get(param.id);
+        const value = this.parameters.get(param.stackAddress);
+
         if (value === undefined) {
-            throw new Error(`No value for the CloudFormation "${param.id}" parameter`);
+            // If the parameter is a nested stack parameter we need to resolve the expression from the nested stack resource.
+            const nestedStackParam = this.nestedStackParameters.get(param.stackAddress);
+            if (nestedStackParam !== undefined) {
+                return this.evaluate(nestedStackParam.expression, nestedStackParam.stackPath);
+            }
+
+            throw new Error(
+                `No value for the CloudFormation parameter "${param.stackAddress.id}" in stack "${param.stackAddress.stackPath}"`,
+            );
         }
+
         return value;
     }
 
-    findResourceMapping(resourceLogicalID: string): Mapping<pulumi.Resource> | undefined {
-        return this.resources.get(resourceLogicalID);
+    findResourceMapping(stackAddress: StackAddress): Mapping<pulumi.Resource> | undefined {
+        return this.resources.get(stackAddress);
     }
 
     tryFindResource(cfnType: string): PulumiResource | undefined {

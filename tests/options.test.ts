@@ -27,8 +27,9 @@ describe('options', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/bucket': 'bucket',
+                'stack/bucket': { stackPath: 'stack', id: 'bucket' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -74,8 +75,9 @@ describe('options', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/bucket': 'bucket',
+                'stack/bucket': { stackPath: 'stack', id: 'bucket' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -121,8 +123,9 @@ describe('options', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/bucket': 'bucket',
+                'stack/bucket': { stackPath: 'stack', id: 'bucket' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -168,8 +171,9 @@ describe('options', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/bucket': 'bucket',
+                'stack/bucket': { stackPath: 'stack', id: 'bucket' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -215,8 +219,9 @@ describe('options', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/bucket': 'bucket',
+                'stack/bucket': { stackPath: 'stack', id: 'bucket' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -261,8 +266,9 @@ describe('options', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/bucket': 'bucket',
+                'stack/bucket': { stackPath: 'stack', id: 'bucket' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',

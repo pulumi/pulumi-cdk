@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { AssemblyManifest, Manifest, ArtifactType, ArtifactMetadataEntryType } from '@aws-cdk/cloud-assembly-schema';
 import * as fs from 'fs-extra';
-import { CloudFormationTemplate } from '../cfn';
+import { CloudFormationResource, CloudFormationTemplate, NestedStackTemplate } from '../cfn';
 import { ArtifactManifest, LogicalIdMetadataEntry } from 'aws-cdk-lib/cloud-assembly-schema';
 import { StackManifest } from './stack';
 import { ConstructTree, StackMetadata } from './types';
@@ -72,12 +72,15 @@ export class AssemblyManifestReader {
                     throw new Error(`Failed to read CloudFormation template at path: ${templateFile}: ${e}`);
                 }
 
-                const metadata = this.getMetadata(artifact);
-
                 if (!this.tree.children) {
                     throw new Error('Invalid tree.json found');
                 }
+
                 const stackTree = this.tree.children[artifactId];
+                const nestedStacks = this.loadNestedStacks(template.Resources);
+                const stackPaths = Object.keys(nestedStacks).concat([stackTree.path]);
+                const metadata = this.getMetadata(artifact, stackPaths);
+
                 const stackManifest = new StackManifest({
                     id: artifactId,
                     templatePath: templateFile,
@@ -85,10 +88,74 @@ export class AssemblyManifestReader {
                     tree: stackTree,
                     template,
                     dependencies: artifact.dependencies ?? [],
+                    nestedStacks,
                 });
                 this._stackManifests.set(artifactId, stackManifest);
             }
         }
+    }
+
+    /**
+     * Recursively loads the nested CloudFormation stacks referenced by the provided resources.
+     *
+     * This method filters the given resources to find those of type 'AWS::CloudFormation::Stack'
+     * and with a defined 'aws:asset:path' in their metadata. This identifies a CloudFormation
+     * Stack as a nested stack that needs to be loaded from a separate template file instead of
+     * a regular stack that's deployed be referencing an existing template in S3.
+     * See: https://github.com/aws/aws-cdk/blob/cbe2bec488ff9b9823eacf6de14dff1dcb3033a1/packages/aws-cdk/lib/api/nested-stack-helpers.ts#L139-L145
+     *
+     * It then reads the corresponding  CloudFormation templates from the specified asset paths before recursively
+     * loading any nested stacks they define. It returns the nested stacks in a dictionary keyed by their tree paths.
+     *
+     * @param resources - An object containing CloudFormation resources, indexed by their logical IDs.
+     * @returns An object containing the loaded CloudFormation templates, indexed by their tree paths.
+     * @throws Will throw an error if the 'assetPath' metadata of a 'AWS::CloudFormation::Stack' is not a string
+     *  or if reading the template file fails.
+     */
+    private loadNestedStacks(resources: { [logicalIds: string]: CloudFormationResource } | undefined): {
+        [path: string]: NestedStackTemplate;
+    } {
+        return Object.entries(resources ?? {})
+            .filter(([_, resource]) => {
+                return resource.Type === 'AWS::CloudFormation::Stack' && resource.Metadata?.['aws:asset:path'];
+            })
+            .reduce((acc, [logicalId, resource]) => {
+                const assetPath = resource.Metadata?.['aws:asset:path'];
+                if (typeof assetPath !== 'string') {
+                    throw new Error(
+                        `Expected the Metadata 'aws:asset:path' of ${logicalId} to be a string, got '${assetPath}' of type ${typeof assetPath}`,
+                    );
+                }
+
+                const cdkPath = resource.Metadata?.['aws:cdk:path'];
+                if (!cdkPath) {
+                    throw new Error(`Expected the nested stack ${logicalId} to have a 'aws:cdk:path' metadata entry`);
+                }
+                if (typeof cdkPath !== 'string') {
+                    throw new Error(
+                        `Expected the Metadata 'aws:cdk:path' of ${logicalId} to be a string, got '${cdkPath}' of type ${typeof cdkPath}`,
+                    );
+                }
+
+                let template: CloudFormationTemplate;
+                const templateFile = path.join(this.directory, assetPath);
+                try {
+                    template = fs.readJSONSync(path.resolve(this.directory, templateFile));
+                } catch (e) {
+                    throw new Error(`Failed to read CloudFormation template at path: ${templateFile}: ${e}`);
+                }
+
+                const nestedStackPath = StackManifest.getNestedStackPath(cdkPath, logicalId);
+
+                return {
+                    ...acc,
+                    [nestedStackPath]: {
+                        ...template,
+                        logicalId,
+                    },
+                    ...this.loadNestedStacks(template.Resources),
+                };
+            }, {} as { [path: string]: NestedStackTemplate });
     }
 
     /**
@@ -97,14 +164,37 @@ export class AssemblyManifestReader {
      * @param artifact - The manifest containing the stack metadata
      * @returns The StackMetadata lookup table
      */
-    private getMetadata(artifact: ArtifactManifest): StackMetadata {
+    private getMetadata(artifact: ArtifactManifest, stackPaths: string[]): StackMetadata {
+        // Add a '/' to the end of each stack path to make it easier to find the stack path for a resource
+        // This is because the stack path suffixed with '/' is the prefix of the resource path but guarantees
+        // that there's no collisions between stack paths (e.g. 'MyStack/MyNestedStack' and 'MyStack/MyNestedStackPrime')
+        const stackPrefixes = stackPaths.map((stackPath) => `${stackPath}/`);
+
         const metadata: StackMetadata = {};
         for (const [metadataId, metadataEntry] of Object.entries(artifact.metadata ?? {})) {
             metadataEntry.forEach((meta) => {
                 if (meta.type === ArtifactMetadataEntryType.LOGICAL_ID) {
                     // For some reason the metadata entry prefixes the path with a `/`
                     const path = metadataId.startsWith('/') ? metadataId.substring(1) : metadataId;
-                    metadata[path] = meta.data as LogicalIdMetadataEntry;
+
+                    // Find the longest stack path that is a prefix of the resource path. This is the parent stack
+                    // of the resource.
+                    let stackPath: string | undefined;
+                    for (const stackPrefix of stackPrefixes) {
+                        if (stackPrefix.length > (stackPath?.length ?? 0) && path.startsWith(stackPrefix)) {
+                            stackPath = stackPrefix;
+                        }
+                    }
+
+                    if (!stackPath && stackPath !== '') {
+                        throw new Error(`Failed to determine the stack path for resource at path ${path}`);
+                    }
+
+                    metadata[path] = {
+                        id: meta.data as LogicalIdMetadataEntry,
+                        // Remove the trailing '/' from the stack path again
+                        stackPath: stackPath.slice(0, -1),
+                    };
                 }
             });
         }

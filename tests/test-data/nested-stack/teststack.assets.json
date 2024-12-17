@@ -1,0 +1,84 @@
+{
+  "version": "36.3.0",
+  "files": {
+    "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6": {
+      "source": {
+        "path": "asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "616138583583-us-west-2": {
+          "bucketName": "pulumi-cdk-sted-sta-3ca1883d-staging",
+          "objectKey": "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip",
+          "region": "us-west-2"
+        }
+      }
+    },
+    "6620cb784ea0d3cf3a6e3e128827087f88e7e9999cd41b0be7c50431fbf12026": {
+      "source": {
+        "path": "asset.6620cb784ea0d3cf3a6e3e128827087f88e7e9999cd41b0be7c50431fbf12026.zip",
+        "packaging": "file"
+      },
+      "destinations": {
+        "616138583583-us-west-2": {
+          "bucketName": "pulumi-cdk-sted-sta-3ca1883d-staging",
+          "objectKey": "deploy-time/6620cb784ea0d3cf3a6e3e128827087f88e7e9999cd41b0be7c50431fbf12026.zip",
+          "region": "us-west-2"
+        }
+      }
+    },
+    "2d56e153cac88d3e0c2f842e8e6f6783b8725bf91f95e0673b4725448a56e96d": {
+      "source": {
+        "path": "asset.2d56e153cac88d3e0c2f842e8e6f6783b8725bf91f95e0673b4725448a56e96d",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "616138583583-us-west-2": {
+          "bucketName": "pulumi-cdk-sted-sta-3ca1883d-staging",
+          "objectKey": "deploy-time/2d56e153cac88d3e0c2f842e8e6f6783b8725bf91f95e0673b4725448a56e96d.zip",
+          "region": "us-west-2"
+        }
+      }
+    },
+    "a386ba9b8c0d9b386083b2f6952db278a5a0ce88f497484eb5e62172219468fd": {
+      "source": {
+        "path": "asset.a386ba9b8c0d9b386083b2f6952db278a5a0ce88f497484eb5e62172219468fd",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "616138583583-us-west-2": {
+          "bucketName": "pulumi-cdk-sted-sta-3ca1883d-staging",
+          "objectKey": "a386ba9b8c0d9b386083b2f6952db278a5a0ce88f497484eb5e62172219468fd.zip",
+          "region": "us-west-2"
+        }
+      }
+    },
+    "95f78991f9fb0b754d5d23113980217d0636f22d034b8f8bb451154a21d811a6": {
+      "source": {
+        "path": "teststacknesty613E34DC.nested.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "616138583583-us-west-2": {
+          "bucketName": "pulumi-cdk-sted-sta-3ca1883d-staging",
+          "objectKey": "95f78991f9fb0b754d5d23113980217d0636f22d034b8f8bb451154a21d811a6.json",
+          "region": "us-west-2"
+        }
+      }
+    },
+    "4cc5fad210e6468e30325de9b3f814b86a6bb8c61b9b5d7e8437c5290ab31f99": {
+      "source": {
+        "path": "teststack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "616138583583-us-west-2": {
+          "bucketName": "pulumi-cdk-sted-sta-3ca1883d-staging",
+          "objectKey": "deploy-time/4cc5fad210e6468e30325de9b3f814b86a6bb8c61b9b5d7e8437c5290ab31f99.json",
+          "region": "us-west-2"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

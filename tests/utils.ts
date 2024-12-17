@@ -14,8 +14,8 @@ export function createStackManifest(props: CreateStackManifestProps): StackManif
         id: 'stack',
         templatePath: 'template',
         metadata: {
-            'stack/resource-1': 'resource1',
-            'stack/resource-2': 'resource2',
+            'stack/resource-1': { stackPath: 'stack', id: 'resource1' },
+            'stack/resource-2': { stackPath: 'stack', id: 'resource2' },
         },
         tree: {
             path: 'stack',
@@ -37,6 +37,7 @@ export function createStackManifest(props: CreateStackManifestProps): StackManif
                 },
             },
         },
+        nestedStacks: {},
         template: {
             Mappings: props.mappings,
             Resources: {

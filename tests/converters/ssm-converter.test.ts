@@ -97,9 +97,10 @@ describe('SSM tests', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/db': 'db',
-                'stack/param': 'param',
+                'stack/db': { stackPath: 'stack', id: 'db' },
+                'stack/param': { stackPath: 'stack', id: 'param' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -166,7 +167,7 @@ describe('SSM tests', () => {
         converter.convert(new Set());
 
         // THEN
-        const subnet = converter.resources.get('db')?.resource as native.rds.DbInstance;
+        const subnet = converter.resources.get({ stackPath: 'stack', id: 'db' })?.resource as native.rds.DbInstance;
         const cidrBlock = await promiseOf(subnet.masterUserSecret);
         expect(cidrBlock).toEqual('abcd');
     });
@@ -180,7 +181,7 @@ describe('SSM tests', () => {
         converter.convert(new Set());
 
         // THEN
-        const subnet = converter.resources.get('db')?.resource as native.rds.DbInstance;
+        const subnet = converter.resources.get({ stackPath: 'stack', id: 'db' })?.resource as native.rds.DbInstance;
         const cidrBlock = await promiseOf(subnet.masterUserSecret);
         expect(cidrBlock).toEqual('abcd');
     });
@@ -201,7 +202,7 @@ describe('SSM tests', () => {
         converter.convert(new Set());
 
         // THEN
-        const subnet = converter.resources.get('db')?.resource as native.rds.DbInstance;
+        const subnet = converter.resources.get({ stackPath: 'stack', id: 'db' })?.resource as native.rds.DbInstance;
         const value = await promiseOf(subnet.masterUserSecret);
         expect(value).toEqual('abcd');
     });
@@ -222,7 +223,7 @@ describe('SSM tests', () => {
         converter.convert(new Set());
 
         // THEN
-        const subnet = converter.resources.get('db')?.resource as native.rds.DbInstance;
+        const subnet = converter.resources.get({ stackPath: 'stack', id: 'db' })?.resource as native.rds.DbInstance;
         const value = await promiseOf(subnet.masterUserSecret);
         expect(value).toEqual('abcd,efgh');
     });

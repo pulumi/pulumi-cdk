@@ -14,12 +14,23 @@
 import { debug, warn } from '@pulumi/pulumi/log';
 import { CloudFormationResource } from './cfn';
 import { parseSub } from './sub';
-import { ConstructTree, StackManifest } from './assembly';
+import { ConstructTree, StackAddress, StackManifest } from './assembly';
 import { CdkAdapterError } from './types';
+import { StackMap } from './stack-map';
+import { Node } from 'aws-cdk-lib/core/lib/private/tree-metadata';
 
 // Represents a value that will be used as the (or part of the) pulumi resource
 // type token
 export type PulumiResourceType = string;
+
+interface NestedStackData {
+    // The stack address of the nested stack resource. Uniquely identifies the nested stack resource across all stacks.
+    resourceAddress: StackAddress;
+    // The CloudFormation resource (AWS::CloudFormation::Stack) that represents the nested stack
+    resource: CloudFormationResource;
+    // The graph node representing the nested stack. It contains all the children of the nested stack.
+    node: Node;
+}
 
 /**
  * Represents a CDK Construct
@@ -62,13 +73,14 @@ export interface ConstructMetadata {
 export interface GraphNode {
     incomingEdges: Set<GraphNode>;
     outgoingEdges: Set<GraphNode>;
+
     /**
-     * The CFN LogicalID.
+     * The StackAddress uniquely identifying the CFN resource in the (nested) stacks.
      *
      * This will only be set if this node represents a CloudFormation resource.
      * It will not be set for wrapper constructs
      */
-    logicalId?: string;
+    resourceAddress?: StackAddress;
 
     /**
      * The info on the Construct this node represents
@@ -129,7 +141,12 @@ export interface Graph {
     /**
      * The VPC nodes in the graph
      */
-    vpcNodes: { [logicalId: string]: VpcGraphNode };
+    vpcNodes: StackMap<VpcGraphNode>;
+
+    /**
+     * The nested stack nodes in the graph indexed by the stack path
+     */
+    nestedStackNodes: Map<string, GraphNode>;
 }
 
 /**
@@ -150,17 +167,22 @@ export interface VpcGraphNode {
 export class GraphBuilder {
     // Allows for easy access to the GraphNode of a specific Construct
     constructNodes: Map<ConstructInfo, GraphNode>;
-    // Map of resource logicalId to GraphNode. Allows for easy lookup by logicalId
-    cfnElementNodes: Map<string, GraphNode>;
+    // Map of stack address to GraphNode. Allows for easy lookup by stack address
+    cfnElementNodes: StackMap<GraphNode>;
 
     // If the app has a VpcCidrBlock resource, this will be set to the GraphNode representing it
-    private readonly _vpcCidrBlockNodes: { [logicalId: string]: GraphNode } = {};
+    private readonly _vpcCidrBlockNodes: StackMap<GraphNode>;
     // If the app has a Vpc resource, this will be set to the GraphNode representing it
-    private readonly vpcNodes: { [logicalId: string]: VpcGraphNode } = {};
+    private readonly vpcNodes: StackMap<VpcGraphNode>;
+    // Map of stack path to GraphNode of nested stacks. Allows for looking up the nested stack node by stack path
+    private readonly nestedStackNodes: Map<string, GraphNode>;
 
     constructor(private readonly stack: StackManifest) {
         this.constructNodes = new Map<ConstructInfo, GraphNode>();
-        this.cfnElementNodes = new Map<string, GraphNode>();
+        this.cfnElementNodes = new StackMap<GraphNode>();
+        this._vpcCidrBlockNodes = new StackMap<GraphNode>();
+        this.vpcNodes = new StackMap<VpcGraphNode>();
+        this.nestedStackNodes = new Map<string, GraphNode>();
     }
 
     // build constructs a dependency graph from the adapter and returns its nodes sorted in topological order.
@@ -185,6 +207,7 @@ export class GraphBuilder {
             attributes: tree.attributes,
             constructInfo: tree.constructInfo,
         };
+
         const node: GraphNode = {
             incomingEdges: new Set<GraphNode>(),
             outgoingEdges: new Set<GraphNode>(),
@@ -192,33 +215,33 @@ export class GraphBuilder {
         };
         if (tree.attributes && 'aws:cdk:cloudformation:type' in tree.attributes) {
             const cfnType = tree.attributes['aws:cdk:cloudformation:type'] as string;
-            const logicalId = this.stack.logicalIdForPath(tree.path);
-            const resource = this.stack.resourceWithLogicalId(logicalId);
+            const resourceAddress = this.stack.resourceAddressForPath(tree.path);
+            const resource = this.stack.resourceWithLogicalId(resourceAddress.stackPath, resourceAddress.id);
             const typ = typeFromCfn(cfnType);
             node.construct.type = typ;
             construct.type = typ;
             if (resource.Type === cfnType) {
                 node.resource = resource;
-                node.logicalId = logicalId;
-                this.cfnElementNodes.set(logicalId, node);
+                node.resourceAddress = resourceAddress;
+                this.cfnElementNodes.set(resourceAddress, node);
             } else {
                 throw new CdkAdapterError(
                     `Something went wrong: resourceType ${resource.Type} does not equal CfnType ${cfnType}`,
                 );
             }
             if (resource.Type === 'AWS::EC2::VPCCidrBlock') {
-                this._vpcCidrBlockNodes[node.logicalId] = node;
+                this._vpcCidrBlockNodes.set(resourceAddress, node);
             }
             if (resource.Type === 'AWS::EC2::VPC') {
-                this.vpcNodes[node.logicalId] = { vpcNode: node, vpcCidrBlockNode: undefined };
+                this.vpcNodes.set(resourceAddress, { vpcNode: node, vpcCidrBlockNode: undefined });
             }
         } else if (node.construct.constructInfo?.fqn === 'aws-cdk-lib.CfnResource') {
             // If the construct is a CfnResource, then we need to treat it as a resource
-            const logicalId = this.stack.logicalIdForPath(tree.path);
-            const resource = this.stack.resourceWithLogicalId(logicalId);
+            const resourceAddress = this.stack.resourceAddressForPath(tree.path);
+            const resource = this.stack.resourceWithLogicalId(resourceAddress.stackPath, resourceAddress.id);
             node.resource = resource;
-            node.logicalId = logicalId;
-            this.cfnElementNodes.set(logicalId, node);
+            node.resourceAddress = resourceAddress;
+            this.cfnElementNodes.set(resourceAddress, node);
 
             // Custom Resources do not map to types. E.g. Custom::Bucket should not map to Bucket
             if (!GraphBuilder.isCustomResource(tree, parent)) {
@@ -227,9 +250,130 @@ export class GraphBuilder {
         }
 
         this.constructNodes.set(construct, node);
+
+        const nestedStacks = this.findNestedStacks(tree);
+        nestedStacks.forEach((nestedStack) => {
+            const nestedStackConstruct: ConstructInfo = {
+                parent: construct,
+                id: nestedStack.node.id,
+                path: nestedStack.node.path,
+                type: typeFromCfn('AWS::CloudFormation::Stack'),
+                constructInfo: nestedStack.node.constructInfo,
+            };
+
+            const node: GraphNode = {
+                incomingEdges: new Set<GraphNode>(),
+                outgoingEdges: new Set<GraphNode>(),
+                construct: nestedStackConstruct,
+                resource: nestedStack.resource,
+                resourceAddress: nestedStack.resourceAddress,
+            };
+
+            this.cfnElementNodes.set(nestedStack.resourceAddress, node);
+            this.constructNodes.set(nestedStackConstruct, node);
+            this.nestedStackNodes.set(nestedStack.node.path, node);
+
+            // load all the children of the nested stack
+            Object.values(nestedStack.node.children ?? {}).forEach((child) =>
+                this.parseTree(child, nestedStackConstruct),
+            );
+        });
+
+        // handle all the children of the current construct that are not nested stacks
         if (tree.children) {
-            Object.values(tree.children).forEach((child) => this.parseTree(child, construct));
+            Object.values(tree.children)
+                .filter(
+                    (child) =>
+                        !nestedStacks.find(
+                            (nestedStack) =>
+                                nestedStack.node.id === child.id || child.id === `${nestedStack.node.id}.NestedStack`,
+                        ),
+                )
+                .forEach((child) => this.parseTree(child, construct));
         }
+    }
+
+    /**
+     * Finds all the nested stacks in the children of the current construct tree node.
+     * It identifies nested stacks by matching a nested stack resource node (named `NAME.NestedStack`)
+     * with a child that is a 'AWS::CloudFormation::Stack' to a tree node (named `NAME`) that includes
+     * all the children of the nested stack.
+     *
+     * The tree structure looks like this:
+     * ```
+     * Root
+     * ├── MyNestedStack.NestedStack (Nested Stack Resource Node)
+     * │   └── AWS::CloudFormation::Stack
+     * │       └── Properties
+     * │           └── Parameters
+     * │               └── MyParameter
+     * │
+     * ├── MyNestedStack (Nested Stack Node)
+     * │   ├── ChildResource1
+     * │   │   └── Properties
+     * │   └── ChildResource2
+     * │       └── Properties
+     * ```
+     *
+     * @param tree - The construct tree node to search
+     * @returns The nested stacks found in the construct tree
+     */
+    private findNestedStacks(tree: ConstructTree): NestedStackData[] {
+        // find the nested stack resources. Those are nodes that have a name ending in `.NestedStack`
+        // and have a child that is a 'AWS::CloudFormation::Stack' resource
+        const nestedStackResources = Object.values(tree.children ?? {})
+            .map((child) => {
+                if (!child.id.endsWith('.NestedStack')) {
+                    return undefined;
+                }
+
+                return Object.values(child.children ?? {}).find((child) => {
+                    return (
+                        child.attributes &&
+                        'aws:cdk:cloudformation:type' in child.attributes &&
+                        child.attributes['aws:cdk:cloudformation:type'] === 'AWS::CloudFormation::Stack'
+                    );
+                });
+            })
+            .filter((x) => x !== undefined);
+
+        const nestedStacks = nestedStackResources
+            .map((nestedStackResourceNode) => {
+                debug(
+                    `Found potential nested stack resource ${nestedStackResourceNode.id} in ${nestedStackResourceNode.path}`,
+                );
+                const nestedStackPath = StackManifest.getNestedStackPath(
+                    nestedStackResourceNode.path,
+                    nestedStackResourceNode.id,
+                );
+                const resourceAddress = this.stack.resourceAddressForPath(nestedStackResourceNode.path);
+                const resource = this.stack.resourceWithLogicalId(resourceAddress.stackPath, resourceAddress.id);
+
+                // the nested stack node is the node that contains all the child nodes of the nested stack
+                // and is on the same level as the nested stack resource node. Its path should match the
+                // nestedStackPath that was computed above
+                const nestedStackNode = Object.values(tree.children ?? {}).find(
+                    (child) => child.path === nestedStackPath,
+                );
+
+                if (!nestedStackNode) {
+                    // This is not a nested CDK stack, but just a regular CFN stack that accidentally follows the CDK naming
+                    debug(
+                        `CloudFormation stack ${nestedStackResourceNode.id} in ${nestedStackResourceNode.path} does not correspond to a nested CDK stack. Handling it as a regular resource.`,
+                    );
+                    return;
+                }
+
+                return nestedStackResourceNode
+                    ? {
+                          resource,
+                          node: nestedStackNode,
+                          resourceAddress,
+                      }
+                    : undefined;
+            })
+            .filter((x) => x !== undefined);
+        return nestedStacks;
     }
 
     private static isCustomResource(node: ConstructTree, parent?: ConstructInfo): boolean {
@@ -252,42 +396,58 @@ export class GraphBuilder {
         this.parseTree(this.stack.constructTree);
 
         const unmappedResources: string[] = [];
-        Object.entries(this.stack.resources).forEach(([logicalId, resource]) => {
-            if (!this.cfnElementNodes.has(logicalId)) {
-                warn(`CDK resource ${logicalId} (${resource.Type}) was not mapped to a Pulumi resource.`);
-                unmappedResources.push(logicalId);
-            }
+        Object.entries(this.stack.stacks).map(([stackPath, template]) => {
+            Object.entries(template.Resources ?? {}).map(([logicalId, resource]) => {
+                if (!this.cfnElementNodes.has({ id: logicalId, stackPath })) {
+                    warn(`CDK resource ${logicalId} (${resource.Type}) was not mapped to a Pulumi resource.`);
+                    unmappedResources.push(logicalId);
+                }
+            });
         });
+
         if (unmappedResources.length > 0) {
-            const total = Object.keys(this.stack.resources).length;
+            const total = Object.entries(this.stack.stacks)
+                .map(([_, template]) => Object.keys(template.Resources ?? {}).length)
+                .reduce((a, b) => a + b, 0);
             throw new CdkAdapterError(
-                `Adapter] ${unmappedResources.length} out of ${total} CDK resources failed to map to Pulumi resources.`,
+                `${unmappedResources.length} out of ${total} CDK resources failed to map to Pulumi resources.`,
             );
         }
 
         // parseTree does not guarantee that the VPC resource will be parsed before the VPCCidrBlock resource
         // so we need to process this separately after
-        if (Object.keys(this._vpcCidrBlockNodes).length) {
-            Object.entries(this._vpcCidrBlockNodes).forEach(([logicalId, node]) => {
+        if (this._vpcCidrBlockNodes.size > 0) {
+            this._vpcCidrBlockNodes.forEach((node, resourceAddress) => {
                 const resource = node.resource;
-                if (!resource) {
+                if (!resource || !node.resourceAddress) {
                     throw new CdkAdapterError(
-                        `Something went wrong. CFN Resource not found for VPCCidrBlock ${logicalId}`,
+                        `Something went wrong. CFN Resource not found for VPCCidrBlock ${resourceAddress.id} in stack ${resourceAddress.stackPath}`,
                     );
                 }
                 const vpcRef = resource.Properties.VpcId;
                 if (typeof vpcRef === 'object' && 'Ref' in vpcRef) {
-                    const vpcLogicalId = this.cfnElementNodes.get(vpcRef.Ref)?.logicalId;
-                    if (!vpcLogicalId) {
+                    const vpcResourceAddress = this.cfnElementNodes.get({
+                        stackPath: node.resourceAddress.stackPath,
+                        id: vpcRef.Ref,
+                    })?.resourceAddress;
+                    if (!vpcResourceAddress) {
                         throw new CdkAdapterError(
-                            `VPC resource ${vpcRef.Ref} not found for VPCCidrBlock ${node.logicalId}`,
+                            `VPC resource ${vpcRef.Ref} not found for VPCCidrBlock ${resourceAddress.id} in stack ${resourceAddress.stackPath}`,
                         );
                     }
-                    const vpcNode = this.vpcNodes[vpcLogicalId];
+                    const vpcNode = this.vpcNodes.get(vpcResourceAddress);
+                    if (!vpcNode) {
+                        throw new CdkAdapterError(
+                            `VPC resource ${vpcRef.Ref} not found for VPCCidrBlock ${resourceAddress.id} in stack ${resourceAddress.stackPath}`,
+                        );
+                    }
+
                     // currently the CDK VPC only supports a single VPCCidrBlock per VPC so for now we won't allow multiple
                     // if we get requests for this we can update this to support multiple
                     if (vpcNode.vpcCidrBlockNode) {
-                        throw new CdkAdapterError(`VPC ${vpcLogicalId} already has a VPCCidrBlock`);
+                        throw new CdkAdapterError(
+                            `VPC ${vpcResourceAddress.id} in stack ${resourceAddress.stackPath} already has a VPCCidrBlock`,
+                        );
                     }
                     vpcNode.vpcCidrBlockNode = node;
                 }
@@ -295,7 +455,7 @@ export class GraphBuilder {
         }
 
         for (const [construct, node] of this.constructNodes) {
-            // No parent means this is the construct that represents the `Stack`
+            // No parent means this is the construct that represents the root `Stack`
             if (construct.parent !== undefined) {
                 const parentNode = this.constructNodes.get(construct.parent)!;
                 node.outgoingEdges.add(parentNode);
@@ -303,8 +463,14 @@ export class GraphBuilder {
             }
 
             // Then this is the construct representing the CFN resource (i.e. not a wrapper construct)
-            if (node.resource && node.logicalId) {
-                const source = this.cfnElementNodes.get(node.logicalId!)!;
+            if (node.resource && node.resourceAddress) {
+                const source = this.cfnElementNodes.get(node.resourceAddress);
+                if (!source) {
+                    throw new CdkAdapterError(
+                        `CFN Resource not found for ${node.resourceAddress.id} in stack ${node.resourceAddress.stackPath}`,
+                    );
+                }
+
                 this.addEdgesForCfnResource(node.resource, source);
 
                 const dependsOn =
@@ -344,10 +510,11 @@ export class GraphBuilder {
         return {
             nodes: sorted,
             vpcNodes: this.vpcNodes,
+            nestedStackNodes: this.nestedStackNodes,
         };
     }
 
-    private addEdgesForCfnResource(obj: any, source: GraphNode): void {
+    private addEdgesForCfnResource(obj: any, source: GraphNode, stackPath?: string): void {
         // Since we are processing the final CloudFormation template, strings will always
         // be the fully resolved value
         if (typeof obj === 'string') {
@@ -359,38 +526,60 @@ export class GraphBuilder {
         }
 
         if (Array.isArray(obj)) {
-            obj.map((x) => this.addEdgesForCfnResource(x, source));
+            obj.map((x) => this.addEdgesForCfnResource(x, source, stackPath));
             return;
         }
 
         const ref = obj.Ref;
         if (ref) {
-            this.addEdgeForRef(ref, source);
+            this.addEdgeForRef(ref, source, stackPath);
             return;
         }
 
         const keys = Object.keys(obj);
         if (keys.length == 1 && keys[0]?.startsWith('Fn::')) {
-            this.addEdgesForIntrinsic(keys[0], obj[keys[0]], source);
+            this.addEdgesForIntrinsic(keys[0], obj[keys[0]], source, stackPath);
             return;
         }
 
         for (const v of Object.values(obj)) {
-            this.addEdgesForCfnResource(v, source);
+            this.addEdgesForCfnResource(v, source, stackPath);
         }
     }
 
-    private addEdgeForRef(args: any, source: GraphNode) {
+    private addEdgeForRef(args: any, source: GraphNode, stackPath?: string) {
         if (typeof args !== 'string') {
             // Ignore these--they are either malformed references or Pulumi outputs.
             return;
         }
         const targetLogicalId = args;
+        stackPath = stackPath ?? source.resourceAddress?.stackPath;
+        if (!stackPath) {
+            throw new CdkAdapterError(
+                `Resource address not set for source node ${source.construct.path}. Cannot locate the source resource.`,
+            );
+        }
 
         debug(`ref to ${args}`);
         if (!targetLogicalId.startsWith('AWS::')) {
-            const targetNode = this.cfnElementNodes.get(targetLogicalId);
+            const targetNode = this.cfnElementNodes.get({
+                id: targetLogicalId,
+                stackPath,
+            });
             if (targetNode === undefined) {
+                // If this is a nested stack, we need to check if the parameter is set by the parent stack and add an edge for the stack resource in the parent stack
+                if (!this.stack.isRootStack(stackPath)) {
+                    const nestedStackNode = this.nestedStackNodes.get(stackPath);
+                    if (nestedStackNode?.resource?.Properties?.Parameters?.[targetLogicalId]) {
+                        debug(
+                            `Parameter ${targetLogicalId} is set by the parent stack, adding edge from ${source.construct.path} to ${nestedStackNode.construct.path}`,
+                        );
+                        source.outgoingEdges.add(nestedStackNode);
+                        nestedStackNode.incomingEdges.add(source);
+                        return;
+                    }
+                }
+
                 debug(`missing node for target element ${targetLogicalId}`);
             } else {
                 source.outgoingEdges.add(targetNode);
@@ -399,11 +588,33 @@ export class GraphBuilder {
         }
     }
 
-    private addEdgesForIntrinsic(fn: string, params: any, source: GraphNode) {
+    private addEdgesForIntrinsic(fn: string, params: any, source: GraphNode, stackPath?: string) {
         switch (fn) {
             case 'Fn::GetAtt': {
                 let logicalId = params[0];
                 const attributeName = params[1];
+
+                stackPath = stackPath ?? source.resourceAddress?.stackPath;
+                if (!stackPath) {
+                    throw new CdkAdapterError(
+                        `Resource address not set for source node ${source.construct.path}. Cannot locate the source resource.`,
+                    );
+                }
+
+                const targetResourceAddress = { id: logicalId, stackPath };
+                const targetNodePath = this.cfnElementNodes.get(targetResourceAddress)?.construct?.path;
+
+                // If the target node is a nested stack, we need to add an edge from the source to the nested stack's output
+                if (targetNodePath && targetNodePath in this.stack.stacks) {
+                    const nestedStack = this.stack.stacks[targetNodePath];
+
+                    // For nested stacks, the attribute name is the output name without the `Outputs.` prefix
+                    const outputName = attributeName.replace(/^Outputs\./, '');
+                    if (nestedStack.Outputs?.[outputName]?.Value) {
+                        this.addEdgesForCfnResource(nestedStack.Outputs[outputName].Value, source, targetNodePath);
+                    }
+                }
+
                 // Special case for VPC Ipv6CidrBlocks
                 // Ipv6 cidr blocks are added to the VPC through a separate VpcCidrBlock resource
                 // Due to [pulumi/pulumi-aws-native#1798] the `Ipv6CidrBlocks` attribute will always be empty
@@ -411,13 +622,13 @@ export class GraphBuilder {
                 // Here we switching the dependency to be on the `VpcCidrBlock` resource (since that will also have a dependency
                 // on the VPC resource)
                 if (
-                    logicalId in this.vpcNodes &&
+                    this.vpcNodes.has(targetResourceAddress) &&
                     attributeName === 'Ipv6CidrBlocks' &&
-                    this.vpcNodes[logicalId].vpcCidrBlockNode?.logicalId
+                    this.vpcNodes.get(targetResourceAddress)?.vpcCidrBlockNode?.resourceAddress
                 ) {
-                    logicalId = this.vpcNodes[logicalId].vpcCidrBlockNode!.logicalId;
+                    logicalId = this.vpcNodes.get(targetResourceAddress)!.vpcCidrBlockNode!.resourceAddress!.id;
                 }
-                this.addEdgeForRef(logicalId, source);
+                this.addEdgeForRef(logicalId, source, stackPath);
                 break;
             }
             case 'Fn::Sub':
@@ -425,15 +636,15 @@ export class GraphBuilder {
                     const [template, vars] =
                         typeof params === 'string' ? [params, undefined] : [params[0] as string, params[1]];
 
-                    this.addEdgesForCfnResource(vars, source);
+                    this.addEdgesForCfnResource(vars, source, stackPath);
 
                     for (const part of parseSub(template).filter((p) => p.ref !== undefined)) {
-                        this.addEdgeForRef(part.ref!.id, source);
+                        this.addEdgeForRef(part.ref!.id, source, stackPath);
                     }
                 }
                 break;
             default:
-                this.addEdgesForCfnResource(params, source);
+                this.addEdgesForCfnResource(params, source, stackPath);
                 break;
         }
     }
