@@ -652,27 +652,581 @@ describe('Stack Converter', () => {
         const converter = new StackConverter(app, manifest);
         converter.convert(new Set());
 
-        const rootBucket = converter.resources.get({ stackPath: manifest.id, id: 'bucket'})?.resource as native.s3.Bucket;
+        const rootBucket = converter.resources.get({ stackPath: manifest.id, id: 'bucket' })?.resource as native.s3.Bucket;
         expect(rootBucket).toBeDefined();
         const rootBucketName = await promiseOf(rootBucket.bucketName);
 
         // nested stack resource should be mapped
-        const nestedStackResource = converter.resources.get({ stackPath: manifest.id, id: 'nestyNestedStacknestyNestedStackResource'});
+        const nestedStackResource = converter.resources.get({ stackPath: manifest.id, id: 'nestyNestedStacknestyNestedStackResource' });
         expect(nestedStackResource).toBeDefined();
         expect(nestedStackResource?.resourceType).toEqual('AWS::CloudFormation::Stack');
         expect(NestedStackConstruct.isNestedStackConstruct(nestedStackResource?.resource)).toBeTruthy();
 
         // resources of the nested stack should be mapped
         // this tests that properties are correctly passed to the nested stack
-        const nestedBucket = converter.resources.get({ stackPath: `${manifest.id}/nesty`, id: 'bucket43879C71'})?.resource as native.s3.Bucket;
+        const nestedBucket = converter.resources.get({ stackPath: `${manifest.id}/nesty`, id: 'bucket43879C71' })?.resource as native.s3.Bucket;
         expect(nestedBucket).toBeDefined();
         const nestedBucketName = await promiseOf(nestedBucket.bucketName);
         expect(nestedBucketName).toEqual(`${rootBucketName}-nested`);
 
 
-        const policy = converter.resources.get({ stackPath: manifest.id, id: 'CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy'})?.resource as Policy;
+        const policy = converter.resources.get({ stackPath: manifest.id, id: 'CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy' })?.resource as Policy;
         const policyDocument = await promiseOf(policy.policy) as any;
         expect(policyDocument.Statement[1].Resource).toEqual(expect.arrayContaining(['bucket43879c71_arn', 'bucket43879c71_arn/*']));
+    });
+
+    describe('asOutputValue', () => {
+        test('can convert tokens to outputs', async () => {
+            const manifest = new StackManifest({
+                id: 'stack',
+                templatePath: 'test/stack',
+                metadata: {
+                    'stack/vpc': { stackPath: 'stack', id: 'vpc' },
+                    'stack/cidr': { stackPath: 'stack', id: 'cidr' },
+                },
+                tree: {
+                    path: 'stack',
+                    id: 'stack',
+                    children: {
+                        vpc: {
+                            id: 'vpc',
+                            path: 'stack/vpc',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                            },
+                        },
+                        cidr: {
+                            id: 'cidr',
+                            path: 'stack/cidr',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                            },
+                        },
+                    },
+                    constructInfo: {
+                        fqn: 'aws-cdk-lib.Stack',
+                        version: '2.149.0',
+                    },
+                },
+                nestedStacks: {},
+                template: {
+                    Resources: {
+                        vpc: {
+                            Type: 'AWS::EC2::VPC',
+                            Properties: {},
+                        },
+                        cidr: {
+                            Type: 'AWS::EC2::VPCCidrBlock',
+                            Properties: {
+                                VpcId: { Ref: 'vpc' },
+                                Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
+                            },
+                        },
+                    },
+                },
+                dependencies: [],
+            });
+    
+            const app = new MockAppComponent('/tmp/foo/bar/does/not/exist');
+            const stagingBucket = 'my-bucket';
+            const customResourcePrefix = 'my-prefix';
+            app.stacks[manifest.id] = {
+                synthesizer: new MockSynth(stagingBucket, customResourcePrefix),
+                node: {
+                    id: 'my-stack',
+                },
+                resolve: (obj: any) => ({ Ref: 'vpc' }),
+            } as unknown as CdkStack;
+            const converter = new StackConverter(app, manifest);
+            converter.convert(new Set());
+    
+            const result = await promiseOf(converter.asOutputValue("DUMMY") as any);
+            expect(result).toEqual("vpc_id");
+        });
+    
+        test('throws if token is not found in any stack', async () => {
+            const manifest = new StackManifest({
+                id: 'stack',
+                templatePath: 'test/stack',
+                metadata: {
+                    'stack/vpc': { stackPath: 'stack', id: 'vpc' },
+                    'stack/cidr': { stackPath: 'stack', id: 'cidr' },
+                    'stack/nested.NestedStack/nested.NestedStackResource': { stackPath: 'stack', id: 'nested.NestedStackResource' },
+                    'stack/nested/vpc': { stackPath: 'stack/nested', id: 'vpc' },
+                    'stack/nested/cidr': { stackPath: 'stack/nested', id: 'cidr' },
+                },
+                tree: {
+                    path: 'stack',
+                    id: 'stack',
+                    children: {
+                        vpc: {
+                            id: 'vpc',
+                            path: 'stack/vpc',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                            },
+                        },
+                        cidr: {
+                            id: 'cidr',
+                            path: 'stack/cidr',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                            },
+                        },
+                        nested: {
+                            id: 'nested',
+                            path: 'stack/nested',
+                            children: {
+                                vpc: {
+                                    id: 'vpc',
+                                    path: 'stack/nested/vpc',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                                    },
+                                },
+                                cidr: {
+                                    id: 'cidr',
+                                    path: 'stack/nested/cidr',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                                    },
+                                },
+                            },
+                        },
+                        "nested.NestedStack": {
+                            id: 'nested.NestedStack',
+                            path: 'stack/nested.NestedStack',
+                            children: {
+                                'nested.NestedStackResource': {
+                                    id: 'nested.NestedStackResource',
+                                    path: 'stack/nested.NestedStack/nested.NestedStackResource',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::CloudFormation::Stack',
+                                    },
+                                },
+                            }
+                        },
+                    },
+                    constructInfo: {
+                        fqn: 'aws-cdk-lib.Stack',
+                        version: '2.149.0',
+                    },
+                },
+                nestedStacks: {
+                    'stack/nested': {
+                        logicalId: 'nested',
+                        Resources: {
+                            vpc: {
+                                Type: 'AWS::EC2::VPC',
+                                Properties: {},
+                            },
+                            cidr: {
+                                Type: 'AWS::EC2::VPCCidrBlock',
+                                Properties: {
+                                    VpcId: { Ref: 'vpc' },
+                                    Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
+                                },
+                            },
+                        },
+                    },
+                },
+                template: {
+                    Resources: {
+                        vpc: {
+                            Type: 'AWS::EC2::VPC',
+                            Properties: {},
+                        },
+                        cidr: {
+                            Type: 'AWS::EC2::VPCCidrBlock',
+                            Properties: {
+                                VpcId: { Ref: 'vpc' },
+                                Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
+                            },
+                        },
+                        "nested.NestedStackResource": {
+                            Type: 'AWS::CloudFormation::Stack',
+                            Properties: {},
+                        },
+                    },
+                },
+                dependencies: [],
+            });
+    
+            const app = new MockAppComponent('/tmp/foo/bar/does/not/exist');
+            const stagingBucket = 'my-bucket';
+            const customResourcePrefix = 'my-prefix';
+            app.stacks[manifest.id] = {
+                synthesizer: new MockSynth(stagingBucket, customResourcePrefix),
+                node: {
+                    id: 'my-stack',
+                },
+                resolve: (obj: any) => ({ Ref: 'not-found' }),
+            } as unknown as CdkStack;
+            const converter = new StackConverter(app, manifest);
+            converter.convert(new Set());
+    
+            expect(() => converter.asOutputValue("DUMMY")).toThrow("Ref intrinsic unable to resolve not-found in stack stack: not a known logical resource or parameter reference");
+        });
+    
+        test('finds value in correct nested stack', async () => {
+            const manifest = new StackManifest({
+                id: 'stack',
+                templatePath: 'test/stack',
+                metadata: {
+                    'stack/vpc': { stackPath: 'stack', id: 'vpc' },
+                    'stack/cidr': { stackPath: 'stack', id: 'cidr' },
+                    'stack/nested.NestedStack/nested.NestedStackResource': { stackPath: 'stack', id: 'nested.NestedStackResource' },
+                    'stack/nested/nestedVpc': { stackPath: 'stack/nested', id: 'nestedVpc' },
+                    'stack/nested/cidr': { stackPath: 'stack/nested', id: 'cidr' },
+                    'stack/otherNested.NestedStack/otherNested.NestedStackResource': { stackPath: 'stack', id: 'otherNested.NestedStackResource' },
+                    'stack/otherNested/nestedVpc2': { stackPath: 'stack/otherNested', id: 'nestedVpc2' },
+                    'stack/otherNested/cidr': { stackPath: 'stack/otherNested', id: 'cidr' },
+                },
+                tree: {
+                    path: 'stack',
+                    id: 'stack',
+                    children: {
+                        vpc: {
+                            id: 'vpc',
+                            path: 'stack/vpc',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                            },
+                        },
+                        cidr: {
+                            id: 'cidr',
+                            path: 'stack/cidr',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                            },
+                        },
+                        nested: {
+                            id: 'nested',
+                            path: 'stack/nested',
+                            children: {
+                                nestedVpc: {
+                                    id: 'nestedVpc',
+                                    path: 'stack/nested/nestedVpc',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                                    },
+                                },
+                                cidr: {
+                                    id: 'cidr',
+                                    path: 'stack/nested/cidr',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                                    },
+                                },
+                            },
+                        },
+                        "nested.NestedStack": {
+                            id: 'nested.NestedStack',
+                            path: 'stack/nested.NestedStack',
+                            children: {
+                                'nested.NestedStackResource': {
+                                    id: 'nested.NestedStackResource',
+                                    path: 'stack/nested.NestedStack/nested.NestedStackResource',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::CloudFormation::Stack',
+                                    },
+                                },
+                            }
+                        },
+                        otherNested: {
+                            id: 'otherNested',
+                            path: 'stack/otherNested',
+                            children: {
+                                nestedVpc2: {
+                                    id: 'nestedVpc2',
+                                    path: 'stack/otherNested/nestedVpc2',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                                    },
+                                },
+                                cidr: {
+                                    id: 'cidr2',
+                                    path: 'stack/otherNested/cidr',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                                    },
+                                },
+                            }
+                        },
+                        "otherNested.NestedStack": {
+                            id: 'otherNested.NestedStack',
+                            path: 'stack/otherNested.NestedStack',
+                            children: {
+                                'otherNested.NestedStackResource': {
+                                    id: 'otherNested.NestedStackResource',
+                                    path: 'stack/otherNested.NestedStack/otherNested.NestedStackResource',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::CloudFormation::Stack',
+                                    },
+                                },
+                            }
+                        }
+                    },
+                    constructInfo: {
+                        fqn: 'aws-cdk-lib.Stack',
+                        version: '2.149.0',
+                    },
+                },
+                nestedStacks: {
+                    'stack/nested': {
+                        logicalId: 'nested',
+                        Resources: {
+                            nestedVpc: {
+                                Type: 'AWS::EC2::VPC',
+                                Properties: {},
+                            },
+                            cidr: {
+                                Type: 'AWS::EC2::VPCCidrBlock',
+                                Properties: {
+                                    VpcId: { Ref: 'nestedVpc' },
+                                    Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
+                                },
+                            },
+                        },
+                    },
+                    'stack/otherNested': {
+                        logicalId: 'nested',
+                        Resources: {
+                            nestedVpc2: {
+                                Type: 'AWS::EC2::VPC',
+                                Properties: {},
+                            },
+                            cidr: {
+                                Type: 'AWS::EC2::VPCCidrBlock',
+                                Properties: {
+                                    VpcId: { Ref: 'nestedVpc2' },
+                                    Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
+                                },
+                            },
+                        },
+                    }
+                },
+                template: {
+                    Resources: {
+                        vpc: {
+                            Type: 'AWS::EC2::VPC',
+                            Properties: {},
+                        },
+                        cidr: {
+                            Type: 'AWS::EC2::VPCCidrBlock',
+                            Properties: {
+                                VpcId: { Ref: 'vpc' },
+                                Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
+                            },
+                        },
+                        "nested.NestedStackResource": {
+                            Type: 'AWS::CloudFormation::Stack',
+                            Properties: {},
+                        },
+                        "otherNested.NestedStackResource": {
+                            Type: 'AWS::CloudFormation::Stack',
+                            Properties: {},
+                        },
+                    },
+                },
+                dependencies: [],
+            });
+    
+            const app = new MockAppComponent('/tmp/foo/bar/does/not/exist');
+            const stagingBucket = 'my-bucket';
+            const customResourcePrefix = 'my-prefix';
+            app.stacks[manifest.id] = {
+                synthesizer: new MockSynth(stagingBucket, customResourcePrefix),
+                node: {
+                    id: 'my-stack',
+                },
+                resolve: (obj: any) => ({ Ref: 'nestedVpc' }),
+            } as unknown as CdkStack;
+            const converter = new StackConverter(app, manifest);
+            converter.convert(new Set());
+    
+            const result = await promiseOf(converter.asOutputValue("DUMMY") as any);
+            expect(result).toEqual("nestedVpc_id");
+        });
+    
+        test('throws if token is found in multiple stacks', async () => {
+            const manifest = new StackManifest({
+                id: 'stack',
+                templatePath: 'test/stack',
+                metadata: {
+                    'stack/vpc': { stackPath: 'stack', id: 'vpc' },
+                    'stack/cidr': { stackPath: 'stack', id: 'cidr' },
+                    'stack/nested.NestedStack/nested.NestedStackResource': { stackPath: 'stack', id: 'nested.NestedStackResource' },
+                    'stack/nested/nestedVpc': { stackPath: 'stack/nested', id: 'nestedVpc' },
+                    'stack/nested/cidr': { stackPath: 'stack/nested', id: 'cidr' },
+                    'stack/otherNested.NestedStack/otherNested.NestedStackResource': { stackPath: 'stack', id: 'otherNested.NestedStackResource' },
+                    'stack/otherNested/nestedVpc': { stackPath: 'stack/otherNested', id: 'nestedVpc' },
+                    'stack/otherNested/cidr': { stackPath: 'stack/otherNested', id: 'cidr' },
+                },
+                tree: {
+                    path: 'stack',
+                    id: 'stack',
+                    children: {
+                        vpc: {
+                            id: 'vpc',
+                            path: 'stack/vpc',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                            },
+                        },
+                        cidr: {
+                            id: 'cidr',
+                            path: 'stack/cidr',
+                            attributes: {
+                                'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                            },
+                        },
+                        nested: {
+                            id: 'nested',
+                            path: 'stack/nested',
+                            children: {
+                                nestedVpc: {
+                                    id: 'vpc',
+                                    path: 'stack/nested/nestedVpc',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                                    },
+                                },
+                                cidr: {
+                                    id: 'cidr',
+                                    path: 'stack/nested/cidr',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                                    },
+                                },
+                            },
+                        },
+                        "nested.NestedStack": {
+                            id: 'nested.NestedStack',
+                            path: 'stack/nested.NestedStack',
+                            children: {
+                                'nested.NestedStackResource': {
+                                    id: 'nested.NestedStackResource',
+                                    path: 'stack/nested.NestedStack/nested.NestedStackResource',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::CloudFormation::Stack',
+                                    },
+                                },
+                            }
+                        },
+                        otherNested: {
+                            id: 'otherNested',
+                            path: 'stack/otherNested',
+                            children: {
+                                nestedVpc: {
+                                    id: 'vpc',
+                                    path: 'stack/otherNested/nestedVpc',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPC',
+                                    },
+                                },
+                                cidr: {
+                                    id: 'cidr',
+                                    path: 'stack/otherNested/cidr',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::EC2::VPCCidrBlock',
+                                    },
+                                },
+                            }
+                        },
+                        "otherNested.NestedStack": {
+                            id: 'otherNested.NestedStack',
+                            path: 'stack/otherNested.NestedStack',
+                            children: {
+                                'otherNested.NestedStackResource': {
+                                    id: 'otherNested.NestedStackResource',
+                                    path: 'stack/otherNested.NestedStack/otherNested.NestedStackResource',
+                                    attributes: {
+                                        'aws:cdk:cloudformation:type': 'AWS::CloudFormation::Stack',
+                                    },
+                                },
+                            }
+                        }
+                    },
+                    constructInfo: {
+                        fqn: 'aws-cdk-lib.Stack',
+                        version: '2.149.0',
+                    },
+                },
+                nestedStacks: {
+                    'stack/nested': {
+                        logicalId: 'nested',
+                        Resources: {
+                            nestedVpc: {
+                                Type: 'AWS::EC2::VPC',
+                                Properties: {},
+                            },
+                            cidr: {
+                                Type: 'AWS::EC2::VPCCidrBlock',
+                                Properties: {
+                                    VpcId: { Ref: 'nestedVpc' },
+                                    Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
+                                },
+                            },
+                        },
+                    },
+                    'stack/otherNested': {
+                        logicalId: 'nested',
+                        Resources: {
+                            nestedVpc: {
+                                Type: 'AWS::EC2::VPC',
+                                Properties: {},
+                            },
+                            cidr: {
+                                Type: 'AWS::EC2::VPCCidrBlock',
+                                Properties: {
+                                    VpcId: { Ref: 'nestedVpc' },
+                                    Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
+                                },
+                            },
+                        },
+                    }
+                },
+                template: {
+                    Resources: {
+                        vpc: {
+                            Type: 'AWS::EC2::VPC',
+                            Properties: {},
+                        },
+                        cidr: {
+                            Type: 'AWS::EC2::VPCCidrBlock',
+                            Properties: {
+                                VpcId: { Ref: 'vpc' },
+                                Ipv6CidrBlock: 'cidr_ipv6AddressAttribute',
+                            },
+                        },
+                        "nested.NestedStackResource": {
+                            Type: 'AWS::CloudFormation::Stack',
+                            Properties: {},
+                        },
+                        "otherNested.NestedStackResource": {
+                            Type: 'AWS::CloudFormation::Stack',
+                            Properties: {},
+                        },
+                    },
+                },
+                dependencies: [],
+            });
+    
+            const app = new MockAppComponent('/tmp/foo/bar/does/not/exist');
+            const stagingBucket = 'my-bucket';
+            const customResourcePrefix = 'my-prefix';
+            app.stacks[manifest.id] = {
+                synthesizer: new MockSynth(stagingBucket, customResourcePrefix),
+                node: {
+                    id: 'my-stack',
+                },
+                resolve: (obj: any) => ({ Ref: 'nestedVpc' }),
+            } as unknown as CdkStack;
+            const converter = new StackConverter(app, manifest);
+            converter.convert(new Set());
+            expect(() => converter.asOutputValue("DUMMY")).toThrow("[CDK Adapter] Value found in multiple stacks: stack/nested and stack/otherNested. Pulumi cannot resolve this value.");
+        });
     });
 });
 

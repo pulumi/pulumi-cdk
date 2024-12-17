@@ -458,18 +458,23 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
             for (const [stackPath, _] of this.graph.nestedStackNodes) {
                 if (stackPath === this.stack.constructTree.path) continue;
 
+                let result;
                 try {
-                    const result = this.processIntrinsics(value, stackPath);
-                    if (foundValue !== null) {
-                        throw new CdkAdapterError(
-                            `Value found in multiple stacks: ${foundStack} and ${stackPath}. Pulumi cannot resolve this value.`,
-                        );
-                    }
-                    foundValue = result;
-                    foundStack = stackPath;
+                    result = this.processIntrinsics(value, stackPath);
                 } catch {
                     // Continue searching other stacks
+                    continue;
                 }
+                if (!result) {
+                    continue;
+                }
+                if (foundValue !== null) {
+                    throw new CdkAdapterError(
+                        `Value found in multiple stacks: ${foundStack} and ${stackPath}. Pulumi cannot resolve this value.`,
+                    );
+                }
+                foundValue = result;
+                foundStack = stackPath;
             }
 
             if (foundValue !== null) {
