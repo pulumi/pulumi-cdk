@@ -35,6 +35,15 @@ describe('Fn::If', () => {
         const result = runIntrinsic(intrinsics.fnIf, tc, ['MyCondition', 'yes', 'no'], 'test-stack');
         expect(result).toEqual(failed(`Expected a boolean, got string`));
     });
+
+    test('picks condition from correct stack', async () => {
+        const tc = new TestContext({ conditions: {
+            'test-stack': { MyCondition: false } ,
+            'nested-stack': { MyCondition: true }
+        }});
+        const result = runIntrinsic(intrinsics.fnIf, tc, ['MyCondition', 'yes', 'no'], 'nested-stack');
+        expect(result).toEqual(ok('yes'));
+    });
 });
 
 describe('Fn::Or', () => {
@@ -71,6 +80,15 @@ describe('Fn::Or', () => {
     test('short-cirtcuits evaluation if true is found', async () => {
         const tc = new TestContext({});
         const result = runIntrinsic(intrinsics.fnOr, tc, [true, { Condition: 'DoesNotExist' }], 'test-stack');
+        expect(result).toEqual(ok(true));
+    });
+
+    test('picks condition from correct stack', async () => {
+        const tc = new TestContext({ conditions: {
+            'test-stack': { MyCondition: false } ,
+            'nested-stack': { MyCondition: true }
+        }});
+        const result = runIntrinsic(intrinsics.fnOr, tc, [false, { Condition: 'MyCondition' }], 'nested-stack');
         expect(result).toEqual(ok(true));
     });
 });
@@ -111,6 +129,17 @@ describe('Fn::And', () => {
         const result = runIntrinsic(intrinsics.fnAnd, tc, [false, { Condition: 'DoesNotExist' }], 'test-stack');
         expect(result).toEqual(ok(false));
     });
+
+    test('picks condition from correct stack', async () => {
+        const tc = new TestContext({ conditions: {
+            'test-stack': { MyCondition: false } ,
+            'nested-stack': { MyCondition: true }
+        }});
+        let result = runIntrinsic(intrinsics.fnAnd, tc, [false, { Condition: 'MyCondition' }], 'nested-stack');
+        expect(result).toEqual(ok(false));
+        result = runIntrinsic(intrinsics.fnAnd, tc, [true, { Condition: 'MyCondition' }], 'nested-stack');
+        expect(result).toEqual(ok(true));
+    });
 });
 
 describe('Fn::Not', () => {
@@ -143,6 +172,15 @@ describe('Fn::Not', () => {
         const result = runIntrinsic(intrinsics.fnNot, tc, ['ok'], 'test-stack');
         expect(result).toEqual(failed(`Expected a boolean, got string`));
     });
+
+    test('picks condition from correct stack', async () => {
+        const tc = new TestContext({ conditions: {
+            'test-stack': { MyCondition: false } ,
+            'nested-stack': { MyCondition: true }
+        }});
+        const result = runIntrinsic(intrinsics.fnNot, tc, [{ Condition: 'MyCondition' }], 'nested-stack');
+        expect(result).toEqual(ok(false));
+    });
 });
 
 describe('Fn::Equals', () => {
@@ -174,6 +212,15 @@ describe('Fn::Equals', () => {
         const tc = new TestContext({});
         const result = runIntrinsic(intrinsics.fnEquals, tc, [1], 'test-stack');
         expect(result).toEqual(failed(`Fn::Equals expects exactly 2 params, got 1`));
+    });
+
+    test('preserves stack path', async () => {
+        const tc = new TestContext({ conditions: {
+            'test-stack': { MyCondition: false } ,
+            'nested-stack': { MyCondition: true }
+        }});
+        const result = runIntrinsic(intrinsics.fnEquals, tc, ['yes', { 'Fn::If': ['MyCondition', 'yes', 'no'] }], 'nested-stack');
+        expect(result).toEqual(ok(true));
     });
 });
 
@@ -383,6 +430,42 @@ describe('Ref', () => {
         // These are approximations; testing the current behavior for completeness sake.
         expect(runIntrinsic(intrinsics.ref, tc, ['AWS::StackId'], 'test-stack')).toEqual(ok(stackNodeId));
         expect(runIntrinsic(intrinsics.ref, tc, ['AWS::StackName'], 'test-stack')).toEqual(ok(stackNodeId));
+    });
+
+    test('resolves resource in correct stack', async () => {
+        const tc = new TestContext({
+            resources: {
+                'test-stack': {
+                    MyRes: {
+                        resource: <any>{
+                            bucketName: "parent-bucket",
+                            __pulumiType: (<any>ccapi.s3.Bucket).__pulumiType,
+                        },
+                        resourceType: 'AWS::S3::Bucket',
+                    },
+                },
+                'nested-stack': {
+                    MyRes: {
+                        resource: <any>{
+                            bucketName: "nested-bucket",
+                            __pulumiType: (<any>ccapi.s3.Bucket).__pulumiType,
+                        },
+                        resourceType: 'AWS::S3::Bucket',
+                    },
+                },
+            },
+            pulumiMetadata: {
+                'AWS::S3::Bucket': {
+                    inputs: {},
+                    outputs: {},
+                    cfRef: {
+                        properties: ['BucketName'],
+                    },
+                },
+            },
+        });
+        const result = runIntrinsic(intrinsics.ref, tc, ['MyRes'], 'nested-stack');
+        expect(result).toEqual(ok('nested-bucket'));
     });
 });
 
