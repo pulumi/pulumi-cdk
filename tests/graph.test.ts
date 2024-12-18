@@ -14,7 +14,7 @@
 
 import { GraphBuilder, GraphNode } from '../src/graph';
 import { ConstructTree, StackManifest, StackManifestProps } from '../src/assembly';
-import { createStackManifest } from './utils';
+import { createNestedStackManifest, createStackManifest } from './utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -24,8 +24,56 @@ describe('GraphBuilder', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/example-bucket/Resource': 'examplebucketC9DFA43E',
-                'stack/example-bucket/Policy/Resource': 'examplebucketPolicyE09B485E',
+                'stack/example-bucket/Resource': { stackPath: 'stack', id: 'examplebucketC9DFA43E' },
+                'stack/example-bucket/Policy/Resource': { stackPath: 'stack', id: 'examplebucketPolicyE09B485E' },
+                'stack/nested.NestedStack/nested.NestedStackResource': { stackPath: 'stack', id: 'nested.NestedStackResource' },
+                'stack/nested/example-bucket/Resource': { stackPath: 'stack/nested', id: 'examplebucketdDE4DBE4F' },
+                'stack/nested/example-bucket/Policy/Resource': { stackPath: 'stack/nested', id: 'examplebucketPolicyC4E3BBE2F' },
+                'stack/output-bucket/Resource': { stackPath: 'stack', id: 'outputbucketC9DFA43E' },
+                'stack/output-bucket/Policy/Resource': { stackPath: 'stack', id: 'outputbucketPolicyE09B485E' },
+            },
+            nestedStacks: {
+                'stack/nested': {
+                    logicalId: 'nested.NestedStack',
+                    Resources: {
+                        examplebucketdDE4DBE4F: {
+                            Type: 'AWS::S3::Bucket',
+                            Properties: {
+                                BucketName: {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Ref": "referencetostackexamplebucketC9DFA43ERef"
+                                            },
+                                            "-nested"
+                                        ]
+                                    ]
+                                }
+                            },
+                        },
+                        examplebucketPolicyC4E3BBE2F: {
+                            Type: 'AWS::S3::BucketPolicy',
+                            Properties: {
+                                Bucket: {
+                                    Ref: 'examplebucketdDE4DBE4F',
+                                },
+                            },
+                        },
+                    },
+                    Outputs: {
+                        stacknestedexamplebucketdDE4DBE4FRef: {
+                            Value: {
+                                Ref: 'examplebucketdDE4DBE4F',
+                            },
+                        },
+                    },
+                    Parameters: {
+                        referencetostackexamplebucketC9DFA43ERef: {
+                            Type: 'String',
+                        },
+                    },
+                },
             },
             tree: {
                 path: 'stack',
@@ -73,6 +121,117 @@ describe('GraphBuilder', () => {
                             },
                         },
                     },
+                    nested: {
+                        id: 'nested',
+                        path: 'stack/nested',
+                        children: {
+                            'example-bucket': {
+                                id: 'example-bucket',
+                                path: 'stack/nested/example-bucket',
+                                constructInfo: {
+                                    fqn: 'aws-cdk-lib.aws_s3.Bucket',
+                                    version: '2.149.0',
+                                },
+                                children: {
+                                    Resource: {
+                                        id: 'Resource',
+                                        path: 'stack/nested/example-bucket/Resource',
+                                        attributes: {
+                                            'aws:cdk:cloudformation:type': 'AWS::S3::Bucket',
+                                        },
+                                        constructInfo: {
+                                            fqn: 'aws-cdk-lib.aws_s3.CfnBucket',
+                                            version: '2.149.0',
+                                        },
+                                    },
+                                    Policy: {
+                                        id: 'Policy',
+                                        path: 'stack/nested/example-bucket/Policy',
+                                        children: {
+                                            Resource: {
+                                                id: 'Resource',
+                                                path: 'stack/nested/example-bucket/Policy/Resource',
+                                                attributes: {
+                                                    'aws:cdk:cloudformation:type': 'AWS::S3::BucketPolicy',
+                                                },
+                                                constructInfo: {
+                                                    fqn: 'aws-cdk-lib.aws_s3.CfnBucketPolicy',
+                                                    version: '2.149.0',
+                                                },
+                                            },
+                                        },
+                                        constructInfo: {
+                                            fqn: 'aws-cdk-lib.aws_s3.BucketPolicy',
+                                            version: '2.149.0',
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        constructInfo: {
+                            fqn: 'aws-cdk-lib.NestedStack',
+                            version: '2.149.0',
+                        },
+                    },
+                    "nested.NestedStack": {
+                        id: 'nested.NestedStack',
+                        path: 'stack/nested.NestedStack',
+                        children: {
+                            'nested.NestedStackResource': {
+                                id: 'nested.NestedStackResource',
+                                path: 'stack/nested.NestedStack/nested.NestedStackResource',
+                                attributes: {
+                                    'aws:cdk:cloudformation:type': 'AWS::CloudFormation::Stack',
+                                },
+                                constructInfo: {
+                                    fqn: 'aws-cdk-lib.CfnStack',
+                                    version: '2.149.0',
+                                },
+                            },
+                        }
+                    },
+                    'output-bucket': {
+                        id: 'output-bucket',
+                        path: 'stack/output-bucket',
+                        constructInfo: {
+                            fqn: 'aws-cdk-lib.aws_s3.Bucket',
+                            version: '2.149.0',
+                        },
+                        children: {
+                            Resource: {
+                                id: 'Resource',
+                                path: 'stack/output-bucket/Resource',
+                                attributes: {
+                                    'aws:cdk:cloudformation:type': 'AWS::S3::Bucket',
+                                },
+                                constructInfo: {
+                                    fqn: 'aws-cdk-lib.aws_s3.CfnBucket',
+                                    version: '2.149.0',
+                                },
+                            },
+                            Policy: {
+                                id: 'Policy',
+                                path: 'stack/output-bucket/Policy',
+                                children: {
+                                    Resource: {
+                                        id: 'Resource',
+                                        path: 'stack/output-bucket/Policy/Resource',
+                                        attributes: {
+                                            'aws:cdk:cloudformation:type': 'AWS::S3::BucketPolicy',
+                                        },
+                                        constructInfo: {
+                                            fqn: 'aws-cdk-lib.aws_s3.CfnBucketPolicy',
+                                            version: '2.149.0',
+                                        },
+                                    },
+                                },
+                                constructInfo: {
+                                    fqn: 'aws-cdk-lib.aws_s3.BucketPolicy',
+                                    version: '2.149.0',
+                                },
+                            },
+                        },
+                    },
                 },
                 constructInfo: {
                     fqn: 'aws-cdk-lib.Stack',
@@ -93,6 +252,43 @@ describe('GraphBuilder', () => {
                             },
                         },
                     },
+                    "nested.NestedStackResource": {
+                        Type: 'AWS::CloudFormation::Stack',
+                        Properties: {
+                            Parameters: {
+                                referencetostackexamplebucketC9DFA43ERef: {
+                                    Ref: 'examplebucketC9DFA43E',
+                                }
+                            }
+                        },
+                    },
+                    outputbucketC9DFA43E: {
+                        Type: 'AWS::S3::Bucket',
+                        Properties: {
+                            BucketName: {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        {
+                                            "Fn::GetAtt": [
+                                                "nested.NestedStackResource",
+                                                "Outputs.stacknestedexamplebucketdDE4DBE4FRef"
+                                            ]
+                                        },
+                                        "-output"
+                                    ]
+                                ]
+                            }
+                        },
+                    },
+                    outputbucketPolicyE09B485E: {
+                        Type: 'AWS::S3::BucketPolicy',
+                        Properties: {
+                            Bucket: {
+                                Ref: 'outputbucketC9DFA43E',
+                            },
+                        },
+                    },
                 },
             },
             dependencies: [],
@@ -100,7 +296,6 @@ describe('GraphBuilder', () => {
     );
     test.each([
         [
-            nodes,
             'stack',
             {
                 construct: {
@@ -109,14 +304,13 @@ describe('GraphBuilder', () => {
                     type: 'aws-cdk-lib:Stack',
                     parent: undefined,
                 },
-                logicalId: undefined,
+                resourceAddress: undefined,
                 resource: undefined,
-                incomingEdges: ['stack/example-bucket'],
+                incomingEdges: ['stack/example-bucket', 'stack/nested', 'stack/output-bucket'],
                 outgoingEdges: [],
             },
         ],
         [
-            nodes,
             'stack/example-bucket',
             {
                 construct: {
@@ -125,14 +319,13 @@ describe('GraphBuilder', () => {
                     id: 'example-bucket',
                     type: 'aws-cdk-lib/aws_s3:Bucket',
                 },
-                logicalId: undefined,
+                resourceAddress: undefined,
                 resource: undefined,
                 incomingEdges: ['stack/example-bucket/Resource', 'stack/example-bucket/Policy'],
                 outgoingEdges: ['stack'],
             },
         ],
         [
-            nodes,
             'stack/example-bucket/Resource',
             {
                 construct: {
@@ -145,13 +338,12 @@ describe('GraphBuilder', () => {
                     Type: 'AWS::S3::Bucket',
                     Properties: {},
                 },
-                logicalId: 'examplebucketC9DFA43E',
-                incomingEdges: ['stack/example-bucket/Policy/Resource'],
+                resourceAddress: { stackPath: 'stack', id: 'examplebucketC9DFA43E' },
+                incomingEdges: ['stack/example-bucket/Policy/Resource', 'stack/nested'],
                 outgoingEdges: ['stack/example-bucket'],
             },
         ],
         [
-            nodes,
             'stack/example-bucket/Policy',
             {
                 construct: {
@@ -160,14 +352,13 @@ describe('GraphBuilder', () => {
                     id: 'Policy',
                     type: 'aws-cdk-lib/aws_s3:BucketPolicy',
                 },
-                logicalId: undefined,
+                resourceAddress: undefined,
                 resource: undefined,
                 incomingEdges: ['stack/example-bucket/Policy/Resource'],
                 outgoingEdges: ['stack/example-bucket'],
             },
         ],
         [
-            nodes,
             'stack/example-bucket/Policy/Resource',
             {
                 construct: {
@@ -184,20 +375,196 @@ describe('GraphBuilder', () => {
                         },
                     },
                 },
-                logicalId: 'examplebucketPolicyE09B485E',
+                resourceAddress: { stackPath: 'stack', id: 'examplebucketPolicyE09B485E' },
                 incomingEdges: [],
                 outgoingEdges: ['stack/example-bucket/Policy', 'stack/example-bucket/Resource'],
             },
         ],
-    ])('Parses the graph correctly', (graph, path, expected) => {
-        const actual = graph.nodes.find((node) => node.construct.path === path);
+        [
+            'stack/nested',
+            {
+                construct: {
+                    parent: 'stack',
+                    path: 'stack/nested',
+                    id: 'nested',
+                    type: 'Stack',
+                },
+                resourceAddress: { stackPath: 'stack', id: 'nested.NestedStackResource' },
+                resource: {
+                    Type: 'AWS::CloudFormation::Stack',
+                    Properties: {
+                        Parameters: {
+                            referencetostackexamplebucketC9DFA43ERef: {
+                                Ref: 'examplebucketC9DFA43E',
+                            }
+                        }
+                    },
+                },
+                incomingEdges: ['stack/nested/example-bucket', 'stack/output-bucket/Resource'],
+                outgoingEdges: ['stack', 'stack/example-bucket/Resource'], // the outgoing edge for 'stack/example-bucket/Resource' is the stack parameter
+            },
+        ],
+        [
+            'stack/nested/example-bucket',
+            {
+                construct: {
+                    parent: 'nested',
+                    path: 'stack/nested/example-bucket',
+                    id: 'example-bucket',
+                    type: 'aws-cdk-lib/aws_s3:Bucket',
+                },
+                resourceAddress: undefined,
+                resource: undefined,
+                incomingEdges: ['stack/nested/example-bucket/Resource', 'stack/nested/example-bucket/Policy'],
+                outgoingEdges: ['stack/nested'],
+            },
+        ],
+        [
+            'stack/nested/example-bucket/Resource',
+            {
+                construct: {
+                    parent: 'example-bucket',
+                    path: 'stack/nested/example-bucket/Resource',
+                    id: 'Resource',
+                    type: 'Bucket',
+                },
+                resourceAddress: { stackPath: 'stack/nested', id: 'examplebucketdDE4DBE4F' },
+                resource: {
+                    Type: 'AWS::S3::Bucket',
+                    Properties: {
+                        BucketName: {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "referencetostackexamplebucketC9DFA43ERef"
+                                    },
+                                    "-nested"
+                                ]
+                            ]
+                        }
+                    },
+                },
+                incomingEdges: ['stack/nested/example-bucket/Policy/Resource', 'stack/output-bucket/Resource'], // the incoming edge for 'stack/output-bucket/Resource' is the stack output
+                outgoingEdges: ['stack/nested/example-bucket'],
+            },
+        ],
+        [
+            'stack/nested/example-bucket/Policy/Resource',
+            {
+                construct: {
+                    parent: 'Policy',
+                    path: 'stack/nested/example-bucket/Policy/Resource',
+                    id: 'Resource',
+                    type: 'BucketPolicy',
+                },
+                resourceAddress: { stackPath: 'stack/nested', id: 'examplebucketPolicyC4E3BBE2F' },
+                resource: {
+                    Type: 'AWS::S3::BucketPolicy',
+                    Properties: {
+                        Bucket: {
+                            Ref: 'examplebucketdDE4DBE4F',
+                        },
+                    },
+                },
+                incomingEdges: [],
+                outgoingEdges: ['stack/nested/example-bucket/Policy', 'stack/nested/example-bucket/Resource'],
+            },
+        ],
+        [
+            'stack/output-bucket',
+            {
+                construct: {
+                    parent: 'stack',
+                    path: 'stack/output-bucket',
+                    id: 'output-bucket',
+                    type: 'aws-cdk-lib/aws_s3:Bucket',
+                },
+                resourceAddress: undefined,
+                resource: undefined,
+                incomingEdges: ['stack/output-bucket/Resource', 'stack/output-bucket/Policy'],
+                outgoingEdges: ['stack'],
+            },
+        ],
+        [
+            'stack/output-bucket/Resource',
+            {
+                construct: {
+                    parent: 'output-bucket',
+                    path: 'stack/output-bucket/Resource',
+                    id: 'Resource',
+                    type: 'Bucket',
+                },
+                resourceAddress: { stackPath: 'stack', id: 'outputbucketC9DFA43E' },
+                resource: {
+                    Type: 'AWS::S3::Bucket',
+                    Properties: {
+                        BucketName: {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Fn::GetAtt": [
+                                            "nested.NestedStackResource",
+                                            "Outputs.stacknestedexamplebucketdDE4DBE4FRef"
+                                        ]
+                                    },
+                                    "-output"
+                                ]
+                            ]
+                        }
+                    },
+                },
+                incomingEdges: ['stack/output-bucket/Policy/Resource'],
+                outgoingEdges: ['stack/output-bucket', 'stack/nested', 'stack/nested/example-bucket/Resource'], // the outgoing edge for 'stack/nested/example-bucket/Resource' is the nested stack output
+            },
+        ],
+        [
+            'stack/output-bucket/Policy',
+            {
+                construct: {
+                    parent: 'output-bucket',
+                    path: 'stack/output-bucket/Policy',
+                    id: 'Policy',
+                    type: 'aws-cdk-lib/aws_s3:BucketPolicy',
+                },
+                resourceAddress: undefined,
+                resource: undefined,
+                incomingEdges: ['stack/output-bucket/Policy/Resource'],
+                outgoingEdges: ['stack/output-bucket'],
+            },
+        ],
+        [
+            'stack/output-bucket/Policy/Resource',
+            {
+                construct: {
+                    parent: 'Policy',
+                    path: 'stack/output-bucket/Policy/Resource',
+                    id: 'Resource',
+                    type: 'BucketPolicy',
+                },
+                resourceAddress: { stackPath: 'stack', id: 'outputbucketPolicyE09B485E' },
+                resource: {
+                    Type: 'AWS::S3::BucketPolicy',
+                    Properties: {
+                        Bucket: {
+                            Ref: 'outputbucketC9DFA43E',
+                        },
+                    },
+                },
+                incomingEdges: [],
+                outgoingEdges: ['stack/output-bucket/Policy', 'stack/output-bucket/Resource'],
+            },
+        ],
+    ])('Parses the graph correctly: %s', (path, expected) => {
+        const actual = nodes.nodes.find((node) => node.construct.path === path);
         expect(actual).toBeDefined();
-        expect(actual!.logicalId).toEqual(expected.logicalId);
+        expect(actual!.resourceAddress).toEqual(expected.resourceAddress);
         expect(actual!.resource).toEqual(expected.resource);
         expect(actual!.construct.parent?.id).toEqual(expected.construct.parent);
         expect(actual!.construct.type).toEqual(expected.construct.type);
-        expect(edgesToArray(actual!.incomingEdges)).toEqual(expected.incomingEdges);
-        expect(edgesToArray(actual!.outgoingEdges)).toEqual(expected.outgoingEdges);
+        expect(new Set(edgesToArray(actual!.incomingEdges))).toEqual(new Set(expected.incomingEdges));
+        expect(new Set(edgesToArray(actual!.outgoingEdges))).toEqual(new Set(expected.outgoingEdges));
     });
 
     test.each([
@@ -245,16 +612,224 @@ describe('GraphBuilder', () => {
     });
 });
 
+test.each([
+    [
+        'Ref stack input',
+        createNestedStackManifest({
+            nestedStackResourceProps: {
+                Parameters: {
+                    parentRef: { Ref: 'parent' },
+                }
+            },
+            nestedStackParameters: {
+                parentRef: {
+                    Type: 'String',
+                },
+            },
+            nestedResourceProps: {
+                BucketName: {
+                    "Fn::Join": [
+                        "",
+                        [
+                            {
+                                "Ref": "parentRef"
+                            },
+                            "-nested"
+                        ]
+                    ]
+                }
+            },
+        }),
+        {
+            stackInput: true,
+            stackOutput: false,
+        }
+    ],
+    [
+        'GetAtt stack output',
+        createNestedStackManifest({
+            nestedStackOutputs: {
+                nestedStackOutput: {
+                    Value: {
+                        Ref: 'child',
+                    },
+                },
+            },
+            outputResourceProps: {
+                BucketName: {
+                    "Fn::Join": [
+                        "",
+                        [
+                            {
+                                "Fn::GetAtt": [
+                                    "nested.NestedStackResource",
+                                    "Outputs.nestedStackOutput"
+                                ]
+                            },
+                            "-output"
+                        ]
+                    ]
+                }
+            }
+        }),
+        {
+            stackInput: false,
+            stackOutput: true,
+        }
+    ],
+    [
+        'Ref stack input and GetAtt stack output',
+        createNestedStackManifest({
+            nestedStackResourceProps: {
+                Parameters: {
+                    parentRef: { Ref: 'parent' },
+                }
+            },
+            nestedStackParameters: {
+                parentRef: {
+                    Type: 'String',
+                },
+            },
+            nestedResourceProps: {
+                BucketName: {
+                    "Fn::Join": [
+                        "",
+                        [
+                            {
+                                "Ref": "parentRef"
+                            },
+                            "-nested"
+                        ]
+                    ]
+                }
+            },
+            nestedStackOutputs: {
+                nestedStackOutput: {
+                    Value: {
+                        Ref: 'child',
+                    },
+                },
+            },
+            outputResourceProps: {
+                BucketName: {
+                    "Fn::Join": [
+                        "",
+                        [
+                            {
+                                "Fn::GetAtt": [
+                                    "nested.NestedStackResource",
+                                    "Outputs.nestedStackOutput"
+                                ]
+                            },
+                            "-output"
+                        ]
+                    ]
+                }
+            }
+        }),
+        {
+            stackInput: true,
+            stackOutput: true,
+        }
+    ],
+    [
+        'Sub-Ref stack input',
+        createNestedStackManifest({
+            nestedStackResourceProps: {
+                Parameters: {
+                    parentRef: { 'Fn::Sub': ['test.${Domain}', { Domain: { Ref: 'parent' } }] },
+                }
+            },
+            nestedStackParameters: {
+                parentRef: {
+                    Type: 'String',
+                },
+            },
+            nestedResourceProps: {
+                BucketName: { 'Fn::Sub': ['sub.${Domain}', { Domain: { Ref: 'parentRef' } }] }
+            },
+        }),
+        {
+            stackInput: true,
+            stackOutput: false,
+        }
+    ],
+    [
+        'Sub-GetAtt stack output',
+        createNestedStackManifest({
+            nestedStackOutputs: {
+                nestedStackOutput: {
+                    Value: { 'Fn::Sub': ['test.${Domain}', { Domain: { Ref: 'child' } }] },
+                },
+            },
+            outputResourceProps: {
+                BucketName: {
+                    'Fn::Sub': ['sub.${Domain}', {
+                        Domain: {
+                            "Fn::GetAtt": [
+                                "nested.NestedStackResource",
+                                "Outputs.nestedStackOutput"
+                            ]
+                        }
+                    }]
+                },
+            }
+        }),
+        {
+            stackInput: false,
+            stackOutput: true,
+        }
+    ]
+])('nested stack adds edge for %s', (_name, stackManifest, expected) => {
+    const graph = GraphBuilder.build(stackManifest).nodes;
+    const childNode = graph.find((node) => node.construct.path === 'stack/nested/example-bucket/Resource');
+    const parentNode = graph.find((node) => node.construct.path === 'stack/example-bucket/Resource');
+    const outputNode = graph.find((node) => node.construct.path === 'stack/output-bucket/Resource');
+    const nestedStackNode = graph.find((node) => node.construct.path === 'stack/nested');
+
+    expect(new Set(edgesToArray(parentNode!.outgoingEdges))).toEqual(new Set(['stack/example-bucket']));
+    expect(new Set(edgesToArray(childNode!.outgoingEdges))).toEqual(new Set(['stack/nested/example-bucket']));
+    expect(new Set(edgesToArray(outputNode!.incomingEdges))).toEqual(new Set(['stack/output-bucket/Policy/Resource']));
+
+    if (expected.stackInput) {
+        // The nested stack should depend on its inputs
+        expect(new Set(edgesToArray(parentNode!.incomingEdges))).toEqual(new Set(['stack/nested', 'stack/example-bucket/Policy/Resource']));
+    } else {
+        expect(new Set(edgesToArray(parentNode!.incomingEdges))).toEqual(new Set(['stack/example-bucket/Policy/Resource']));
+    }
+
+    if (expected.stackOutput) {
+        // the resource using the nested stack output should depend on the nested stack and the child resource
+        expect(new Set(edgesToArray(nestedStackNode!.incomingEdges))).toEqual(new Set(['stack/nested/example-bucket', 'stack/output-bucket/Resource']));
+        expect(new Set(edgesToArray(childNode!.incomingEdges))).toEqual(new Set(['stack/nested/example-bucket/Policy/Resource', 'stack/output-bucket/Resource']));
+        expect(new Set(edgesToArray(outputNode!.outgoingEdges))).toEqual(new Set(['stack/output-bucket', 'stack/nested', 'stack/nested/example-bucket/Resource']));
+    } else {
+        expect(new Set(edgesToArray(nestedStackNode!.incomingEdges))).toEqual(new Set(['stack/nested/example-bucket']));
+        expect(new Set(edgesToArray(childNode!.incomingEdges))).toEqual(new Set(['stack/nested/example-bucket/Policy/Resource']));
+        expect(new Set(edgesToArray(outputNode!.outgoingEdges))).toEqual(new Set(['stack/output-bucket']));
+    }
+
+    // Nested stack outgoing edges depend on inputs and outputs
+    if (expected.stackInput && expected.stackOutput) {
+        expect(new Set(edgesToArray(nestedStackNode!.outgoingEdges))).toEqual(new Set(['stack', 'stack/example-bucket/Resource']));
+    } else if (expected.stackInput) {
+        expect(new Set(edgesToArray(nestedStackNode!.outgoingEdges))).toEqual(new Set(['stack', 'stack/example-bucket/Resource']));
+    } else if (expected.stackOutput) {
+        expect(new Set(edgesToArray(nestedStackNode!.outgoingEdges))).toEqual(new Set(['stack']));
+    }
+});
+
 test('vpc with ipv6 cidr block', () => {
     const nodes = GraphBuilder.build(
         new StackManifest({
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/vpc': 'vpc',
-                'stack/cidr': 'cidr',
-                'stack/other': 'other',
+                'stack/vpc': { stackPath: 'stack', id: 'vpc' },
+                'stack/cidr': { stackPath: 'stack', id: 'cidr' },
+                'stack/other': { stackPath: 'stack', id: 'other' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -316,8 +891,8 @@ test('vpc with ipv6 cidr block', () => {
     expect(nodes[3].construct.type).toEqual('Resource');
 
     // The other resource should have it's edge swapped to the cidr resource
-    expect(Array.from(nodes[2].incomingEdges.values())[0].logicalId).toEqual('other');
-    expect(Array.from(nodes[3].outgoingEdges.values())[1].logicalId).toEqual('cidr');
+    expect(Array.from(nodes[2].incomingEdges.values())[0].resourceAddress).toEqual({ stackPath: 'stack', id: 'other' });
+    expect(Array.from(nodes[3].outgoingEdges.values())[1].resourceAddress).toEqual({ stackPath: 'stack', id: 'cidr' });
 });
 
 test('vpc with multiple ipv6 cidr blocks fails', () => {
@@ -327,11 +902,12 @@ test('vpc with multiple ipv6 cidr blocks fails', () => {
                 id: 'stack',
                 templatePath: 'test/stack',
                 metadata: {
-                    'stack/vpc': 'vpc',
-                    'stack/cidr': 'cidr',
-                    'stack/cidr2': 'cidr2',
-                    'stack/other': 'other',
+                    'stack/vpc': { stackPath: 'stack', id: 'vpc' },
+                    'stack/cidr': { stackPath: 'stack', id: 'cidr' },
+                    'stack/cidr2': { stackPath: 'stack', id: 'cidr2' },
+                    'stack/other': { stackPath: 'stack', id: 'other' },
                 },
+                nestedStacks: {},
                 tree: {
                     path: 'stack',
                     id: 'stack',
@@ -399,7 +975,7 @@ test('vpc with multiple ipv6 cidr blocks fails', () => {
                 dependencies: [],
             }),
         ).nodes;
-    }).toThrow(/VPC vpc already has a VPCCidrBlock/);
+    }).toThrow(/VPC vpc in stack stack already has a VPCCidrBlock/);
 });
 
 test('pulumi resource type name fallsback when fqn not available', () => {
@@ -410,9 +986,10 @@ test('pulumi resource type name fallsback when fqn not available', () => {
             id: 'stack',
             templatePath: 'test/stack',
             metadata: {
-                'stack/example-bucket/Resource': 'examplebucketC9DFA43E',
-                'stack/example-bucket/Policy/Resource': 'examplebucketPolicyE09B485E',
+                'stack/example-bucket/Resource': { stackPath: 'stack', id: 'examplebucketC9DFA43E' },
+                'stack/example-bucket/Policy/Resource': { stackPath: 'stack', id: 'examplebucketPolicyE09B485E' },
             },
+            nestedStacks: {},
             tree: {
                 path: 'stack',
                 id: 'stack',
@@ -490,7 +1067,7 @@ test('parses custom resources', () => {
     const stackManifest = new StackManifest(props);
     const graph = GraphBuilder.build(stackManifest);
 
-    const deployWebsiteCR = graph.nodes.find((node) => node.logicalId === 'DeployWebsiteCustomResourceD116527B');
+    const deployWebsiteCR = graph.nodes.find((node) => node.resourceAddress?.id === 'DeployWebsiteCustomResourceD116527B');
     expect(deployWebsiteCR).toBeDefined();
     expect(deployWebsiteCR?.construct.type).toEqual('aws-cdk-lib:CfnResource');
     expect(deployWebsiteCR?.resource).toBeDefined();
@@ -506,7 +1083,7 @@ test('parses custom resources', () => {
         'a386ba9b8c0d9b386083b2f6952db278a5a0ce88f497484eb5e62172219468fd.zip',
     ]);
 
-    const testRole = graph.nodes.find((node) => node.logicalId === 'CustomResourceRoleAB1EF463');
+    const testRole = graph.nodes.find((node) => node.resourceAddress?.id === 'CustomResourceRoleAB1EF463');
     expect(testRole).toBeDefined();
     const policies = testRole?.resource?.Properties?.Policies;
     expect(policies).toBeDefined();

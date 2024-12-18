@@ -21,6 +21,7 @@ import { Mapping } from '../types';
 import { PulumiResource } from '../pulumi-metadata';
 import { toSdkName } from '../naming';
 import { OutputRepr, isOutputReprInstance } from '../output-map';
+import { StackAddress } from '../assembly';
 
 /**
  * Models a CF Intrinsic Function.
@@ -45,7 +46,7 @@ export interface Intrinsic {
      * processing them. Conditional intrinsics such as 'Fn::If' or 'Fn::Or' are an exception to this and need to
      * evaluate their parameters only when necessary.
      */
-    evaluate(ctx: IntrinsicContext, params: Expression[]): Result<any>;
+    evaluate(ctx: IntrinsicContext, params: Expression[], stackPath: string): Result<any>;
 }
 
 /**
@@ -70,6 +71,16 @@ export interface Expression {}
 export interface Result<T> {}
 
 /**
+ * A nested stack parameter is a parameter that is defined in a nested stack and configured in the parent stack.
+ *
+ * @internal
+ */
+export interface NestedStackParameter {
+    expression: Expression;
+    stackPath: string;
+}
+
+/**
  * Context available when evaluating CF expressions.
  *
  * Note that `succeed`, `fail`, `apply` and `Result` expressions are abstracting the use of `pulumi.Input` to facilitate
@@ -85,22 +96,22 @@ export interface IntrinsicContext {
      *
      * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/conditions-section-structure.html
      */
-    findCondition(conditionName: string): Expression | undefined;
+    findCondition(stackAddress: StackAddress): Expression | undefined;
 
     /**
      * Finds the value of a CF expression evaluating any intrinsic functions or references within.
      */
-    evaluate(expression: Expression): Result<any>;
+    evaluate(expression: Expression, stackPath: string): Result<any>;
 
     /**
      * Resolves a logical parameter ID to a parameter, or indicates that no such parameter is defined on the template.
      */
-    findParameter(parameterLogicalID: string): CloudFormationParameterWithId | undefined;
+    findParameter(stackAddress: StackAddress): CloudFormationParameterWithId | undefined;
 
     /**
      * Resolves a logical resource ID to a Mapping.
      */
-    findResourceMapping(resourceLogicalID: string): Mapping<pulumi.Resource> | undefined;
+    findResourceMapping(stackAddress: StackAddress): Mapping<pulumi.Resource> | undefined;
 
     /**
      * Find the current value of a given Cf parameter.
@@ -173,7 +184,7 @@ export interface IntrinsicContext {
  */
 export const fnIf: Intrinsic = {
     name: 'Fn::If',
-    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+    evaluate: (ctx: IntrinsicContext, params: Expression[], stackPath: string): Result<any> => {
         if (params.length !== 3) {
             return ctx.fail(`Expected 3 parameters, got ${params.length}`);
         }
@@ -186,11 +197,11 @@ export const fnIf: Intrinsic = {
         const exprIfTrue = params[1];
         const exprIfFalse = params[2];
 
-        return ctx.apply(evaluateCondition(ctx, conditionName), (ok) => {
+        return ctx.apply(evaluateCondition(ctx, conditionName, stackPath), (ok) => {
             if (ok) {
-                return ctx.evaluate(exprIfTrue);
+                return ctx.evaluate(exprIfTrue, stackPath);
             } else {
-                return ctx.evaluate(exprIfFalse);
+                return ctx.evaluate(exprIfFalse, stackPath);
             }
         });
     },
@@ -213,7 +224,7 @@ export const fnIf: Intrinsic = {
  */
 export const fnOr: Intrinsic = {
     name: 'Fn::Or',
-    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+    evaluate: (ctx: IntrinsicContext, params: Expression[], stackPath: string): Result<any> => {
         if (params.length < 2) {
             return ctx.fail(`Fn::Or expects at least 2 params, got ${params.length}`);
         }
@@ -222,7 +233,7 @@ export const fnOr: Intrinsic = {
                 if (ok) {
                     return ctx.succeed(true);
                 } else {
-                    return evaluateConditionSubExpression(ctx, expr);
+                    return evaluateConditionSubExpression(ctx, expr, stackPath);
                 }
             });
         return params.reduce(reducer, ctx.succeed(false));
@@ -246,7 +257,7 @@ export const fnOr: Intrinsic = {
  */
 export const fnAnd: Intrinsic = {
     name: 'Fn::And',
-    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+    evaluate: (ctx: IntrinsicContext, params: Expression[], stackPath: string): Result<any> => {
         if (params.length < 2) {
             return ctx.fail(`Fn::And expects at least 2 params, got ${params.length}`);
         }
@@ -255,7 +266,7 @@ export const fnAnd: Intrinsic = {
                 if (!ok) {
                     return ctx.succeed(false);
                 } else {
-                    return evaluateConditionSubExpression(ctx, expr);
+                    return evaluateConditionSubExpression(ctx, expr, stackPath);
                 }
             });
         return params.reduce(reducer, ctx.succeed(true));
@@ -278,11 +289,11 @@ export const fnAnd: Intrinsic = {
  */
 export const fnNot: Intrinsic = {
     name: 'Fn::Not',
-    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+    evaluate: (ctx: IntrinsicContext, params: Expression[], stackPath: string): Result<any> => {
         if (params.length != 1) {
             return ctx.fail(`Fn::Not expects exactly 1 param, got ${params.length}`);
         }
-        const x = evaluateConditionSubExpression(ctx, params[0]);
+        const x = evaluateConditionSubExpression(ctx, params[0], stackPath);
         return ctx.apply(x, (v) => ctx.succeed(!v));
     },
 };
@@ -297,12 +308,12 @@ export const fnNot: Intrinsic = {
  */
 export const fnEquals: Intrinsic = {
     name: 'Fn::Equals',
-    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+    evaluate: (ctx: IntrinsicContext, params: Expression[], stackPath: string): Result<any> => {
         if (params.length != 2) {
             return ctx.fail(`Fn::Equals expects exactly 2 params, got ${params.length}`);
         }
-        return ctx.apply(ctx.evaluate(params[0]), (x) =>
-            ctx.apply(ctx.evaluate(params[1]), (y) => {
+        return ctx.apply(ctx.evaluate(params[0], stackPath), (x) =>
+            ctx.apply(ctx.evaluate(params[1], stackPath), (y) => {
                 if (equal(x, y)) {
                     return ctx.succeed(true);
                 } else {
@@ -325,7 +336,7 @@ export const fnEquals: Intrinsic = {
  */
 export const ref: Intrinsic = {
     name: 'Ref',
-    evaluate: (ctx: IntrinsicContext, params: Expression[]): Result<any> => {
+    evaluate: (ctx: IntrinsicContext, params: Expression[], stackPath: string): Result<any> => {
         if (params.length != 1) {
             return ctx.fail(`Ref intrinsic expects exactly 1 param, got ${params.length}`);
         }
@@ -341,17 +352,17 @@ export const ref: Intrinsic = {
         //
         // CF docs: "When the AWS::LanguageExtensions transform is used, you can use intrinsic functions..".
         if (typeof param !== 'string') {
-            const s = ctx.apply(ctx.evaluate(param), (p) => mustBeString(ctx, p));
-            return ctx.apply(s, (name) => evaluateRef(ctx, name));
+            const s = ctx.apply(ctx.evaluate(param, stackPath), (p) => mustBeString(ctx, p));
+            return ctx.apply(s, (name) => evaluateRef(ctx, name, stackPath));
         }
-        return evaluateRef(ctx, param);
+        return evaluateRef(ctx, param, stackPath);
     },
 };
 
 /**
  * See `ref`.
  */
-function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
+function evaluateRef(ctx: IntrinsicContext, param: string, stackPath: string): Result<any> {
     // Handle pseudo-parameters.
     // See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/pseudo-parameter-reference.html
     switch (param) {
@@ -378,13 +389,13 @@ function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
     }
 
     // Handle Cf template parameters.
-    const cfParam = ctx.findParameter(param);
+    const cfParam = ctx.findParameter({ stackPath, id: param });
     if (cfParam !== undefined) {
         return ctx.evaluateParameter(cfParam);
     }
 
     // Handle references to resources.
-    const map = ctx.findResourceMapping(param);
+    const map = ctx.findResourceMapping({ stackPath, id: param });
     if (map !== undefined) {
         if (map.attributes && 'id' in map.attributes) {
             // Users may override the `id` in a custom-supplied mapping, respect this.
@@ -443,7 +454,9 @@ function evaluateRef(ctx: IntrinsicContext, param: string): Result<any> {
         });
     }
 
-    return ctx.fail(`Ref intrinsic unable to resolve ${param}: not a known logical resource or parameter reference`);
+    return ctx.fail(
+        `Ref intrinsic unable to resolve ${param} in stack ${stackPath}: not a known logical resource or parameter reference`,
+    );
 }
 
 /**
@@ -463,12 +476,12 @@ function parseConditionExpr(raw: Expression): string | undefined {
 /**
  * Like `ctx.evaluate` but also recognizes Condition sub-expressions as required by `Fn::Or`.
  */
-function evaluateConditionSubExpression(ctx: IntrinsicContext, expr: Expression): Result<boolean> {
+function evaluateConditionSubExpression(ctx: IntrinsicContext, expr: Expression, stackPath: string): Result<boolean> {
     const firstExprConditonName = parseConditionExpr(expr);
     if (firstExprConditonName !== undefined) {
-        return evaluateCondition(ctx, firstExprConditonName);
+        return evaluateCondition(ctx, firstExprConditonName, stackPath);
     } else {
-        return ctx.apply(ctx.evaluate(expr), (r) => mustBeBoolean(ctx, r));
+        return ctx.apply(ctx.evaluate(expr, stackPath), (r) => mustBeBoolean(ctx, r));
     }
 }
 
@@ -488,10 +501,10 @@ function mustBeString(ctx: IntrinsicContext, r: any): Result<string> {
     }
 }
 
-function evaluateCondition(ctx: IntrinsicContext, conditionName: string): Result<boolean> {
-    const conditionExpr = ctx.findCondition(conditionName);
+function evaluateCondition(ctx: IntrinsicContext, conditionName: string, stackPath: string): Result<boolean> {
+    const conditionExpr = ctx.findCondition({ stackPath, id: conditionName });
     if (conditionExpr === undefined) {
         return ctx.fail(`No condition '${conditionName}' found`);
     }
-    return ctx.apply(ctx.evaluate(conditionExpr), (r) => mustBeBoolean(ctx, r));
+    return ctx.apply(ctx.evaluate(conditionExpr, stackPath), (r) => mustBeBoolean(ctx, r));
 }

@@ -2,21 +2,55 @@
     "id": "stack",
     "templatePath": "test/stack",
     "metadata": {
-        "s3deployment/WebsiteBucket/Resource": "WebsiteBucket75C24D94",
-        "s3deployment/WebsiteBucket/Policy/Resource": "WebsiteBucketPolicyE10E3262",
-        "s3deployment/WebsiteBucket/AutoDeleteObjectsCustomResource/Default": "WebsiteBucketAutoDeleteObjectsCustomResource8750E461",
-        "s3deployment/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
-        "s3deployment/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
-        "s3deployment/DeployWebsite/AwsCliLayer/Resource": "DeployWebsiteAwsCliLayer17DBC421",
-        "s3deployment/DeployWebsite/CustomResource/Default": "DeployWebsiteCustomResourceD116527B",
-        "s3deployment/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265",
-        "s3deployment/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF",
-        "s3deployment/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536",
-        "s3deployment/CustomResourceRole/Resource": "CustomResourceRoleAB1EF463"
+        "s3deployment/WebsiteBucket/Resource": {
+            "stackPath": "stack",
+            "id": "WebsiteBucket75C24D94"
+        },
+        "s3deployment/WebsiteBucket/Policy/Resource": {
+            "stackPath": "stack",
+            "id": "WebsiteBucketPolicyE10E3262"
+        },
+        "s3deployment/WebsiteBucket/AutoDeleteObjectsCustomResource/Default": {
+            "stackPath": "stack",
+            "id": "WebsiteBucketAutoDeleteObjectsCustomResource8750E461"
+        },
+        "s3deployment/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": {
+            "stackPath": "stack",
+            "id": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+        },
+        "s3deployment/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": {
+            "stackPath": "stack",
+            "id": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
+        },
+        "s3deployment/DeployWebsite/AwsCliLayer/Resource": {
+            "stackPath": "stack",
+            "id": "DeployWebsiteAwsCliLayer17DBC421"
+        },
+        "s3deployment/DeployWebsite/CustomResource/Default": {
+            "stackPath": "stack",
+            "id": "DeployWebsiteCustomResourceD116527B"
+        },
+        "s3deployment/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource": {
+            "stackPath": "stack",
+            "id": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265"
+        },
+        "s3deployment/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource": {
+            "stackPath": "stack",
+            "id": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF"
+        },
+        "s3deployment/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource": {
+            "stackPath": "stack",
+            "id": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536"
+        },
+        "s3deployment/CustomResourceRole/Resource": {
+            "stackPath": "stack",
+            "id": "CustomResourceRoleAB1EF463"
+        }
     },
+    "nestedStacks": {},
     "tree": {
         "id": "stack",
-        "path": "",
+        "path": "stack",
         "children": {
             "s3deployment": {
                 "id": "s3deployment",

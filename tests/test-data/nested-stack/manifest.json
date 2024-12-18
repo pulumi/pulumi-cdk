@@ -1,0 +1,120 @@
+{
+  "version": "36.3.0",
+  "artifacts": {
+    "teststack.assets": {
+      "type": "cdk:asset-manifest",
+      "properties": {
+        "file": "teststack.assets.json"
+      }
+    },
+    "teststack": {
+      "type": "aws:cloudformation:stack",
+      "environment": "aws://616138583583/us-west-2",
+      "properties": {
+        "templateFile": "teststack.template.json",
+        "terminationProtection": false,
+        "validateOnSynth": false,
+        "stackTemplateAssetObjectUrl": "s3://pulumi-cdk-sted-sta-3ca1883d-staging/deploy-time/4cc5fad210e6468e30325de9b3f814b86a6bb8c61b9b5d7e8437c5290ab31f99.json"
+      },
+      "metadata": {
+        "/teststack/bucket/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "bucket"
+          }
+        ],
+        "/teststack/nesty/bucket/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "bucket43879C71"
+          }
+        ],
+        "/teststack/nesty/bucket/Policy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "bucketPolicy638F945D"
+          }
+        ],
+        "/teststack/nesty/bucket/AutoDeleteObjectsCustomResource/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "bucketAutoDeleteObjectsCustomResource3F4990B2"
+          }
+        ],
+        "/teststack/nesty/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+          }
+        ],
+        "/teststack/nesty/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
+          }
+        ],
+        "/teststack/nesty/reference-to-teststackbucket4A009163Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "referencetoteststackbucket4A009163Ref"
+          }
+        ],
+        "/teststack/nesty/teststacknestybucket3B9EFE19Ref": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "teststacknestybucket3B9EFE19Ref"
+          }
+        ],
+        "/teststack/nesty/teststacknestybucket3B9EFE19Arn": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "teststacknestybucket3B9EFE19Arn"
+          }
+        ],
+        "/teststack/nesty.NestedStack/nesty.NestedStackResource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "nestyNestedStacknestyNestedStackResource"
+          }
+        ],
+        "/teststack/DeployWebsite/AwsCliLayer/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DeployWebsiteAwsCliLayer"
+          }
+        ],
+        "/teststack/DeployWebsite/CustomResource/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DeployWebsiteCustomResource"
+          }
+        ],
+        "/teststack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole"
+          }
+        ],
+        "/teststack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy"
+          }
+        ],
+        "/teststack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C"
+          }
+        ]
+      },
+      "displayName": "teststack"
+    },
+    "Tree": {
+      "type": "cdk:tree",
+      "properties": {
+        "file": "tree.json"
+      }
+    }
+  }
+}

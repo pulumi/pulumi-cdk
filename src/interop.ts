@@ -124,3 +124,28 @@ export class CdkConstruct extends pulumi.ComponentResource {
         this.registerOutputs({});
     }
 }
+
+const NESTED_STACK_CONSTRUCT_SYMBOL = Symbol.for('@pulumi/cdk.NestedStackConstruct');
+
+/**
+ * The NestedStackConstruct is a special construct that is used to represent a nested stack
+ * and namespace the resources within it. It achieves this by including the stack path in the
+ * resource type.
+ * @internal
+ */
+export class NestedStackConstruct extends pulumi.ComponentResource {
+    /**
+     * Return whether the given object is a NestedStackConstruct.
+     *
+     * We do attribute detection in order to reliably detect nested stack constructs.
+     * @internal
+     */
+    public static isNestedStackConstruct(x: any): x is NestedStackConstruct {
+        return x !== null && typeof x === 'object' && NESTED_STACK_CONSTRUCT_SYMBOL in x;
+    }
+
+    constructor(stackPath: string, options?: pulumi.ComponentResourceOptions) {
+        super(`cdk:construct:nested-stack/${stackPath}`, stackPath, {}, options);
+        Object.defineProperty(this, NESTED_STACK_CONSTRUCT_SYMBOL, { value: true });
+    }
+}

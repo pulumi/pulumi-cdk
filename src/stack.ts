@@ -124,8 +124,8 @@ export class App
             return stacks.reduce(
                 (prev, curr) => {
                     const o: { [outputId: string]: pulumi.Output<any> } = {};
-                    for (const [outputId, args] of Object.entries(curr.stack.outputs ?? {})) {
-                        o[outputId] = curr.processIntrinsics(args.Value);
+                    for (const [outputId, args] of Object.entries(curr.stack.getRootStack().Outputs ?? {})) {
+                        o[outputId] = curr.processIntrinsics(args.Value, curr.stack.id);
                     }
                     return {
                         ...prev,

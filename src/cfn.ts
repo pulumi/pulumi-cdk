@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { CfnDeletionPolicy } from 'aws-cdk-lib/core';
+import { StackAddress } from './assembly';
 
 /**
  * Represents a CF parameter declaration from the Parameters template section.
@@ -28,10 +29,8 @@ export interface CloudFormationParameter {
     readonly Default?: any;
 }
 
-export type CloudFormationParameterLogicalId = string;
-
 export interface CloudFormationParameterWithId extends CloudFormationParameter {
-    id: CloudFormationParameterLogicalId;
+    stackAddress: StackAddress;
 }
 
 export interface CloudFormationResource {
@@ -40,6 +39,11 @@ export interface CloudFormationResource {
     readonly Condition?: string;
     readonly DeletionPolicy?: CfnDeletionPolicy;
     readonly DependsOn?: string | string[];
+    readonly Metadata?: { [key: string]: any };
+}
+
+export interface CloudFormationOutput {
+    Value: any;
 }
 
 export type CloudFormationMapping = { [mappingLogicalName: string]: TopLevelMapping };
@@ -63,7 +67,18 @@ export interface CloudFormationTemplate {
     Resources?: { [id: string]: CloudFormationResource };
     Conditions?: { [id: string]: CloudFormationCondition };
     Mappings?: CloudFormationMapping;
-    Outputs?: { [id: string]: any };
+    Outputs?: { [id: string]: CloudFormationOutput };
+}
+
+export interface NestedStackTemplate extends CloudFormationTemplate {
+    /**
+     * The logical ID identifying the nested stack in the parent stack.
+     */
+    logicalId: string;
+}
+
+export function isNestedStackTemplate(template: CloudFormationTemplate): template is NestedStackTemplate {
+    return 'logicalId' in template;
 }
 
 export function getDependsOn(resource: CloudFormationResource): string[] | undefined {

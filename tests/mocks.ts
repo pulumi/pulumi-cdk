@@ -189,6 +189,17 @@ export function setMocks(resources?: MockResourceArgs[], overrides?: { [pulumiTy
                             },
                         },
                     };
+                case 'aws-native:s3:Bucket':
+                    resources?.push(args);
+                    return {
+                        id: args.name + '_id',
+                        state: {
+                            ...args.inputs,
+                            id: args.name + '_id',
+                            arn: args.name + '_arn',
+                            bucketName: args.inputs?.bucketName ?? (args.name + '_name'),
+                        },
+                    };
                 default: {
                     resources?.push(args);
                     const attrName = args.type.split(':')[2];
