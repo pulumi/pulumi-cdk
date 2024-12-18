@@ -567,15 +567,11 @@ export class GraphBuilder {
                 stackPath,
             });
             if (targetNode === undefined) {
-                // If this is a nested stack, we need to check if the parameter is set by the parent stack and add an edge for the stack resource in the parent stack
+                // If this is a nested stack, we need to check if the parameter is set by the parent stack
                 if (!this.stack.isRootStack(stackPath)) {
                     const nestedStackNode = this.nestedStackNodes.get(stackPath);
                     if (nestedStackNode?.resource?.Properties?.Parameters?.[targetLogicalId]) {
-                        debug(
-                            `Parameter ${targetLogicalId} is set by the parent stack, adding edge from ${source.construct.path} to ${nestedStackNode.construct.path}`,
-                        );
-                        source.outgoingEdges.add(nestedStackNode);
-                        nestedStackNode.incomingEdges.add(source);
+                        debug(`Parameter ${targetLogicalId} is set by the parent stack ${stackPath}`);
                         return;
                     }
                 }
