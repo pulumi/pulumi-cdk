@@ -58,17 +58,9 @@ const region = pulumiaws.getRegionOutput().name;
 
 
 class MyApp extends pulumicdk.App {
-    constructor(account: string, region: string) {
-        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new RootStack(this, 'teststack', {
-                // configure the environment to prevent the bucket from using the unsupported FindInMap intrinsic (TODO[pulumi/pulumi-cdk#187])
-                props: {
-                    env: {
-                        account: account,
-                        region: region,
-                    }
-                }
-            });
+    constructor() {
+        super('app', (_: pulumicdk.App): pulumicdk.AppOutputs => {
+            const stack = new RootStack(this, 'teststack');
             return {
                 bucketWebsiteUrl: stack.bucketWebsiteUrl,
             };
@@ -76,8 +68,6 @@ class MyApp extends pulumicdk.App {
     }
 }
 
-const app = pulumi.all([accountId, region]).apply(([account, region]) => {
-    return new MyApp(account,region);
-});
+const app = new MyApp();
 
 export const bucketWebsiteUrl = app.outputs['bucketWebsiteUrl'];
