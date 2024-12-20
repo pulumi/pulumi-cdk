@@ -1037,12 +1037,12 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
-"@pulumi/aws-native@1.15.0":
-  version "1.15.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.15.0.tgz#2a9b9b8df96382c0a2551518158d0b71e054efc8"
-  integrity sha512-J0KnCRMLVu5knc4rUrHGdbsWdyewKkk7zexi2kVY6PY7q/LGpgABJDn03YqLBlHwCKbkJ5lXyglxTBJYEuifSw==
+"@pulumi/aws-native@1.17.0":
+  version "1.17.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.17.0.tgz#84ce8cd5d22be3629b435ba72df0585c63a1c11e"
+  integrity sha512-dxtTzVaw2wQzhcTP60Gyigt8Jnwd4B8rh4bqeS9M65t2mkZyGTzFCf/zyv0SuDJS/uwggdLn7ZElSRrI0+MTzA==
   dependencies:
-    "@pulumi/pulumi" "^3.136.0"
+    "@pulumi/pulumi" "^3.142.0"
 
 "@pulumi/aws@6.65.0":
   version "6.65.0"
