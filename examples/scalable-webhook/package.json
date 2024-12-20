@@ -9,7 +9,7 @@
         "@aws-sdk/client-sqs": "^3.679.0",
         "@pulumi/aws-native": "1.18.0",
         "@pulumi/cdk": "1.4.0",
-        "@pulumi/pulumi": "3.143.0",
+        "@pulumi/pulumi": "3.144.0",
         "@types/aws-lambda": "^8.10.145",
         "aws-cdk-lib": "2.156.0",
         "constructs": "10.3.0",
