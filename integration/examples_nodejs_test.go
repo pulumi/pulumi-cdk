@@ -325,3 +325,18 @@ func TestKinesis(t *testing.T) {
 
 	integration.ProgramTest(t, &test)
 }
+
+func TestUnsupportedError(t *testing.T) {
+	var output bytes.Buffer
+
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir:           filepath.Join(getCwd(t), "unsupported-error"),
+			Stderr:        &output,
+			SkipPreview:   true,
+			ExpectFailure: true,
+		})
+
+	integration.ProgramTest(t, &test)
+	assert.Contains(t, output.String(), "Resource type 'AWS::ServiceCatalog::Portfolio' is not supported by AWS Cloud Control.")
+}

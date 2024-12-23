@@ -439,4 +439,26 @@ describe('Cfn Resource Mappings', () => {
             {},
         );
     });
+
+    test('throws an error if module not supported', () => {
+        // GIVEN
+        const cfnType = 'AWS::Not::Supported';
+        const logicalId = 'my-resource';
+        const cfnProps = {};
+        // WHEN
+        expect(() => mapToCfnResource(logicalId, cfnType, cfnProps, {})).toThrow(
+            /Resource type 'AWS::Not::Supported' is not supported by AWS Cloud Control./,
+        );
+    });
+
+    test('throws an error if resource not supported', () => {
+        // GIVEN
+        const cfnType = 'AWS::S3::NotSupported';
+        const logicalId = 'my-resource';
+        const cfnProps = {};
+        // WHEN
+        expect(() => mapToCfnResource(logicalId, cfnType, cfnProps, {})).toThrow(
+            /Resource type 'AWS::S3::NotSupported' is not supported by AWS Cloud Control./,
+        );
+    });
 });

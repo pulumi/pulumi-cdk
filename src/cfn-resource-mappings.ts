@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { getAttributesFromResource } from './types';
+import { CdkAdapterError, getAttributesFromResource } from './types';
 import * as aws from '@pulumi/aws-native';
 import { ResourceMapping, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
@@ -122,6 +122,13 @@ export function mapToCfnResource(
             const mName = moduleName(typeName).toLowerCase();
             const pType = pulumiTypeName(typeName);
             const awsModule = aws as any;
+            if (!awsModule[mName] || !awsModule[mName][pType]) {
+                throw new CdkAdapterError(
+                    `Resource type '${typeName}' is not supported by AWS Cloud Control. ` +
+                        'To map this resource to an AWS Provider resource, see the documentation ' +
+                        'here: https://github.com/pulumi/pulumi-cdk#mapping-aws-resources',
+                );
+            }
 
             return new awsModule[mName][pType](logicalId, props, options);
         }
