@@ -1,0 +1,3 @@
+name: pulumi-aws-unsupported
+runtime: nodejs
+description: unsupported error integration test
