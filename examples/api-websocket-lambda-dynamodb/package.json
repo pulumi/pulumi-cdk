@@ -9,7 +9,7 @@
         "@aws-sdk/lib-dynamodb": "^3.632.0",
         "@pulumi/aws": "6.66.1",
         "@pulumi/aws-native": "1.18.0",
-        "@pulumi/cdk": "1.4.0",
+        "@pulumi/cdk": "1.6.0",
         "@pulumi/pulumi": "3.144.1",
         "aws-cdk-lib": "2.156.0",
         "constructs": "10.3.0"
