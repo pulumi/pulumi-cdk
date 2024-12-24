@@ -52,6 +52,9 @@ jobs:
     needs:
       - build
       - lint
+    concurrency:
+      group: release
+      cancel-in-progress: false
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
