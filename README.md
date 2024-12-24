@@ -91,6 +91,28 @@ Try the workshop at https://apprunnerworkshop.com
 Read the docs at https://docs.aws.amazon.com/apprunner
 ```
 
+## Table of Contents
+
+- [Pulumi CDK Adapter](#pulumi-cdk-adapter)
+  - [Use Pulumi resources with CDK Constructs](#use-pulumi-resources-with-cdk-constructs)
+  - [Create Pulumi outputs](#create-pulumi-outputs)
+  - [Customizing providers](#customizing-providers)
+  - [CDK Lookups](#cdk-lookups)
+  - [Using Pulumi Policy Packs](#using-pulumi-policy-packs)
+  - [CDK Aspects](#cdk-aspects)
+  - [CDK Policy Validation Plugins](#cdk-policy-validation-plugins)
+  - [Mapping AWS resources](#mapping-aws-resources)
+  - [Using Assets](#using-assets)
+  - [Feature Flags](#feature-flags)
+  - [Setting Pulumi options for CDK resources](#setting-pulumi-options-for-cdk-resources)
+  - [Pulumi Synthesizer](#pulumi-synthesizer)
+  - [Unsupported Features](#unsupported-features)
+  - [AWS Cloud Control AutoNaming Config](#aws-cloud-control-autonaming-config)
+  - [Bootstrapping](#bootstrapping)
+  - [Multiple Stacks](#multiple-stacks)
+  - [API](#api)
+  - [Contributing](#contributing)
+
 ## Use Pulumi resources with CDK Constructs
 
 It is possible to use Pulumi and CDK resources side-by-side. In order to pass a
@@ -797,6 +819,121 @@ create the following staging resources.
   - `imageTagMutability`: `IMMUTABLE`
 2. `aws.ecr.LifecyclePolicy`
   - Expire old images when the number of images > 3
+
+## Multiple Stacks
+
+It is possible to use multiple CDK Stacks in your Pulumi CDK application, but
+you probably don't need/want to. According to [AWS CDK best practices](https://docs.aws.amazon.com/cdk/v2/guide/best-practices.html#best-practices-apps)
+you should separate your application into multiple stacks based on your
+deployment patterns, keeping as many resources in the same stack as possible.
+Typically the only three scenarios that justify splitting resources into separate
+stacks are:
+
+1. CloudFormation stack resource limits
+2. Keeping stateful resources (like databases) in a separate stack so that you
+   can enable termination protection on that stack.
+3. Creating resources in multiple regions require you to create a stack per
+   region.
+
+When using Pulumi CDK you only need to create multiple Stacks for #3. Currently
+CDK Stacks in a Pulumi application are only needed when you want to configure a
+different set of Pulumi [resource options](https://www.pulumi.com/docs/iac/concepts/options/) (e.g. `providers`). Otherwise all
+resources are created as part of the same [Pulumi Stack](https://www.pulumi.com/docs/iac/concepts/update-plans/)
+and there is no benefit in splitting resources into multiple CDK Stacks.
+
+### Multi Region
+
+If you need to create resources in multiple regions you can use multiple CDK
+Stacks. The below example shows an application that creates a Stack in
+`us-east-1` in order to create a Lambda@Edge function and then a second stack in
+`us-east-2` which creates the CloudFront resource.
+
+```ts
+import * as ccapi from '@pulumi/aws-native';
+import * as aws from '@pulumi/aws';
+import * as pulumi from '@pulumi/pulumi';
+import * as pulumicdk from '@pulumi/cdk';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as cloudfront_origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+
+interface CloudFrontAppStackProps {
+    edgeFunctionArn: pulumi.Output<string>;
+}
+
+class EdgeFunctionStack extends pulumicdk.Stack {
+    public versionArn: pulumi.Output<string>;
+    constructor(scope: pulumicdk.App, id: string) {
+        super(scope, id, {
+            props: {
+                env: {
+                    region: 'us-east-1',
+                },
+            },
+            providers: [
+                new ccapi.Provider('ccapi', {
+                    region: 'us-east-1',
+                }),
+                new aws.Provider('aws', {
+                    region: 'us-east-1',
+                }),
+            ],
+        });
+
+        const handler = new cloudfront.experimental.EdgeFunction(this, 'edge-handler', {
+            runtime: lambda.Runtime.NODEJS_LATEST,
+            handler: 'index.handler',
+            code: lambda.Code.fromInline('export const handler = async () => { return "hello" }'),
+        });
+
+        this.versionArn = this.asOutput(handler.currentVersion.edgeArn);
+    }
+}
+
+class CloudFrontAppStack extends pulumicdk.Stack {
+    constructor(scope: pulumicdk.App, id: string, props: CloudFrontAppStackProps) {
+        super(scope, id);
+
+
+        const bucket = new s3.Bucket(this, 'Bucket');
+
+        new cloudfront.Distribution(this, 'distro', {
+            defaultBehavior: {
+                origin: new cloudfront_origins.S3Origin(bucket),
+                edgeLambdas: [
+                    {
+                        eventType: cloudfront.LambdaEdgeEventType.ORIGIN_REQUEST,
+                        functionVersion: lambda.Version.fromVersionArn(
+                            this,
+                            'edge',
+                            pulumicdk.asString(props.edgeFunctionArn),
+                        ),
+                    },
+                ],
+            },
+        });
+    }
+}
+
+class MyApp extends pulumicdk.App {
+    constructor() {
+        super('app', (scope: pulumicdk.App) => {
+            const edgeStack = new EdgeFunctionStack(scope, 'edge-function');
+            new CloudFrontAppStack(scope, 'cloudfront-app', {
+                edgeFunctionArn: edgeStack.versionArn,
+            });
+        });
+    }
+}
+const app = new MyApp();
+const output = app.outputs['url'];
+export const url = pulumi.interpolate`https://${output}`;
+```
+
+Pulumi CDK does not support native cross stack references. Instead, you can
+convert a value to a Pulumi Output in order to reference the value in a separate
+stack.
 
 ## API
 
