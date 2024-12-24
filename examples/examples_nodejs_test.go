@@ -122,6 +122,17 @@ func TestCloudFront(t *testing.T) {
 
 	integration.ProgramTest(t, &test)
 }
+
+func TestCloudFrontEdge(t *testing.T) {
+	t.Skip("Lambda@Edge resources cannot be cleaned up in CI")
+	test := getJSBaseOptions(t).
+		With(integration.ProgramTestOptions{
+			Dir: filepath.Join(getCwd(t), "cloudfront-lambda-edge"),
+		})
+
+	integration.ProgramTest(t, &test)
+}
+
 func TestLookups(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
