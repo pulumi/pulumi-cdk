@@ -429,10 +429,10 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/cdk@1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.4.0.tgz#fe40d130261a794173bbf895b958d6cd6894303f"
-  integrity sha512-kLazOsagyEqwwFjhnct4Bt7oEkhG7hm7sdVKyBq17874u5ScmUPr9mNz8WcYsGDzpgpeH1gOwjjzawyEbPdFCg==
+"@pulumi/cdk@1.6.0":
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.6.0.tgz#d91d1713f2cf8d2385c17ac12494e0f264e0df77"
+  integrity sha512-9Qj4kwxFQUwBAHbHCKELnK6T4Pj/+KqQYNh3jfIgZJnS4Yhtspx2zfGF9NJa/TGgITOnXA4sO8H13NMvyUpzAw==
   dependencies:
     "@aws-cdk/cli-lib-alpha" "^2.161.1-alpha.0"
     "@types/glob" "^8.1.0"

@@ -6,7 +6,7 @@
     "dependencies": {
         "@aws-sdk/client-eventbridge": "^3.678.0",
         "@pulumi/aws-native": "1.18.0",
-        "@pulumi/cdk": "1.4.0",
+        "@pulumi/cdk": "1.6.0",
         "@pulumi/pulumi": "3.144.1",
         "@types/aws-lambda": "^8.10.145",
         "aws-cdk-lib": "2.156.0",
