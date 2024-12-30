@@ -65,7 +65,6 @@ func TestALB(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir:              filepath.Join(getCwd(t), "alb"),
-			NoParallel:       true, // Resources may collide with TestFargate
 			RetryFailedSteps: true, // Workaround for https://github.com/pulumi/pulumi-aws-native/issues/1186
 		})
 
@@ -75,9 +74,10 @@ func TestALB(t *testing.T) {
 func TestFargate(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
-			Dir:              filepath.Join(getCwd(t), "fargate"),
-			NoParallel:       true,
-			RetryFailedSteps: true, // Workaround for https://github.com/pulumi/pulumi-aws-native/issues/1186
+			Dir:                    filepath.Join(getCwd(t), "fargate"),
+			RetryFailedSteps:       true, // Workaround for https://github.com/pulumi/pulumi-aws-native/issues/1186
+			Quick:                  false,
+			SkipEmptyPreviewUpdate: false,
 			ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
 				integration.AssertHTTPResultWithRetry(t, stack.Outputs["loadBalancerURL"], nil, time.Duration(time.Minute*1), func(s string) bool {
 					return s == "Hello, world!"
