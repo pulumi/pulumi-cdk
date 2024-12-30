@@ -42,6 +42,8 @@ jobs:
         uses: ./.github/actions/build
 
   test:
+    needs:
+    - build
     name: acceptance-test
     uses: ./.github/workflows/acceptance-tests.yml
     secrets: inherit
@@ -49,6 +51,8 @@ jobs:
       folder: examples
 
   integration-test:
+    needs:
+    - build
     name: integration-test
     secrets: inherit
     uses: ./.github/workflows/acceptance-tests.yml
