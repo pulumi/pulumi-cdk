@@ -296,7 +296,7 @@ describe('cloud assembly manifest reader', () => {
 
             expect(() => {
                 AssemblyManifestReader.fromDirectory(path.dirname(manifestFile));
-            }).toThrow(/no such file or directory * '\/tmp\/foo\/bar\/does\/not\/exist\/MyNestedStack.template.json'/);
+            }).toThrow(/no such file or directory* '\/tmp\/foo\/bar\/does\/not\/exist\/MyNestedStack.template.json'/);
         });
     });
 });
