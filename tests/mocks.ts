@@ -65,6 +65,11 @@ export async function testApp(
             new TestStack(scope, 'teststack');
         },
         {
+            appOptions: {
+                props: {
+                    outdir: undefined,
+                },
+            },
             ...options,
         },
     );
@@ -197,7 +202,7 @@ export function setMocks(resources?: MockResourceArgs[], overrides?: { [pulumiTy
                             ...args.inputs,
                             id: args.name + '_id',
                             arn: args.name + '_arn',
-                            bucketName: args.inputs?.bucketName ?? (args.name + '_name'),
+                            bucketName: args.inputs?.bucketName ?? args.name + '_name',
                         },
                     };
                 default: {

@@ -10,15 +10,18 @@ import { setMocks, testApp } from './mocks';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Construct } from 'constructs';
 
+beforeAll(() => {
+    process.env.AWS_REGION = 'us-east-2';
+});
+afterAll(() => {
+    process.env.AWS_REGION = undefined;
+});
+
 describe('CDK Construct tests', () => {
     let resources: MockResourceArgs[] = [];
     beforeAll(() => {
-        process.env.AWS_REGION = 'us-east-2';
         resources = [];
         setMocks(resources);
-    });
-    afterAll(() => {
-        process.env.AWS_REGION = undefined;
     });
     // DynamoDB table was previously mapped to the `aws` provider
     // otherwise this level of testing wouldn't be necessary.

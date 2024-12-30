@@ -25,9 +25,8 @@ class FargateStack extends pulumicdk.Stack {
         const fargateService = new ecs_patterns.NetworkLoadBalancedFargateService(this, 'sample-app', {
             cluster,
             taskImageOptions: {
-                image: ecs.ContainerImage.fromAsset(path.join(__dirname, './'), {
-                    file: 'app/Dockerfile',
-                    exclude: ['cdk.out', 'node_modules'],
+                image: ecs.ContainerImage.fromAsset(path.join(__dirname, 'app'), {
+                    exclude: ['node_modules'],
                     // assetName is now required and is used in the name of the ecr repository that is created
                     assetName: 'cdk-fargate-example',
                     platform: Platform.LINUX_AMD64,
