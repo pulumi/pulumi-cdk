@@ -238,7 +238,6 @@ export class App
         }
 
         const app = new cdk.App({
-            outdir: 'cdk.out',
             ...(this.appProps ?? {}),
             autoSynth: false,
             analyticsReporting: false,

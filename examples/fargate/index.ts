@@ -55,10 +55,22 @@ class FargateStack extends pulumicdk.Stack {
 
 class MyApp extends pulumicdk.App {
     constructor() {
-        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new FargateStack(scope, `${prefix}-fargatestack`);
-            return { loadBalancerURL: stack.loadBalancerDNS };
-        });
+        super(
+            'app',
+            (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+                const stack = new FargateStack(scope, `${prefix}-fargatestack`);
+                return { loadBalancerURL: stack.loadBalancerDNS };
+            },
+            {
+                appOptions: {
+                    props: {
+                        // set the outdir to a relative path in the current directory to avoid
+                        // asset diffs
+                        outdir: 'cdk.out',
+                    },
+                },
+            },
+        );
     }
 }
 
