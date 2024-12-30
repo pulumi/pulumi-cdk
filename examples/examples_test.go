@@ -67,6 +67,7 @@ func getBaseOptions(t *testing.T) integration.ProgramTestOptions {
 			"aws-native:region": envRegion,
 			"prefix":            prefix,
 		},
+		ExpectRefreshChanges: true,
 	}
 }
 

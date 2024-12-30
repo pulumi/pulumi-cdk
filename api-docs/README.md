@@ -152,7 +152,7 @@ Create and register an AWS CDK stack deployed with Pulumi.
 
 ###### Defined in
 
-[stack.ts:336](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L336)
+[stack.ts:337](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L337)
 
 #### Methods
 
@@ -182,7 +182,7 @@ A Pulumi Output value.
 
 ###### Defined in
 
-[stack.ts:418](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L418)
+[stack.ts:419](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L419)
 
 ## Interfaces
 
@@ -297,7 +297,7 @@ new App('testapp', (scope: App) => {
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| `props?` | `StackProps` | The CDK Stack props | [stack.ts:297](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L297) |
+| `props?` | `StackProps` | The CDK Stack props | [stack.ts:298](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L298) |
 
 ## Type Aliases
 
