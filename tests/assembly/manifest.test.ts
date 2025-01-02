@@ -115,46 +115,49 @@ describe('cloud assembly manifest reader', () => {
                 }),
             });
         });
-    
+
         afterEach(() => {
             mockfs.restore();
         });
-    
+
         test('throws if manifest file not found', () => {
             expect(() => {
                 AssemblyManifestReader.fromDirectory('some-other-file');
             }).toThrow(/Cannot read manifest at 'some-other-file\/manifest.json'/);
         });
-    
+
         test('can read manifest from path', () => {
             expect(() => {
                 AssemblyManifestReader.fromDirectory(path.dirname(manifestFile));
             }).not.toThrow();
         });
-    
+
         test('fromPath sets directory correctly', () => {
             const manifest = AssemblyManifestReader.fromDirectory(path.dirname(manifestFile));
             expect(manifest.directory).toEqual('/tmp/foo/bar/does/not/exist');
         });
-    
+
         test('can get stacks from manifest', () => {
             const manifest = AssemblyManifestReader.fromDirectory(path.dirname(manifestFile));
-    
+
             expect(manifest.stackManifests[0]).toEqual({
                 constructTree: { id: 'test-stack', path: 'test-stack' },
                 dependencies: [],
                 id: 'test-stack',
                 metadata: {
                     'test-stack/MyFunction1/Resource': { stackPath: 'test-stack', id: 'MyFunction12A744C2E' },
-                    'test-stack/MyFunction1/ServiceRole/Resource': { stackPath: 'test-stack', id: 'MyFunction1ServiceRole9852B06B' },
+                    'test-stack/MyFunction1/ServiceRole/Resource': {
+                        stackPath: 'test-stack',
+                        id: 'MyFunction1ServiceRole9852B06B',
+                    },
                 },
                 stacks: {
-                    "test-stack": {
+                    'test-stack': {
                         Resources: {
                             MyFunction12A744C2E: { Properties: {}, Type: 'AWS::Lambda::Function' },
                             MyFunction1ServiceRole9852B06B: { Properties: {}, Type: 'AWS::IAM::Role' },
                         },
-                    }
+                    },
                 },
                 templatePath: 'test-stack.template.json',
             });
@@ -222,7 +225,7 @@ describe('cloud assembly manifest reader', () => {
                                 id: 'test-stack',
                                 path: 'test-stack',
                                 children: {
-                                    'MyNestedStack': {
+                                    MyNestedStack: {
                                         id: 'MyNestedStack',
                                         path: 'test-stack/MyNestedStack',
                                     },
@@ -249,7 +252,8 @@ describe('cloud assembly manifest reader', () => {
                             Metadata: {
                                 // this asset path does not exist
                                 'aws:asset:path': 'MyNestedStack.template.json',
-                                'aws:cdk:path': 'test-stack/MyNestedStack.NestedStack/MyNestedStack.NestedStackResource',
+                                'aws:cdk:path':
+                                    'test-stack/MyNestedStack.NestedStack/MyNestedStack.NestedStackResource',
                             },
                         },
                     },
@@ -292,7 +296,9 @@ describe('cloud assembly manifest reader', () => {
 
             expect(() => {
                 AssemblyManifestReader.fromDirectory(path.dirname(manifestFile));
-            }).toThrow(/no such file or directory, open '\/tmp\/foo\/bar\/does\/not\/exist\/MyNestedStack.template.json'/);
+            }).toThrow(
+                /Failed to read CloudFormation template at path: \/tmp\/foo\/bar\/does\/not\/exist\/MyNestedStack.template.json/,
+            );
         });
     });
 });

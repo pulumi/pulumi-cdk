@@ -8,7 +8,7 @@ import {
     FileAssetSource,
     ISynthesisSession,
 } from 'aws-cdk-lib/core';
-import { AppComponent, AppOptions } from '../src/types';
+import { AppComponent, AppOptions, AppResourceOptions } from '../src/types';
 import { MockCallArgs, MockCallResult, MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Construct } from 'constructs';
 import { App, Stack } from '../src/stack';
@@ -37,11 +37,7 @@ export class MockAppComponent extends pulumi.ComponentResource implements AppCom
     }
 }
 
-export async function testApp(
-    fn: (scope: Construct) => void,
-    options?: pulumi.ComponentResourceOptions,
-    withEnv?: boolean,
-) {
+export async function testApp(fn: (scope: Construct) => void, options?: AppResourceOptions, withEnv?: boolean) {
     const env = withEnv ? { account: '12345678912', region: 'us-east-1' } : undefined;
     class TestStack extends Stack {
         constructor(app: App, id: string) {
@@ -197,7 +193,7 @@ export function setMocks(resources?: MockResourceArgs[], overrides?: { [pulumiTy
                             ...args.inputs,
                             id: args.name + '_id',
                             arn: args.name + '_arn',
-                            bucketName: args.inputs?.bucketName ?? (args.name + '_name'),
+                            bucketName: args.inputs?.bucketName ?? args.name + '_name',
                         },
                     };
                 default: {

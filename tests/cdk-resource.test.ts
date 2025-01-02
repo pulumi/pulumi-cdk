@@ -1,4 +1,6 @@
 import * as path from 'path';
+import { NestedStack } from 'aws-cdk-lib/core';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as events from 'aws-cdk-lib/aws-events';
@@ -199,13 +201,44 @@ describe('CDK Construct tests', () => {
             ]),
         });
     });
+
+    test('nested stack', async () => {
+        await testApp((scope: Construct) => {
+            const nestedStack = new NestedStack(scope, 'Nesty');
+            const bucket = new s3.Bucket(nestedStack, 'bucket');
+        });
+        const nested = resources.find((res) => res.type === 'aws-native:s3:Bucket');
+        expect(nested).toBeDefined();
+    });
+
+    test('nested stack with relative outdir', async () => {
+        await testApp(
+            (scope: Construct) => {
+                const nestedStack = new NestedStack(scope, 'Nesty');
+                const bucket = new s3.Bucket(nestedStack, 'bucket');
+            },
+            {
+                appOptions: {
+                    props: {
+                        outdir: 'cdk.out',
+                    },
+                },
+            },
+        );
+        const nested = resources.find((res) => res.type === 'aws-native:s3:Bucket');
+        expect(nested).toBeDefined();
+    });
 });
 
 describe('logicalId tests', () => {
     let resources: MockResourceArgs[] = [];
     beforeEach(() => {
+        process.env.AWS_REGION = 'us-east-2';
         resources = [];
         setMocks(resources);
+    });
+    afterAll(() => {
+        process.env.AWS_REGION = undefined;
     });
     test('logicalId is generated without hash for resources', async () => {
         await testApp((scope: Construct) => {

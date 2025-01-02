@@ -140,7 +140,7 @@ export class AssemblyManifestReader {
                 let template: CloudFormationTemplate;
                 const templateFile = path.join(this.directory, assetPath);
                 try {
-                    template = fs.readJSONSync(path.resolve(this.directory, templateFile));
+                    template = fs.readJSONSync(path.resolve(templateFile));
                 } catch (e) {
                     throw new Error(`Failed to read CloudFormation template at path: ${templateFile}: ${e}`);
                 }

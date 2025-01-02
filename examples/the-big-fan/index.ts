@@ -94,9 +94,6 @@ class TheBigFanStack extends pulumicdk.Stack {
          */
         const gateway = new apigw.RestApi(this, 'theBigFanAPI', {
             deployOptions: {
-                metricsEnabled: true,
-                loggingLevel: apigw.MethodLoggingLevel.INFO,
-                dataTraceEnabled: true,
                 stageName: 'prod',
             },
         });

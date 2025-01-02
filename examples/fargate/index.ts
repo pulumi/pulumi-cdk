@@ -25,9 +25,8 @@ class FargateStack extends pulumicdk.Stack {
         const fargateService = new ecs_patterns.NetworkLoadBalancedFargateService(this, 'sample-app', {
             cluster,
             taskImageOptions: {
-                image: ecs.ContainerImage.fromAsset(path.join(__dirname, './'), {
-                    file: 'app/Dockerfile',
-                    exclude: ['cdk.out', 'node_modules'],
+                image: ecs.ContainerImage.fromAsset(path.join(__dirname, 'app'), {
+                    exclude: ['node_modules'],
                     // assetName is now required and is used in the name of the ecr repository that is created
                     assetName: 'cdk-fargate-example',
                     platform: Platform.LINUX_AMD64,
@@ -56,10 +55,22 @@ class FargateStack extends pulumicdk.Stack {
 
 class MyApp extends pulumicdk.App {
     constructor() {
-        super('app', (scope: pulumicdk.App): pulumicdk.AppOutputs => {
-            const stack = new FargateStack(scope, `${prefix}-fargatestack`);
-            return { loadBalancerURL: stack.loadBalancerDNS };
-        });
+        super(
+            'app',
+            (scope: pulumicdk.App): pulumicdk.AppOutputs => {
+                const stack = new FargateStack(scope, `${prefix}-fargatestack`);
+                return { loadBalancerURL: stack.loadBalancerDNS };
+            },
+            {
+                appOptions: {
+                    props: {
+                        // set the outdir to a relative path in the current directory to avoid
+                        // asset diffs
+                        outdir: 'cdk.out',
+                    },
+                },
+            },
+        );
     }
 }
 
