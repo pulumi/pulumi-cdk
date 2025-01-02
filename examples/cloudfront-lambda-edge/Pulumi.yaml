@@ -1,0 +1,3 @@
+name: cloudfront-lambda-edge
+runtime: nodejs
+description: cloudfront-lambda-edge CDK example
