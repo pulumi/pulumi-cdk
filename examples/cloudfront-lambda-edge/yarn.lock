@@ -537,27 +537,25 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
-"@pulumi/aws-native@1.18.0":
-  version "1.18.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.18.0.tgz#6f6f4f1cf810eb27a10cc6239583665363053216"
-  integrity sha512-/Kn12oDEbd15BdIQ96M8dXdCIjVhmQZ/Fp/9yDy+HXvYARd7BSQDlwP1gmJ/ahZB7Rm+co0qZIyn1okzwUOgmQ==
+"@pulumi/aws-native@1.20.0":
+  version "1.20.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.20.0.tgz#af60f85f8dc77a6745b130326cf1ded3a80ace05"
+  integrity sha512-wh4d4/ZVWPRnxotD0AG88maXnySVjgDIDAXOzzKEfQutJBsG49aXJiKxTpDs+a64NmXc74gpVEQCQKLJmATQcA==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/aws@6.66.1":
-  version "6.66.1"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-6.66.1.tgz#21789c287c5f6fb1852d7e36330b925fec38ed8e"
-  integrity sha512-/qE/cM1X4RmNn9BDhg3ypK+us4MraxXbvvwrspyqaQixJDFlbOSF2H7cprRK7HcfoCBJaNrViacfendyxQ8zBQ==
+"@pulumi/aws@6.66.2":
+  version "6.66.2"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-6.66.2.tgz#cf140268393c3985e22131539fc2b4536724c320"
+  integrity sha512-jO5L4JcjYriqXBGYH9LVb+GjawHUJvkWvLtb5nXxIKpkykEO1LyWVZdR4ngFcT7Hlw99Tg1ms4ut7LdETPCuUw==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
-    builtin-modules "3.0.0"
     mime "^2.0.0"
-    resolve "^1.7.1"
 
-"@pulumi/cdk@1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.4.0.tgz#fe40d130261a794173bbf895b958d6cd6894303f"
-  integrity sha512-kLazOsagyEqwwFjhnct4Bt7oEkhG7hm7sdVKyBq17874u5ScmUPr9mNz8WcYsGDzpgpeH1gOwjjzawyEbPdFCg==
+"@pulumi/cdk@1.6.0":
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.6.0.tgz#d91d1713f2cf8d2385c17ac12494e0f264e0df77"
+  integrity sha512-9Qj4kwxFQUwBAHbHCKELnK6T4Pj/+KqQYNh3jfIgZJnS4Yhtspx2zfGF9NJa/TGgITOnXA4sO8H13NMvyUpzAw==
   dependencies:
     "@aws-cdk/cli-lib-alpha" "^2.161.1-alpha.0"
     "@types/glob" "^8.1.0"
@@ -1097,11 +1095,6 @@ buffer@^6.0.3:
   dependencies:
     base64-js "^1.3.1"
     ieee754 "^1.2.1"
-
-builtin-modules@3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/builtin-modules/-/builtin-modules-3.0.0.tgz#1e587d44b006620d90286cc7a9238bbc6129cab1"
-  integrity sha512-hMIeU4K2ilbXV6Uv93ZZ0Avg/M91RaKXucQ+4me2Do1txxBDyDZWCBa5bJSLqoNTRpXTLwEzIk1KmloenDDjhg==
 
 cacache@^18.0.0, cacache@^18.0.3:
   version "18.0.4"
@@ -2577,7 +2570,7 @@ resolve-alpn@^1.0.0:
   resolved "https://registry.yarnpkg.com/resolve-alpn/-/resolve-alpn-1.2.1.tgz#b7adbdac3546aaaec20b45e7d8265927072726f9"
   integrity sha512-0a1F4l73/ZFZOakJnQ3FvkJ2+gSTQWz/r2KE5OdDY0TxPm5h4GkqkWWfM47T7HsbnOtcJVEF4epCVy6u7Q3K+g==
 
-resolve@^1.22.8, resolve@^1.7.1:
+resolve@^1.22.8:
   version "1.22.8"
   resolved "https://registry.yarnpkg.com/resolve/-/resolve-1.22.8.tgz#b6c87a9f2aa06dfab52e3d70ac8cde321fa5a48d"
   integrity sha512-oKWePCxqpd6FlLvGV1VU0x7bkPmmCNolxzjMf4NczoDnQcIWrAF+cPtZn5i6n+RfD2d9i0tzpKnG6Yk168yIyw==
