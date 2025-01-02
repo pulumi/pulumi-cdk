@@ -8,6 +8,30 @@ Pulumi program, and having the resulting AWS resources be deployed and managed v
 seamlessly interact with each other. Outputs of resources defined in a Pulumi program can be passed into AWS CDK Constructs,
 and outputs from AWS CDK stacks can be used as inputs to other Pulumi resources.
 
+## Table of Contents
+
+- [Pulumi CDK Adapter](#pulumi-cdk-adapter)
+  - [Getting Started](#getting-started)
+  - [Use Pulumi resources with CDK Constructs](#use-pulumi-resources-with-cdk-constructs)
+  - [Create Pulumi outputs](#create-pulumi-outputs)
+  - [Customizing providers](#customizing-providers)
+  - [CDK Lookups](#cdk-lookups)
+  - [Using Pulumi Policy Packs](#using-pulumi-policy-packs)
+  - [CDK Aspects](#cdk-aspects)
+  - [CDK Policy Validation Plugins](#cdk-policy-validation-plugins)
+  - [Mapping AWS resources](#mapping-aws-resources)
+  - [Using Assets](#using-assets)
+  - [Feature Flags](#feature-flags)
+  - [Setting Pulumi options for CDK resources](#setting-pulumi-options-for-cdk-resources)
+  - [Pulumi Synthesizer](#pulumi-synthesizer)
+  - [Unsupported Features](#unsupported-features)
+  - [AWS Cloud Control AutoNaming Config](#aws-cloud-control-autonaming-config)
+  - [Bootstrapping](#bootstrapping)
+  - [Multiple Stacks](#multiple-stacks)
+  - [API](#api)
+  - [Contributing](#contributing)
+
+
 ## Getting Started
 
 To get started with CDK on Pulumi first [download and install Pulumi](https://www.pulumi.com/docs/install/), and [configure it to work with your AWS account](https://www.pulumi.com/registry/packages/aws/installation-configuration/).
@@ -31,7 +55,7 @@ a couple of settings.
     CDK application.
 - `output`: The directory location where the CDK output will be placed. If this
     is not specified it will be placed in a system temporary directory and could
-    cause issues with Docker assets.
+    cause issues such as permanent diffs in docker image assets.
 - `context`: Any context values, specifically [CDK features flags](https://docs.aws.amazon.com/cdk/v2/guide/featureflags.html).
     You should populate all existing feature flags when you create a new
     application. A full list can be found [here](#feature-flags)
@@ -138,28 +162,6 @@ Open it in your browser at https://2ez3iazupm.us-west-2.awsapprunner.com/
 Try the workshop at https://apprunnerworkshop.com
 Read the docs at https://docs.aws.amazon.com/apprunner
 ```
-
-## Table of Contents
-
-- [Pulumi CDK Adapter](#pulumi-cdk-adapter)
-  - [Use Pulumi resources with CDK Constructs](#use-pulumi-resources-with-cdk-constructs)
-  - [Create Pulumi outputs](#create-pulumi-outputs)
-  - [Customizing providers](#customizing-providers)
-  - [CDK Lookups](#cdk-lookups)
-  - [Using Pulumi Policy Packs](#using-pulumi-policy-packs)
-  - [CDK Aspects](#cdk-aspects)
-  - [CDK Policy Validation Plugins](#cdk-policy-validation-plugins)
-  - [Mapping AWS resources](#mapping-aws-resources)
-  - [Using Assets](#using-assets)
-  - [Feature Flags](#feature-flags)
-  - [Setting Pulumi options for CDK resources](#setting-pulumi-options-for-cdk-resources)
-  - [Pulumi Synthesizer](#pulumi-synthesizer)
-  - [Unsupported Features](#unsupported-features)
-  - [AWS Cloud Control AutoNaming Config](#aws-cloud-control-autonaming-config)
-  - [Bootstrapping](#bootstrapping)
-  - [Multiple Stacks](#multiple-stacks)
-  - [API](#api)
-  - [Contributing](#contributing)
 
 ## Use Pulumi resources with CDK Constructs
 
