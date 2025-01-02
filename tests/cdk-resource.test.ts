@@ -203,6 +203,15 @@ describe('CDK Construct tests', () => {
     });
 
     test('nested stack', async () => {
+        await testApp((scope: Construct) => {
+            const nestedStack = new NestedStack(scope, 'Nesty');
+            const bucket = new s3.Bucket(nestedStack, 'bucket');
+        });
+        const nested = resources.find((res) => res.type === 'aws-native:s3:Bucket');
+        expect(nested).toBeDefined();
+    });
+
+    test('nested stack with relative outdir', async () => {
         await testApp(
             (scope: Construct) => {
                 const nestedStack = new NestedStack(scope, 'Nesty');

@@ -61,11 +61,6 @@ export async function testApp(fn: (scope: Construct) => void, options?: AppResou
             new TestStack(scope, 'teststack');
         },
         {
-            appOptions: {
-                props: {
-                    outdir: undefined,
-                },
-            },
             ...options,
         },
     );
