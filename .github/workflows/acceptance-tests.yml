@@ -33,7 +33,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           role-duration-seconds: 3600
           role-session-name: pulumi-cdk@githubActions
-          role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
+          role-to-assume: ${{ secrets.TMP_AWS_CI_ROLE_ARN }}
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

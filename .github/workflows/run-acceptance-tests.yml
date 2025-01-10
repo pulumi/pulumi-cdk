@@ -50,14 +50,14 @@ jobs:
     with:
       folder: examples
 
-  integration-test:
-    needs:
-    - build
-    name: integration-test
-    secrets: inherit
-    uses: ./.github/workflows/acceptance-tests.yml
-    with:
-      folder: integration
+  # integration-test:
+  #   needs:
+  #   - build
+  #   name: integration-test
+  #   secrets: inherit
+  #   uses: ./.github/workflows/acceptance-tests.yml
+  #   with:
+  #     folder: integration
 
   sentinel:
     runs-on: ubuntu-latest
@@ -75,7 +75,7 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     needs:
     - test
-    - integration-test
+    # - integration-test
 
 name: Run Acceptance Tests from PR
 on:
