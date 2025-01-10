@@ -11,6 +11,8 @@ env:
 
 jobs:
   acceptance-tests:
+    permissions:
+      id-token: write
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ inputs.folder }}-test-${{ github.sha }}-${{ matrix.index }}
