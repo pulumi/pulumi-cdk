@@ -1059,10 +1059,10 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/docker@4.6.0":
-  version "4.6.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/docker/-/docker-4.6.0.tgz#127a0c69a06b47a9418dce12cc70a181ff680284"
-  integrity sha512-9XBQtKGYQykJgXS3nWXk/mp7vSZ4kpwGJcp8yPMwvlUDiIDS4lLPp7ieOJl/qVETXkW8EtQ8qxlJ/n8kTBgiBA==
+"@pulumi/docker@4.6.1":
+  version "4.6.1"
+  resolved "https://registry.yarnpkg.com/@pulumi/docker/-/docker-4.6.1.tgz#9baafa55db7837bfefe7965dc8c02ce87110fd53"
+  integrity sha512-csJWLgwq+kAQzJSNbCknXydxDXz9xhss7nI6Crq3hbz/TYifrUImpV22rNSp0dieJz7vGx2QoW+8vxjIBs+HnA==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
     semver "^5.4.0"
