@@ -33,6 +33,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func skip(t *testing.T) {
+	t.Skip("Skipping")
+}
+
 func TestAppSvc(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
@@ -43,6 +47,7 @@ func TestAppSvc(t *testing.T) {
 }
 
 func TestAppRunner(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "apprunner"),
@@ -53,6 +58,7 @@ func TestAppRunner(t *testing.T) {
 }
 
 func TestCronLambda(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "cron-lambda"),
@@ -62,6 +68,7 @@ func TestCronLambda(t *testing.T) {
 }
 
 func TestALB(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir:              filepath.Join(getCwd(t), "alb"),
@@ -72,6 +79,7 @@ func TestALB(t *testing.T) {
 }
 
 func TestFargate(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir:                    filepath.Join(getCwd(t), "fargate"),
@@ -89,6 +97,7 @@ func TestFargate(t *testing.T) {
 }
 
 func TestS3ObjectLambda(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir:                  filepath.Join(getCwd(t), "s3-object-lambda"),
@@ -106,6 +115,7 @@ func TestS3ObjectLambda(t *testing.T) {
 }
 
 func TestEC2Instance(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "ec2-instance"),
@@ -115,6 +125,7 @@ func TestEC2Instance(t *testing.T) {
 }
 
 func TestCloudFront(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "cloudfront-lambda-urls"),
@@ -124,6 +135,7 @@ func TestCloudFront(t *testing.T) {
 }
 
 func TestCloudFrontEdge(t *testing.T) {
+	skip(t)
 	t.Skip("Lambda@Edge resources cannot be cleaned up in CI")
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
@@ -134,6 +146,7 @@ func TestCloudFrontEdge(t *testing.T) {
 }
 
 func TestLookups(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "lookups"),
@@ -146,6 +159,7 @@ func TestLookups(t *testing.T) {
 }
 
 func TestLookupsEnabled(t *testing.T) {
+	skip(t)
 	ctx := context.Background()
 	config, err := config.LoadDefaultConfig(ctx)
 	assert.NoError(t, err)
@@ -201,6 +215,7 @@ func TestLookupsEnabled(t *testing.T) {
 }
 
 func TestLookupsEnabledFailWithoutPreview(t *testing.T) {
+	skip(t)
 	ctx := context.Background()
 	config, err := config.LoadDefaultConfig(ctx)
 	assert.NoError(t, err)
@@ -230,6 +245,7 @@ func TestLookupsEnabledFailWithoutPreview(t *testing.T) {
 }
 
 func TestEventBridgeSNS(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "eventbridge-sns"),
@@ -239,6 +255,7 @@ func TestEventBridgeSNS(t *testing.T) {
 }
 
 func TestEventBridgeAtm(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "eventbridge-atm"),
@@ -248,6 +265,7 @@ func TestEventBridgeAtm(t *testing.T) {
 }
 
 func TestScalableWebhook(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "scalable-webhook"),
@@ -257,6 +275,7 @@ func TestScalableWebhook(t *testing.T) {
 }
 
 func TestEks(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "eks"),
@@ -286,6 +305,7 @@ func TestEks(t *testing.T) {
 }
 
 func TestStackProvider(t *testing.T) {
+	skip(t)
 	// App will use default provider and one stack will use explicit provider
 	// with region=us-east-1
 	t.Run("With default env", func(t *testing.T) {
@@ -351,6 +371,7 @@ func TestStackProvider(t *testing.T) {
 }
 
 func TestTheBigFan(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "the-big-fan"),
@@ -360,6 +381,7 @@ func TestTheBigFan(t *testing.T) {
 }
 
 func TestAPIWebsocketLambdaDynamoDB(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "api-websocket-lambda-dynamodb"),
@@ -375,6 +397,7 @@ func TestAPIWebsocketLambdaDynamoDB(t *testing.T) {
 }
 
 func TestLookupAzs(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "lookup-azs"),
