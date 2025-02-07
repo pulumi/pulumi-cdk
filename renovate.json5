@@ -11,5 +11,18 @@
         executionMode: "branch", // Only run once. 
       },
     },
+    {
+      // Don't update peerDependencies. We want to keep
+      // as broad a range as possible.
+      enabled: false,
+      matchDepTypes: ["peerDependencies"],
+    },
+    {
+      // Always keep @aws-cdk/cli-lib-alpha up to date
+      //due to https://github.com/aws/aws-cdk/issues/33338
+      matchDataSource: ["npm"],
+      matchPackageNames: ["@aws-cdk/cli-lib-alpha"],
+      matchDepTypes: ["dependencies"],
+    },
   ]
 }
