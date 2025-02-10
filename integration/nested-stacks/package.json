@@ -11,7 +11,7 @@
         "@pulumi/aws-native": "1.25.0",
         "@pulumi/cdk": "1.6.0",
         "@pulumi/pulumi": "3.149.0",
-        "aws-cdk-lib": "2.149.0",
+        "aws-cdk-lib": "2.178.1",
         "constructs": "10.3.0"
     }
 }
