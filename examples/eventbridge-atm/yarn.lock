@@ -17,10 +17,10 @@
   resolved "https://registry.yarnpkg.com/@aws-cdk/asset-node-proxy-agent-v6/-/asset-node-proxy-agent-v6-2.1.0.tgz#6d3c7860354d4856a7e75375f2f0ecab313b4989"
   integrity sha512-7bY3J8GCVxLupn/kNmpPc5VJz8grx+4RKfnnJiO1LG+uxkZfANZG3RMHhE+qQxxwkyQ9/MfPtTpf748UhR425A==
 
-"@aws-cdk/cli-lib-alpha@^2.161.1-alpha.0":
-  version "2.161.1-alpha.0"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.161.1-alpha.0.tgz#f00f5190f7da2e8f62807c5a01fb629298c767f4"
-  integrity sha512-HCokBr85Msv0tXiKth/3ZJZaQLzMmydk3NNEEA9fD/tzBh1zUcnlsBQnclOBmd0uKMNSZQertrroJmZv3mBOeg==
+"@aws-cdk/cli-lib-alpha@^2.178.1-alpha.0":
+  version "2.178.1-alpha.0"
+  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.178.1-alpha.0.tgz#edaadf788834389629e9c40e506570e056dc2750"
+  integrity sha512-OQykX96NeDpVYiYKBawi5ydlCEDZ+FFv7JVMOdlDnO1B8QuaXPDUB4JG02LjLv1jeyfahDneOUWKW4ukQzqZgQ==
 
 "@aws-cdk/cloud-assembly-schema@^38.0.1":
   version "38.0.1"
@@ -1032,12 +1032,12 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/cdk@1.6.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.6.0.tgz#d91d1713f2cf8d2385c17ac12494e0f264e0df77"
-  integrity sha512-9Qj4kwxFQUwBAHbHCKELnK6T4Pj/+KqQYNh3jfIgZJnS4Yhtspx2zfGF9NJa/TGgITOnXA4sO8H13NMvyUpzAw==
+"@pulumi/cdk@1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.7.0.tgz#c3c7f37f34099214d1a91f51a4b5de098ff9d5e6"
+  integrity sha512-+KhrMWR6UtWs/N5NSe/OkzrKnlGL1uBGK35HoQqguUU8yFMFzTk6ys7+r6sjshaSenb5gY4ajSctn44jxLmgqg==
   dependencies:
-    "@aws-cdk/cli-lib-alpha" "^2.161.1-alpha.0"
+    "@aws-cdk/cli-lib-alpha" "^2.178.1-alpha.0"
     "@types/glob" "^8.1.0"
     archiver "^7.0.1"
     cdk-assets "^2.154.8"
@@ -3447,12 +3447,7 @@ sax@>=0.6.0:
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.4.1.tgz#44cc8988377f126304d3b3fc1010c733b929ef0f"
   integrity sha512-+aWOz7yVScEGoKNd4PA10LZ8sk0A/z5+nXQG5giUO5rprX9jgYsTdov9qCchZiPIZezbZH+jRut8nPodFAX4Jg==
 
-semver@^7.1.1, semver@^7.3.5, semver@^7.3.7, semver@^7.5.2, semver@^7.5.3, semver@^7.6.3:
-  version "7.6.3"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.3.tgz#980f7b5550bc175fb4dc09403085627f9eb33143"
-  integrity sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==
-
-semver@^7.7.1:
+semver@^7.1.1, semver@^7.3.5, semver@^7.3.7, semver@^7.5.2, semver@^7.5.3, semver@^7.6.3, semver@^7.7.1:
   version "7.7.1"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.7.1.tgz#abd5098d82b18c6c81f6074ff2647fd3e7220c9f"
   integrity sha512-hlq8tAfn0m/61p4BVRcPzIGr6LKiMwo4VM6dGi6pt4qcRkmNzTcWq6eCEjEh+qXjkMDvPlOFFSGwQjoEa6gyMA==
