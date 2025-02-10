@@ -6,7 +6,7 @@
     "dependencies": {
         "@pulumi/aws": "6.68.0",
         "@pulumi/aws-native": "1.25.0",
-        "@pulumi/cdk": "1.6.0",
+        "@pulumi/cdk": "1.7.0",
         "aws-cdk-lib": "2.178.1",
         "constructs": "10.3.0"
     }
