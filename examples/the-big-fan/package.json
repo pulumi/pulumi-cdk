@@ -11,6 +11,6 @@
     "@pulumi/pulumi": "3.150.0",
     "aws-cdk-lib": "2.178.1",
     "constructs": "10.3.0",
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.25.0"
   }
 }
