@@ -18,7 +18,7 @@ import { AppComponent, AppOptions, AppResourceOptions, CdkAdapterError } from '.
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
 import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
-import { CdkConstruct } from './interop';
+import { CdkConstruct } from './internal/interop';
 import { makeUniqueId } from './cdk-logical-id';
 import * as native from '@pulumi/aws-native';
 import { warn } from '@pulumi/pulumi/log';

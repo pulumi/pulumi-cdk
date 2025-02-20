@@ -5,13 +5,7 @@ import { AssemblyManifestReader, StackAddress, StackManifest } from '../assembly
 import { ConstructInfo, Graph, GraphBuilder, GraphNode } from '../graph';
 import { ArtifactConverter } from './artifact-converter';
 import { lift, Mapping, AppComponent, CdkAdapterError } from '../types';
-import {
-    CdkConstruct,
-    NestedStackConstruct,
-    ResourceAttributeMapping,
-    ResourceMapping,
-    resourcesFromResourceMapping,
-} from '../interop';
+import { ResourceAttributeMapping, ResourceMapping } from '../interop';
 import { debug, warn } from '@pulumi/pulumi/log';
 import {
     cidr,
@@ -36,6 +30,7 @@ import { PulumiProvider } from '../types';
 import { parseDynamicValue } from './dynamic-references';
 import { StackMap } from '../stack-map';
 import { NestedStackParameter } from './intrinsics';
+import { CdkConstruct, NestedStackConstruct, resourcesFromResourceMapping } from '../internal/interop';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -545,9 +540,6 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         return obj?.Ref === 'AWS::NoValue';
     }
 
-    /**
-     * @internal
-     */
     public resolveOutput(repr: OutputRepr): pulumi.Output<any> {
         const result = OutputMap.instance().lookupOutput(repr);
         if (result === undefined) {

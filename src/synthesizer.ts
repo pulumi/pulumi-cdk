@@ -6,7 +6,7 @@ import * as ccapi from '@pulumi/aws-native';
 import * as cdk from 'aws-cdk-lib/core';
 import { translateCfnTokenToAssetToken } from 'aws-cdk-lib/core/lib/helpers-internal';
 import * as aws from '@pulumi/aws';
-import { CdkConstruct } from './interop';
+import { CdkConstruct } from './internal/interop';
 import { zipDirectory } from './zip';
 import { asString } from './output';
 import { CdkAdapterError } from './types';

@@ -1,6 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import { Stack, AppProps } from 'aws-cdk-lib/core';
-import { CdkConstruct, ResourceMapping } from './interop';
+import { ResourceMapping } from './interop';
+import { CdkConstruct } from './internal/interop';
 
 /**
  * Options for creating a Pulumi CDK App Component
