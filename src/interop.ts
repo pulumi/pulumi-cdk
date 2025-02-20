@@ -16,16 +16,6 @@ import * as pulumi from '@pulumi/pulumi';
 import { normalizeObject } from './pulumi-metadata';
 import { toSdkName } from './naming';
 import { PulumiProvider } from './types';
-import { PulumiResourceType } from './graph';
-
-/**
- * @internal
- */
-export function firstToLower(str: string) {
-    return str.replace(/\w\S*/g, function (txt) {
-        return txt.charAt(0).toLowerCase() + txt.substring(1);
-    });
-}
 
 /**
  * normalize will take the resource properties for a specific CloudFormation resource and
@@ -94,58 +84,3 @@ export type ResourceAttributeMapping = {
 export type ResourceAttributeMappingArray = (ResourceAttributeMapping & { logicalId: string })[];
 
 export type ResourceMapping = ResourceAttributeMapping | pulumi.Resource | ResourceAttributeMappingArray;
-
-/**
- * extract a list of pulumi resources from a ResourceMapping
- * @internal
- */
-export function resourcesFromResourceMapping(mapping: ResourceMapping): pulumi.Resource[] {
-    if (Array.isArray(mapping)) {
-        return mapping.map((m) => m.resource);
-    } else if (pulumi.Resource.isInstance(mapping)) {
-        return [mapping];
-    } else {
-        return [mapping.resource];
-    }
-}
-
-/**
- * @internal
- */
-export class CdkConstruct extends pulumi.ComponentResource {
-    constructor(public readonly name: PulumiResourceType, type?: string, options?: pulumi.ComponentResourceOptions) {
-        const constructType = type ?? 'Construct';
-        const constructName = name;
-
-        super(`cdk:construct:${constructType}`, constructName, {}, options);
-    }
-
-    public done() {
-        this.registerOutputs({});
-    }
-}
-
-const NESTED_STACK_CONSTRUCT_SYMBOL = Symbol.for('@pulumi/cdk.NestedStackConstruct');
-
-/**
- * The NestedStackConstruct is a special construct that is used to represent a nested stack
- * and namespace the resources within it. It achieves this by including the stack path in the
- * resource type.
- * @internal
- */
-export class NestedStackConstruct extends pulumi.ComponentResource {
-    /**
-     * Return whether the given object is a NestedStackConstruct.
-     *
-     * We do attribute detection in order to reliably detect nested stack constructs.
-     * @internal
-     */
-    public static isNestedStackConstruct(x: any): x is NestedStackConstruct {
-        return x !== null && typeof x === 'object' && NESTED_STACK_CONSTRUCT_SYMBOL in x;
-    }
-
-    constructor(stackPath: string, options?: pulumi.ComponentResourceOptions) {
-        super(`cdk:construct:nested-stack/${stackPath}`, stackPath, {}, options);
-        Object.defineProperty(this, NESTED_STACK_CONSTRUCT_SYMBOL, { value: true });
-    }
-}

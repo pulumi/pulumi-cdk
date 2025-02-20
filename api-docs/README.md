@@ -14,7 +14,7 @@ The Pulumi provider to read the schema from
 
 | Enumeration Member | Value | Defined in |
 | ------ | ------ | ------ |
-| `AWS_NATIVE` | `"aws-native"` | [types.ts:62](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L62) |
+| `AWS_NATIVE` | `"aws-native"` | [types.ts:63](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L63) |
 
 ## Classes
 
@@ -194,7 +194,7 @@ AppComponent is the interface representing the Pulumi CDK App Component Resource
 
 | Property | Modifier | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ | ------ |
-| `name` | `readonly` | `string` | The name of the component | [types.ts:72](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L72) |
+| `name` | `readonly` | `string` | The name of the component | [types.ts:73](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L73) |
 
 ***
 
@@ -206,8 +206,8 @@ Options for creating a Pulumi CDK App Component
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| `appId?` | `string` | A unique identifier for the application that the asset staging stack belongs to. This identifier will be used in the name of staging resources created for this application, and should be unique across apps. The identifier should include lowercase characters, numbers, periods (.) and dashes ('-') only and have a maximum of 17 characters. **Default** `- generated from the pulumi project and stack name` | [types.ts:25](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L25) |
-| `props?` | `AppProps` | Specify the CDK Stack properties to asociate with the stack. | [types.ts:12](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L12) |
+| `appId?` | `string` | A unique identifier for the application that the asset staging stack belongs to. This identifier will be used in the name of staging resources created for this application, and should be unique across apps. The identifier should include lowercase characters, numbers, periods (.) and dashes ('-') only and have a maximum of 17 characters. **Default** `- generated from the pulumi project and stack name` | [types.ts:26](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L26) |
+| `props?` | `AppProps` | Specify the CDK Stack properties to asociate with the stack. | [types.ts:13](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L13) |
 
 #### Methods
 
@@ -240,7 +240,7 @@ implemented.
 
 ###### Defined in
 
-[types.ts:42](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L42)
+[types.ts:43](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L43)
 
 ***
 
@@ -256,7 +256,7 @@ Options specific to the Pulumi CDK App component.
 
 | Property | Type | Defined in |
 | ------ | ------ | ------ |
-| `appOptions?` | [`AppOptions`](README.md#appoptions) | [types.ts:54](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L54) |
+| `appOptions?` | [`AppOptions`](README.md#appoptions) | [types.ts:55](https://github.com/pulumi/pulumi-cdk/blob/main/src/types.ts#L55) |
 
 ***
 

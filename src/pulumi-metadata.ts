@@ -142,8 +142,6 @@ export interface PulumiResource {
 
 /**
  * Metadata predicting the behavior of CF Ref intrinsic for a given resource.
- *
- * @internal
  */
 export interface CfRefBehavior {
     /**
