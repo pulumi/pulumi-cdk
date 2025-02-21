@@ -7,9 +7,9 @@
         "@aws-sdk/client-apigatewaymanagementapi": "^3.632.0",
         "@aws-sdk/client-dynamodb": "^3.632.0",
         "@aws-sdk/lib-dynamodb": "^3.632.0",
-        "@pulumi/aws": "6.68.0",
+        "@pulumi/aws": "6.69.0",
         "@pulumi/aws-native": "1.25.0",
-        "@pulumi/cdk": "1.7.0",
+        "@pulumi/cdk": "1.8.0",
         "@pulumi/pulumi": "3.150.0",
         "aws-cdk-lib": "2.178.1",
         "constructs": "10.3.0"

@@ -1037,10 +1037,10 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/cdk@1.7.0":
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.7.0.tgz#c3c7f37f34099214d1a91f51a4b5de098ff9d5e6"
-  integrity sha512-+KhrMWR6UtWs/N5NSe/OkzrKnlGL1uBGK35HoQqguUU8yFMFzTk6ys7+r6sjshaSenb5gY4ajSctn44jxLmgqg==
+"@pulumi/cdk@1.8.0":
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.8.0.tgz#98dea592556192adec97ff6b0fd56f3880b2baa9"
+  integrity sha512-cc8j5SNXUX9mdnAjN+ccrV5HbufnqOExlJz7YwcTJpp8T7xZJMNBLDcj6nfnvUh3pHFZBTVPRviLqeA+FXYAEg==
   dependencies:
     "@aws-cdk/cli-lib-alpha" "^2.178.1-alpha.0"
     "@types/glob" "^8.1.0"
