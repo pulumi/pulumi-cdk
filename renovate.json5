@@ -23,6 +23,12 @@
       matchDataSource: ["npm"],
       matchPackageNames: ["@aws-cdk/cli-lib-alpha"],
       matchDepTypes: ["dependencies"],
+      // renovate can't handle the alpha versioning scheme (it expects major.minor.patch to always be the same)
+      // In this case it is the `-alpha.0` that always stays the same
+      // Here we tell renovate how to read the versioning. The important part
+      // is that we switch the `-alpha.0` to be the `compatibility` part instead of `prerelease`
+      // see https://docs.renovatebot.com/modules/versioning/regex/
+      versioning: "regex:^(?<major>\\d+)\\.((?<minor>\\d+))\\.((?<patch>\\d+))-(?<compatibility>.*)$",
     },
   ]
 }
