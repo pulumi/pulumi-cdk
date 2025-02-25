@@ -20,7 +20,7 @@
     {
       // Always keep @aws-cdk/cli-lib-alpha up to date
       //due to https://github.com/aws/aws-cdk/issues/33338
-      matchDataSource: ["npm"],
+      matchDatasources: ["npm"],
       matchPackageNames: ["@aws-cdk/cli-lib-alpha"],
       matchDepTypes: ["dependencies"],
       // renovate can't handle the alpha versioning scheme (it expects major.minor.patch to always be the same)
