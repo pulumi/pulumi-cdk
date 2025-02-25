@@ -251,6 +251,10 @@ func TestScalableWebhook(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "scalable-webhook"),
+			// DeleteRestApi has a limit of 1 request per 30 seconds so we frequently
+			// fail on throttling errors
+			// see https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html#api-gateway-control-service-limits-table
+			RetryFailedSteps: true,
 		})
 
 	integration.ProgramTest(t, &test)
