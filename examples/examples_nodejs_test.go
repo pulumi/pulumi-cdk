@@ -248,6 +248,8 @@ func TestEventBridgeAtm(t *testing.T) {
 }
 
 func TestScalableWebhook(t *testing.T) {
+	// TODO: [pulumi/pulumi-cdk#277]
+	t.Skipf("Skipping test due to throttling errors")
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "scalable-webhook"),
