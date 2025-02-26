@@ -28,7 +28,7 @@
       // Here we tell renovate how to read the versioning. The important part
       // is that we switch the `-alpha.0` to be the `compatibility` part instead of `prerelease`
       // see https://docs.renovatebot.com/modules/versioning/regex/
-      versioning: "regex:^(?<major>\\d+)\\.((?<minor>\\d+))\\.((?<patch>\\d+))-(?<compatibility>.*)$",
+      versioning: "regex:^\\^?(?<major>\\d+)\\.((?<minor>\\d+))\\.((?<patch>\\d+))-(?<compatibility>.*)$",
     },
   ]
 }
