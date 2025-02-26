@@ -17,10 +17,10 @@
   resolved "https://registry.yarnpkg.com/@aws-cdk/asset-node-proxy-agent-v6/-/asset-node-proxy-agent-v6-2.1.0.tgz#6d3c7860354d4856a7e75375f2f0ecab313b4989"
   integrity sha512-7bY3J8GCVxLupn/kNmpPc5VJz8grx+4RKfnnJiO1LG+uxkZfANZG3RMHhE+qQxxwkyQ9/MfPtTpf748UhR425A==
 
-"@aws-cdk/cli-lib-alpha@^2.178.1-alpha.0":
-  version "2.178.1-alpha.0"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.178.1-alpha.0.tgz#edaadf788834389629e9c40e506570e056dc2750"
-  integrity sha512-OQykX96NeDpVYiYKBawi5ydlCEDZ+FFv7JVMOdlDnO1B8QuaXPDUB4JG02LjLv1jeyfahDneOUWKW4ukQzqZgQ==
+"@aws-cdk/cli-lib-alpha@2.1000.3-alpha.0":
+  version "2.1000.3-alpha.0"
+  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.1000.3-alpha.0.tgz#8a46b3a73f6f89a42f6b5df7a4d00ee4eccc8515"
+  integrity sha512-f3ukcYFtQ+nAvfPHXmjf1azyPZ1Jg36/GEqV94vlMVp2G6uwqltEtHNBUPKFEqzbKyduq0DrCbUn76uWp61eZw==
 
 "@aws-cdk/cloud-assembly-schema@^38.0.1":
   version "38.0.1"
@@ -1037,13 +1037,12 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/cdk@1.8.0":
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.8.0.tgz#98dea592556192adec97ff6b0fd56f3880b2baa9"
-  integrity sha512-cc8j5SNXUX9mdnAjN+ccrV5HbufnqOExlJz7YwcTJpp8T7xZJMNBLDcj6nfnvUh3pHFZBTVPRviLqeA+FXYAEg==
+"@pulumi/cdk@1.8.1":
+  version "1.8.1"
+  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.8.1.tgz#9a97b7379c10f16269c87117f45c9659c1c0d687"
+  integrity sha512-VJRMhfdf6GXuw8Bv90fdITm8Az577RkqhG08kNHf63FiPiOFaVgIE60ImSuAjPSK9v2MGsmB0e+EjshMC6Qw6w==
   dependencies:
-    "@aws-cdk/cli-lib-alpha" "^2.178.1-alpha.0"
-    "@types/glob" "^8.1.0"
+    "@aws-cdk/cli-lib-alpha" "2.1000.3-alpha.0"
     archiver "^7.0.1"
     cdk-assets "^2.154.8"
     fast-deep-equal "^3.1.3"
@@ -1564,14 +1563,6 @@
     "@types/node" "*"
     "@types/responselike" "^1.0.0"
 
-"@types/glob@^8.1.0":
-  version "8.1.0"
-  resolved "https://registry.yarnpkg.com/@types/glob/-/glob-8.1.0.tgz#b63e70155391b0584dce44e7ea25190bbc38f2fc"
-  integrity sha512-IO+MJPVhoqz+28h1qLAcBEH2+xHMK6MTyHJc7MTnnYb6wsoLR29POVGJ7LycmVXIqyy/4/2ShP5sUwTXuOwb/w==
-  dependencies:
-    "@types/minimatch" "^5.1.2"
-    "@types/node" "*"
-
 "@types/google-protobuf@^3.15.5":
   version "3.15.12"
   resolved "https://registry.yarnpkg.com/@types/google-protobuf/-/google-protobuf-3.15.12.tgz#eb2ba0eddd65712211a2b455dc6071d665ccf49b"
@@ -1588,11 +1579,6 @@
   integrity sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==
   dependencies:
     "@types/node" "*"
-
-"@types/minimatch@^5.1.2":
-  version "5.1.2"
-  resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-5.1.2.tgz#07508b45797cb81ec3f273011b054cd0755eddca"
-  integrity sha512-K0VQKziLUWkVKiRVrx4a40iPaxTUefQmjtkQofBkYRcoaaL/8rhwDWww9qWbrgicNOgnpIsMxyNIUM4+n6dUIA==
 
 "@types/node@*", "@types/node@>=13.7.0":
   version "22.10.1"
