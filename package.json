@@ -21,17 +21,17 @@
     }
   },
   "resolutions": {
-    "@pulumi/pulumi": "3.153.1",
+    "@pulumi/pulumi": "3.154.0",
     "wrap-ansi": "7.0.0",
     "string-width": "4.1.0"
   },
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
-    "@pulumi/aws": "6.70.1",
+    "@pulumi/aws": "6.71.0",
     "@pulumi/aws-native": "1.25.0",
     "@pulumi/docker": "4.6.1",
     "@pulumi/docker-build": "0.0.10",
-    "@pulumi/pulumi": "3.153.1",
+    "@pulumi/pulumi": "3.154.0",
     "@types/archiver": "^6.0.2",
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.2",
