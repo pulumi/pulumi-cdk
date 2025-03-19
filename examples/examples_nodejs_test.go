@@ -265,10 +265,15 @@ func TestEventBridgeAtm(t *testing.T) {
 }
 
 func TestScalableWebhook(t *testing.T) {
-	skip(t)
+	// TODO: [pulumi/pulumi-cdk#277]
+	t.Skipf("Skipping test due to throttling errors")
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "scalable-webhook"),
+			// DeleteRestApi has a limit of 1 request per 30 seconds so we frequently
+			// fail on throttling errors
+			// see https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html#api-gateway-control-service-limits-table
+			RetryFailedSteps: true,
 		})
 
 	integration.ProgramTest(t, &test)

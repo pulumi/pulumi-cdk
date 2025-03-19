@@ -21,7 +21,11 @@ export class AssemblyManifestReader {
         const filePath = path.join(dir, AssemblyManifestReader.DEFAULT_FILENAME);
         try {
             fs.statSync(dir);
-            const obj = Manifest.loadAssemblyManifest(filePath);
+            const obj = Manifest.loadAssemblyManifest(filePath, {
+                // Skip version check because we don't want to throw an error if the manifest is from a newer version
+                // We choose what features we are supporting, so if new features are added we don't want it to fail on us
+                skipVersionCheck: true,
+            });
             return new AssemblyManifestReader(dir, obj);
         } catch (e: any) {
             throw new Error(`Cannot read manifest at '${filePath}': ${e}`);

@@ -30,8 +30,6 @@ import { StackAddress } from '../assembly';
  * synthesized CF template.
  *
  * See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html
- *
- * @internal
  */
 export interface Intrinsic {
     /**
@@ -56,24 +54,18 @@ export interface Intrinsic {
  * See also CfnParse for inspiration:
  *
  * https://github.com/aws/aws-cdk/blob/main/packages/aws-cdk-lib/core/lib/helpers-internal/cfn-parse.ts#L347
- *
- * @internal
  */
 export interface Expression {}
 
 /**
  * Production code may have intermediate values occasionally wrapped in pulumi.Output<T>; this is currently somewhat
  * difficult to test, so the essentials of pulumi.Output<T> are abstracted into a Result<T>.
- *
- * @internal
  */
 // eslint-disable-next-line
 export interface Result<T> {}
 
 /**
  * A nested stack parameter is a parameter that is defined in a nested stack and configured in the parent stack.
- *
- * @internal
  */
 export interface NestedStackParameter {
     expression: Expression;
@@ -85,8 +77,6 @@ export interface NestedStackParameter {
  *
  * Note that `succeed`, `fail`, `apply` and `Result` expressions are abstracting the use of `pulumi.Input` to facilitate
  * testing over a simpler structure without dealing with async evaluation.
- *
- * @internal
  */
 export interface IntrinsicContext {
     /**
@@ -179,8 +169,6 @@ export interface IntrinsicContext {
  * "Fn::If": [condition_name, value_if_true, value_if_false]
  *
  * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html#intrinsic-function-reference-conditions-i
- *
- * @internal
  */
 export const fnIf: Intrinsic = {
     name: 'Fn::If',

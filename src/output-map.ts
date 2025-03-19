@@ -17,8 +17,6 @@ const glob = global as any;
 
 /**
  * A serializable reference to an output.
- *
- * @internal
  */
 export interface OutputRef {
     /**
@@ -31,8 +29,6 @@ export interface OutputRef {
 
 /**
  * See `OutputRef`.
- *
- * @internal
  */
 export interface OutputRepr {
     /**
@@ -43,8 +39,6 @@ export interface OutputRepr {
 
 /**
  * Recognize if something is an `OutputRepr`.
- *
- * @internal
  */
 export function isOutputReprInstance(x: any): boolean {
     return typeof x === 'object' && Object.prototype.hasOwnProperty.call(x, 'PulumiOutput');
@@ -53,8 +47,6 @@ export function isOutputReprInstance(x: any): boolean {
 /**
  * Stores Pulumi Output values in memory so that they can be encoded into serializable `OutputRef` values with unique
  * integers for CDK interop.
- *
- * @internal
  */
 export class OutputMap {
     /**

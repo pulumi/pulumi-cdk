@@ -21,23 +21,23 @@
     }
   },
   "resolutions": {
-    "@pulumi/pulumi": "3.145.0",
+    "@pulumi/pulumi": "3.156.0",
     "wrap-ansi": "7.0.0",
     "string-width": "4.1.0"
   },
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
-    "@pulumi/aws": "6.66.2",
-    "@pulumi/aws-native": "1.22.0",
-    "@pulumi/docker": "4.5.8",
-    "@pulumi/docker-build": "0.0.8",
-    "@pulumi/pulumi": "3.145.0",
+    "@pulumi/aws": "6.72.0",
+    "@pulumi/aws-native": "1.26.0",
+    "@pulumi/docker": "4.6.2",
+    "@pulumi/docker-build": "0.0.10",
+    "@pulumi/pulumi": "3.156.0",
     "@types/archiver": "^6.0.2",
     "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.2",
     "@types/mock-fs": "^4.13.4",
     "@types/node": "^20.12.13",
-    "aws-cdk-lib": "2.156.0",
+    "aws-cdk-lib": "2.178.0",
     "constructs": "10.3.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
@@ -51,6 +51,7 @@
     "typedoc": "^0.26.11",
     "typedoc-plugin-markdown": "^4.2.10",
     "typescript": "^5.4.5",
+    "@types/glob": "^8.1.0",
     "typescript-eslint": "^7.16.1"
   },
   "peerDependencies": {
@@ -62,8 +63,7 @@
     "constructs": "^10.0.111"
   },
   "dependencies": {
-    "@aws-cdk/cli-lib-alpha": "^2.161.1-alpha.0",
-    "@types/glob": "^8.1.0",
+    "@aws-cdk/cli-lib-alpha": "2.1003.0-alpha.0",
     "archiver": "^7.0.1",
     "cdk-assets": "^2.154.8",
     "fast-deep-equal": "^3.1.3",

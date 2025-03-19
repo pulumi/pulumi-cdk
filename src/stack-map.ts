@@ -19,8 +19,6 @@ import { StackAddress } from './assembly';
  * It internally uses nested maps to store values by stackPath and id.
  *
  * @typeparam T The type of values stored in the map
- *
- * @internal
  */
 export class StackMap<T> implements Map<StackAddress, T> {
     // Map of stackPath -> Map of id -> value

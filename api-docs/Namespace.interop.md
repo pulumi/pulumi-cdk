@@ -21,8 +21,8 @@ attribute
 
 | Name | Type | Defined in |
 | ------ | ------ | ------ |
-| `attributes`? | `object` | [interop.ts:88](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L88) |
-| `resource` | `pulumi.Resource` | [interop.ts:87](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L87) |
+| `attributes`? | `object` | [interop.ts:78](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L78) |
+| `resource` | `pulumi.Resource` | [interop.ts:77](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L77) |
 
 #### Example
 
@@ -37,7 +37,7 @@ return {
 
 #### Defined in
 
-[interop.ts:86](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L86)
+[interop.ts:76](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L76)
 
 ***
 
@@ -49,7 +49,7 @@ Use this type if a single CFN resource maps to multiple AWS resources
 
 #### Defined in
 
-[interop.ts:94](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L94)
+[interop.ts:84](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L84)
 
 ***
 
@@ -59,7 +59,7 @@ Use this type if a single CFN resource maps to multiple AWS resources
 
 #### Defined in
 
-[interop.ts:96](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L96)
+[interop.ts:86](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L86)
 
 ## Functions
 
@@ -86,4 +86,4 @@ The normalized resource properties
 
 #### Defined in
 
-[interop.ts:41](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L41)
+[interop.ts:31](https://github.com/pulumi/pulumi-cdk/blob/main/src/interop.ts#L31)
