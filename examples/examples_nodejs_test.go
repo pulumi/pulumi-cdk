@@ -38,6 +38,7 @@ func skip(t *testing.T) {
 }
 
 func TestAppSvc(t *testing.T) {
+	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "appsvc"),
@@ -58,7 +59,6 @@ func TestAppRunner(t *testing.T) {
 }
 
 func TestCronLambda(t *testing.T) {
-	skip(t)
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "cron-lambda"),

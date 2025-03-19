@@ -27,15 +27,14 @@ jobs:
         uses: jaxxstorm/action-install-gh-release@v1.11.0
         with:
           repo: pulumi/pulumictl
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Generate Pulumi Access Token
+        id: generate_pulumi_token
+        uses: pulumi/auth-actions@v1
         with:
-          # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-region: ${{ env.AWS_REGION }}
-          # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          role-duration-seconds: 3600
-          role-session-name: pulumi-cdk@githubActions
-          role-to-assume: ${{ secrets.TMP_AWS_CI_ROLE_ARN }}
+          organization: pulumi
+      - uses: pulumi/esc-action@v1
+        with:
+          environment: chall/aws-ci-test
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
