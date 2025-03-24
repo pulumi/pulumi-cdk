@@ -37,7 +37,7 @@
     "@types/jest": "^29.5.2",
     "@types/mock-fs": "^4.13.4",
     "@types/node": "^20.12.13",
-    "aws-cdk-lib": "2.178.0",
+    "aws-cdk-lib": "2.184.0",
     "constructs": "10.3.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
