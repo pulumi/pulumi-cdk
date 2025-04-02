@@ -5,7 +5,7 @@
     },
     "dependencies": {
         "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
-        "@pulumi/aws": "6.74.0",
+        "@pulumi/aws": "6.75.0",
         "@pulumi/aws-native": "1.26.0",
         "@pulumi/cdk": "1.8.1",
         "@pulumi/pulumi": "3.160.0",
