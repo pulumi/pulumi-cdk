@@ -7,7 +7,7 @@
         "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
         "@pulumi/aws": "6.76.0",
         "@pulumi/aws-native": "1.26.0",
-        "@pulumi/cdk": "1.8.1",
+        "@pulumi/cdk": "1.9.0",
         "@pulumi/pulumi": "3.162.0",
         "aws-cdk-lib": "2.189.0",
         "constructs": "10.3.0"
