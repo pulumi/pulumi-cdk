@@ -537,17 +537,17 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
-"@pulumi/aws-native@1.26.0":
-  version "1.26.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.26.0.tgz#3d004d6d30d49f8127651a317a38f6a027c21901"
-  integrity sha512-dbmThd7PUJN0kI69NNi749IokTzNpXNC0oIDffBih6P3diSEciY6h6wxwfBnvJYY/Aj7TxiXyJU9e9lUVT7fDw==
+"@pulumi/aws-native@1.27.0":
+  version "1.27.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.27.0.tgz#f59734359c0d5d04eb5ad463cff2a0321d07db51"
+  integrity sha512-HlDzx+FCEaejo1CedcYjoQRRBQ7xufm1PUN0Q5U17ZC2kVjXdOtqJ5BFgJ0EqTpvVssV78mfzqaeFHKbFtMhHg==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/aws@6.76.0":
-  version "6.76.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-6.76.0.tgz#37a224955cb13aed8031c266fee7aa714456b2c8"
-  integrity sha512-rtb4RWSWxYyYGhE/dAeuUfY2+QJKPOftHc7Md+/MZgzgQ+mLhYSe36Oxxv1Msvb1RSxlIfmvfJLrfYiIVUoI2g==
+"@pulumi/aws@6.77.0":
+  version "6.77.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-6.77.0.tgz#e779d304ed727421eaaeebd5749df2266e4def7f"
+  integrity sha512-GTE4QzlqEjJF54yZZJJItnlAZ0GxIUT3oRhofLJhlCjfBHyXtXQVAVzv6E9/sOIRTz4djxC1cwzZTruHNNxl/g==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
     mime "^2.0.0"
@@ -570,10 +570,10 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/pulumi@3.162.0", "@pulumi/pulumi@^3.142.0":
-  version "3.162.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-3.162.0.tgz#49aebd3b16b31162260b4da55afddc7b5da6b734"
-  integrity sha512-ON76DuSgOCv1JRNX4pc9YiNyGF+hXY0QNx8/wwhKinYHkSgD3h61XJM6y7hsXX4gCbgCqRn/3l7XGk8ChFLNVQ==
+"@pulumi/pulumi@3.163.0", "@pulumi/pulumi@^3.142.0":
+  version "3.163.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-3.163.0.tgz#50d0c1e8558833e5065617c5961c94b20ab80088"
+  integrity sha512-GWiF52tzNKWxL1MyulRxfXbD+OaFs9Wmt2yATxCxz5JhJTW1JKQIAfi6sj0Hax0jSBM794T9FdAresb/myFFHA==
   dependencies:
     "@grpc/grpc-js" "^1.10.1"
     "@logdna/tail-file" "^2.0.6"
