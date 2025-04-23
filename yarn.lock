@@ -25,10 +25,10 @@
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-apprunner-alpha/-/aws-apprunner-alpha-2.20.0-alpha.0.tgz#66ae8b2795281bf46163872f450d9163cf4beb39"
   integrity sha512-Eno+FXxa7k0Irx9ssl0ML44rlBg2THo8WMqxO3dKZpAZeZbfd8s8T3/UjP1Fq22TCKn+psDJ+wiUAd9r/BI2ig==
 
-"@aws-cdk/cli-lib-alpha@2.1011.0-alpha.0":
-  version "2.1011.0-alpha.0"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.1011.0-alpha.0.tgz#0fc5db7dc8612590a12319c1b745973f7784dbcf"
-  integrity sha512-6bObhLSwIWvd+QF6Bve1aGVi4LYzYRLUC0Ro56O9MWGDAGc9pkVwEkIVcy8Xj8wjF31UOANaU58OERB/geB9ew==
+"@aws-cdk/cli-lib-alpha@2.1012.0-alpha.0":
+  version "2.1012.0-alpha.0"
+  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.1012.0-alpha.0.tgz#d7a7d69fba4b89a1eb045abe28635e405c16c211"
+  integrity sha512-ScCnqpD/9Z7AUlzmAnicjvCLjLmCmnCwkHL17FmTETnMlJCIojI8iLCKJiDpBRjvdMb+oS1MAD2ZKuzlFUASHw==
 
 "@aws-cdk/cloud-assembly-schema@^38.0.1":
   version "38.0.1"
