@@ -7,7 +7,7 @@
         "@aws-sdk/client-eventbridge": "^3.678.0",
         "@pulumi/aws-native": "1.27.0",
         "@pulumi/cdk": "1.9.0",
-        "@pulumi/pulumi": "3.163.0",
+        "@pulumi/pulumi": "3.165.0",
         "aws-cdk-lib": "2.192.0",
         "constructs": "10.3.0",
         "esbuild": "^0.25.0"
