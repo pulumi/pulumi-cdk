@@ -32,7 +32,7 @@ jobs:
         with:
           organization: pulumi
           requested-token-type: urn:pulumi:token-type:access_token:organization
-      - uses: pulumi/esc-action@efb0bc8946938f0dfbfa00e829196ec95f0d0ea7 # v1
+      - uses: pulumi/esc-action@f35d6eab1b7f37a95fe1f9117ee1d4900183dc86 # v1
         with:
           environment: logins/pulumi-ci
       - name: Setup Node
