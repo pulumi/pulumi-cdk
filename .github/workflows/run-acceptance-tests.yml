@@ -1,17 +1,22 @@
+permissions: write-all # Equivalent to default permissions plus id-token: write
 env:
   AWS_REGION: us-east-2
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-  PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
   PULUMI_API: https://api.pulumi-staging.io
-  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  ESC_ACTION_OIDC_AUTH: true
+  ESC_ACTION_OIDC_ORGANIZATION: pulumi
+  ESC_ACTION_OIDC_REQUESTED_TOKEN_TYPE: urn:pulumi:token-type:access_token:organization
+  ESC_ACTION_ENVIRONMENT: imports/github-secrets
+  ESC_ACTION_EXPORT_ENVIRONMENT_VARIABLES: NODE_AUTH_TOKEN=NPM_TOKEN,NPM_TOKEN,PULUMI_ACCESS_TOKEN,SLACK_WEBHOOK_URL
 jobs:
   comment-notification:
     # We only care about adding the result to the PR if it's a repository_dispatch event
     if: github.event_name == 'repository_dispatch'
     runs-on: ubuntu-latest
     steps:
+      - name: Fetch secrets from ESC
+        id: esc-secrets
+        uses: pulumi/esc-action@v1
       - name: Create URL to the run output
         id: vars
         run: echo run-url=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID >> "$GITHUB_OUTPUT"
@@ -27,6 +32,9 @@ jobs:
     name: Run lint
     runs-on: ubuntu-latest
     steps:
+      - name: Fetch secrets from ESC
+        id: esc-secrets
+        uses: pulumi/esc-action@v1
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: lint
@@ -36,6 +44,9 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     steps:
+      - name: Fetch secrets from ESC
+        id: esc-secrets
+        uses: pulumi/esc-action@v1
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: build
@@ -63,6 +74,9 @@ jobs:
     runs-on: ubuntu-latest
     name: sentinel
     steps:
+    - name: Fetch secrets from ESC
+      id: esc-secrets
+      uses: pulumi/esc-action@v1
     - name: Mark workflow as successful
       uses: guibranco/github-status-action-v2@0849440ec82c5fa69b2377725b9b7852a3977e76
       with:
@@ -71,8 +85,7 @@ jobs:
         state: success
         description: Sentinel checks passed
         sha: ${{ github.event.pull_request.head.sha || github.sha }}
-    if: github.event_name == 'repository_dispatch' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'repository_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     needs:
     - test
     - integration-test
