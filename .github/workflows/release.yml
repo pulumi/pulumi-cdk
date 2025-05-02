@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Fetch secrets from ESC
         id: esc-secrets
-        uses: pulumi/esc-action@v1
+        uses: pulumi/esc-action@f35d6eab1b7f37a95fe1f9117ee1d4900183dc86 # v1
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: lint
@@ -27,7 +27,7 @@ jobs:
     steps:
       - name: Fetch secrets from ESC
         id: esc-secrets
-        uses: pulumi/esc-action@v1
+        uses: pulumi/esc-action@f35d6eab1b7f37a95fe1f9117ee1d4900183dc86 # v1
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: build
@@ -60,7 +60,7 @@ jobs:
     steps:
       - name: Fetch secrets from ESC
         id: esc-secrets
-        uses: pulumi/esc-action@v1
+        uses: pulumi/esc-action@f35d6eab1b7f37a95fe1f9117ee1d4900183dc86 # v1
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: Unshallow clone for tags

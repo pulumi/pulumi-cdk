@@ -12,10 +12,10 @@
   resolved "https://registry.yarnpkg.com/@aws-cdk/asset-node-proxy-agent-v6/-/asset-node-proxy-agent-v6-2.1.0.tgz#6d3c7860354d4856a7e75375f2f0ecab313b4989"
   integrity sha512-7bY3J8GCVxLupn/kNmpPc5VJz8grx+4RKfnnJiO1LG+uxkZfANZG3RMHhE+qQxxwkyQ9/MfPtTpf748UhR425A==
 
-"@aws-cdk/cli-lib-alpha@2.1007.0-alpha.0":
-  version "2.1007.0-alpha.0"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.1007.0-alpha.0.tgz#fd6a6d6559139c9a4c109ba1180f3a6372bec042"
-  integrity sha512-y23iMxTBHsStOYWzL2bW615bu91jaN9n5uHihWLmitg739JumQR0fWN8XkofDMLKKnImcGogXNev8R+ceDMuqw==
+"@aws-cdk/cli-lib-alpha@2.1013.0-alpha.0":
+  version "2.1013.0-alpha.0"
+  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.1013.0-alpha.0.tgz#c8fb8d8e98f0c9f1fdb9944c77cf72e7cfc2841f"
+  integrity sha512-lVirH2fO7jAXJc1fftvG4MlSQfYI7NUTK66GG/9mYHSy2CtkrYu0sgV4OeO2Cv77DvtAAstdkzfA58ECB02NrA==
 
 "@aws-cdk/cloud-assembly-schema@^38.0.1":
   version "38.0.1"
@@ -557,12 +557,12 @@
     "@pulumi/pulumi" "^3.142.0"
     mime "^2.0.0"
 
-"@pulumi/cdk@1.9.0":
-  version "1.9.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.9.0.tgz#c17918401704dd828231ba81b95faca12c6bdd34"
-  integrity sha512-q3PcOG4Sug9FzAT/7h0AAicSDtgVMBriBhlgKREezYhq+erNZI7CaZ6/GybCmIVOjSdYr6VWJPqkzky/r7X6hg==
+"@pulumi/cdk@1.10.0":
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.10.0.tgz#4b2d9b255aa700c8c3dd32a111b93142e3cfd1b3"
+  integrity sha512-EGYn4MwZW4VGiVB7oRp4FXWmLTsv7dWUedsO3K9SN/KyxxVeIdQGQOPCBw9SAij0T8y3K25gxlty4bRadvwzyg==
   dependencies:
-    "@aws-cdk/cli-lib-alpha" "2.1007.0-alpha.0"
+    "@aws-cdk/cli-lib-alpha" "2.1013.0-alpha.0"
     archiver "^7.0.1"
     cdk-assets "^2.154.8"
     fast-deep-equal "^3.1.3"
