@@ -25,10 +25,10 @@
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-apprunner-alpha/-/aws-apprunner-alpha-2.20.0-alpha.0.tgz#66ae8b2795281bf46163872f450d9163cf4beb39"
   integrity sha512-Eno+FXxa7k0Irx9ssl0ML44rlBg2THo8WMqxO3dKZpAZeZbfd8s8T3/UjP1Fq22TCKn+psDJ+wiUAd9r/BI2ig==
 
-"@aws-cdk/cli-lib-alpha@2.1012.0-alpha.0":
-  version "2.1012.0-alpha.0"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.1012.0-alpha.0.tgz#d7a7d69fba4b89a1eb045abe28635e405c16c211"
-  integrity sha512-ScCnqpD/9Z7AUlzmAnicjvCLjLmCmnCwkHL17FmTETnMlJCIojI8iLCKJiDpBRjvdMb+oS1MAD2ZKuzlFUASHw==
+"@aws-cdk/cli-lib-alpha@2.1013.0-alpha.0":
+  version "2.1013.0-alpha.0"
+  resolved "https://registry.yarnpkg.com/@aws-cdk/cli-lib-alpha/-/cli-lib-alpha-2.1013.0-alpha.0.tgz#c8fb8d8e98f0c9f1fdb9944c77cf72e7cfc2841f"
+  integrity sha512-lVirH2fO7jAXJc1fftvG4MlSQfYI7NUTK66GG/9mYHSy2CtkrYu0sgV4OeO2Cv77DvtAAstdkzfA58ECB02NrA==
 
 "@aws-cdk/cloud-assembly-schema@^38.0.1":
   version "38.0.1"
@@ -1777,10 +1777,10 @@ available-typed-arrays@^1.0.7:
   dependencies:
     possible-typed-array-names "^1.0.0"
 
-aws-cdk-lib@2.192.0:
-  version "2.192.0"
-  resolved "https://registry.yarnpkg.com/aws-cdk-lib/-/aws-cdk-lib-2.192.0.tgz#e985c168aef99463cc41bf698fec3b5824a6d783"
-  integrity sha512-Y9BAlr9a4QsEsamKc2cOGzX8DpVSOh94wsrMSGRXT0bZaqmixhhmT7WYCrT1KX4MU3gYk3OiwY2BbNyWaNE8Fg==
+aws-cdk-lib@2.194.0:
+  version "2.194.0"
+  resolved "https://registry.yarnpkg.com/aws-cdk-lib/-/aws-cdk-lib-2.194.0.tgz#9480155eb80caff3e1013ca9aaa8a2cd6c4f133b"
+  integrity sha512-v12l31Rx/BDjXEyMsfSmDRsjZu0AzHMoRHDqbcSzDcvSYHjnEW/nuFR0R1+tat9nEX8h54GDctduL6pFcJ8xUg==
   dependencies:
     "@aws-cdk/asset-awscli-v1" "^2.2.229"
     "@aws-cdk/asset-node-proxy-agent-v6" "^2.1.0"
