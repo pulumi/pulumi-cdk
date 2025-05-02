@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Fetch secrets from ESC
         id: esc-secrets
-        uses: pulumi/esc-action@856b315abd3bf3849c64670704fbbcf275f386a2 # v1
+        uses: pulumi/esc-action@11866f8e76fcb062d3b39c935a7c648bfb264289 # v1
       - name: Create URL to the run output
         id: vars
         run: echo run-url=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID >> "$GITHUB_OUTPUT"
@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Fetch secrets from ESC
         id: esc-secrets
-        uses: pulumi/esc-action@856b315abd3bf3849c64670704fbbcf275f386a2 # v1
+        uses: pulumi/esc-action@11866f8e76fcb062d3b39c935a7c648bfb264289 # v1
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: lint
@@ -46,7 +46,7 @@ jobs:
     steps:
       - name: Fetch secrets from ESC
         id: esc-secrets
-        uses: pulumi/esc-action@856b315abd3bf3849c64670704fbbcf275f386a2 # v1
+        uses: pulumi/esc-action@11866f8e76fcb062d3b39c935a7c648bfb264289 # v1
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: build
@@ -76,7 +76,7 @@ jobs:
     steps:
     - name: Fetch secrets from ESC
       id: esc-secrets
-      uses: pulumi/esc-action@856b315abd3bf3849c64670704fbbcf275f386a2 # v1
+      uses: pulumi/esc-action@11866f8e76fcb062d3b39c935a7c648bfb264289 # v1
     - name: Mark workflow as successful
       uses: guibranco/github-status-action-v2@0849440ec82c5fa69b2377725b9b7852a3977e76
       with:
