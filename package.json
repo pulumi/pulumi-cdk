@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
-    "@pulumi/aws": "6.79.0",
+    "@pulumi/aws": "6.79.1",
     "@pulumi/aws-native": "1.27.0",
     "@pulumi/docker": "4.6.2",
     "@pulumi/docker-build": "0.0.11",
