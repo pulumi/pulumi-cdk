@@ -10,7 +10,7 @@
         "@pulumi/docker-build": "0.0.11",
         "@pulumi/pulumi": "3.168.0",
         "@types/express": "^5.0.0",
-        "aws-cdk-lib": "2.194.0",
+        "aws-cdk-lib": "2.195.0",
         "constructs": "10.3.0",
         "esbuild": "^0.25.0",
         "@aws-cdk/lambda-layer-kubectl-v31": "^2.0.0"
