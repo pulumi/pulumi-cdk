@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Fetch secrets from ESC
         id: esc-secrets
-        uses: pulumi/esc-action@11866f8e76fcb062d3b39c935a7c648bfb264289 # v1
+        uses: pulumi/esc-action@cf5b30703ffd5ad60cc3a880c09b3a9592b9372d # v1
       - uses: actions/checkout@v4
       - name: Run Build
         uses: peter-evans/slash-command-dispatch@v2
