@@ -1047,10 +1047,10 @@
     "@pulumi/pulumi" "^3.142.0"
     mime "^2.0.0"
 
-"@pulumi/docker-build@0.0.11":
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/@pulumi/docker-build/-/docker-build-0.0.11.tgz#8809e4ce3da98ed1c0aaab231325d8d516126a38"
-  integrity sha512-W7VPlpbJguOIRTRLnyHkRJ9UJRpnKcMWuoagizT55CbSzAOgCAQ9sBGgAkif4WowcrILHpibttQIE2qsQ1FJ/g==
+"@pulumi/docker-build@0.0.12":
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/@pulumi/docker-build/-/docker-build-0.0.12.tgz#7e6f018d625348bfafa904636cac0192a2d4f45a"
+  integrity sha512-NCN9pboxGT/qKkv9c2/7b+S3y/3hZI6FI1+luP4faQeGFmvT4C4GSAw+uKSbayw8EQWqQfavKo9zq2SKrLbxhQ==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
