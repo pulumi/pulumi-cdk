@@ -37,7 +37,7 @@
     "@types/jest": "^29.5.2",
     "@types/mock-fs": "^4.13.4",
     "@types/node": "^20.12.13",
-    "aws-cdk-lib": "2.195.0",
+    "aws-cdk-lib": "2.196.1",
     "constructs": "10.3.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
@@ -63,7 +63,7 @@
     "constructs": "^10.0.111"
   },
   "dependencies": {
-    "@aws-cdk/cli-lib-alpha": "2.1015.0-alpha.0",
+    "@aws-cdk/cli-lib-alpha": "2.1016.0-alpha.0",
     "archiver": "^7.0.1",
     "cdk-assets": "^2.154.8",
     "fast-deep-equal": "^3.1.3",
