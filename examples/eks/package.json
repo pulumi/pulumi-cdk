@@ -4,8 +4,8 @@
         "@types/node": "^10.0.0"
     },
     "dependencies": {
-        "@pulumi/aws": "6.80.0",
-        "@pulumi/aws-native": "1.27.0",
+        "@pulumi/aws": "6.81.0",
+        "@pulumi/aws-native": "1.28.0",
         "@pulumi/cdk": "1.10.0",
         "@pulumi/docker-build": "0.0.12",
         "@pulumi/pulumi": "3.170.0",
