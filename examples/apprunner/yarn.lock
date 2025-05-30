@@ -443,10 +443,10 @@
     fast-deep-equal "^3.1.3"
     fs-extra "^11.2.0"
 
-"@pulumi/pulumi@3.172.0", "@pulumi/pulumi@^3.142.0":
-  version "3.172.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-3.172.0.tgz#e559d9e1a5757406935fe1ac625d7928a4fd1a26"
-  integrity sha512-F2a0/ccBYYBLkTAjvXLheHjvK143LXHaBeQKNOg6vGnQoa44E8hJ8H+483CgrNsLr01KxoPM1wWJRADudrXyUA==
+"@pulumi/pulumi@3.173.0", "@pulumi/pulumi@^3.142.0":
+  version "3.173.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/pulumi/-/pulumi-3.173.0.tgz#02646dab7cd11bbfaa49490eee26e5c2f2f2dd5e"
+  integrity sha512-/qvSyYaNBV8RpB+B24H2CqF7DA+OHzUqMa/NUJWmCE41UNHPlscFgNMfR0EV7IKqH0woKtzA3DOloBZfPjINVg==
   dependencies:
     "@grpc/grpc-js" "^1.10.1"
     "@logdna/tail-file" "^2.0.6"
