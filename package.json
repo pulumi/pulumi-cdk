@@ -30,7 +30,7 @@
     "@pulumi/aws": "6.81.0",
     "@pulumi/aws-native": "1.28.0",
     "@pulumi/docker": "4.7.0",
-    "@pulumi/docker-build": "0.0.12",
+    "@pulumi/docker-build": "0.0.13",
     "@pulumi/pulumi": "3.172.0",
     "@types/archiver": "^6.0.2",
     "@types/fs-extra": "^11.0.4",
