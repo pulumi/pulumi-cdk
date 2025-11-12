@@ -1,4 +1,5 @@
 import { StackAddress } from './assembly';
+export type { StackAddress } from './assembly';
 
 /**
  * Full conversion result for a CDK assembly.

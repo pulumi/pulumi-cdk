@@ -1,12 +1,11 @@
 import { CloudFormationTemplate, CloudFormationResource, CloudFormationOutput, CloudFormationParameter } from '../cfn';
-import { StackIR, ProgramIR, StackAddress } from './ir';
+import { StackIR, ProgramIR, StackAddress, PropertyValue } from '../ir';
 import { typeToken } from '../naming';
 import { getDependsOn } from '../cfn';
 import { IrIntrinsicValueAdapter } from './intrinsic-value-adapter';
 import { IrResourceEmitter, IrResourceOptions } from '../ir-resource-emitter';
 import { IrIntrinsicResolver } from './intrinsic-resolver';
 import { IntrinsicValueAdapter } from '../converters/intrinsic-value-adapter';
-import { PropertyValue } from './ir';
 import { ResourceEmitter } from '../resource-emitter';
 
 export interface StackConversionInput {
@@ -23,7 +22,7 @@ export interface StackIrConversionOptions {
 
 export function convertStacksToProgramIr(stacks: StackConversionInput[]): ProgramIR {
     return {
-        stacks: stacks.map(convertStackToIr),
+        stacks: stacks.map((stack) => convertStackToIr(stack)),
     };
 }
 
@@ -76,35 +75,46 @@ function convertResources(
     });
 }
 
-function buildResourceOptions(stackPath: string, resource: CloudFormationResource): IrResourceOptions | undefined {
+function buildResourceOptions(stackPath: string, resource: CloudFormationResource): IrResourceOptions {
     const dependsOn = getDependsOn(resource);
     const retain = resource.DeletionPolicy === 'Retain';
 
-    if (!dependsOn && !retain) {
-        return undefined;
+    const options: IrResourceOptions = {};
+    if (dependsOn && dependsOn.length > 0) {
+        options.dependsOn = dependsOn.map((id): StackAddress => ({
+            id,
+            stackPath,
+        }));
+    }
+    if (retain) {
+        options.retainOnDelete = true;
     }
 
-    const dependsOnAddresses = dependsOn?.map((id): StackAddress => ({
-        id,
-        stackPath,
-    }));
-
-    return {
-        dependsOn: dependsOnAddresses,
-        retainOnDelete: retain ? true : undefined,
-    };
+    return options;
 }
 
-function convertOutputs(outputs: { [id: string]: CloudFormationOutput } | undefined, resolver: IrIntrinsicResolver) {
+function convertOutputs(
+    outputs: { [id: string]: CloudFormationOutput } | undefined,
+    resolver: IrIntrinsicResolver,
+): StackIR['outputs'] {
     if (!outputs) {
         return undefined;
     }
 
-    return Object.entries(outputs).map(([name, output]) => ({
-        name,
-        value: resolver.resolveValue(output.Value),
-        description: undefined,
-    }));
+    const resolvedOutputs: NonNullable<StackIR['outputs']> = [];
+    for (const [name, output] of Object.entries(outputs)) {
+        const value = resolver.resolveValue(output.Value);
+        if (value === undefined) {
+            continue;
+        }
+        resolvedOutputs.push({
+            name,
+            value,
+            description: undefined,
+        });
+    }
+
+    return resolvedOutputs;
 }
 
 function convertParameters(
