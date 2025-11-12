@@ -41,6 +41,7 @@ import { parseDynamicValue } from './dynamic-references';
 import { NestedStackParameter } from './intrinsics';
 import { CdkConstruct, NestedStackConstruct, resourcesFromResourceMapping } from '../internal/interop';
 import { PulumiResourceEmitter } from './pulumi-resource-emitter';
+import { IntrinsicValueAdapter, PulumiIntrinsicValueAdapter } from './intrinsic-value-adapter';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -116,6 +117,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     private readonly cdkStack: cdk.Stack;
     private readonly stackOptions?: pulumi.ComponentResourceOptions;
     private readonly resourceEmitter: ResourceEmitter<ResourceMapping, pulumi.ResourceOptions, StackAddress>;
+    private readonly valueAdapter: IntrinsicValueAdapter;
 
     private _stackResource?: CdkConstruct;
     private readonly graph: Graph;
@@ -133,6 +135,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         this.stackOptions = host.stackOptions[stack.id];
         this.graph = GraphBuilder.build(this.stack);
         this.resourceEmitter = new PulumiResourceEmitter(host, this.cdkStack);
+        this.valueAdapter = new PulumiIntrinsicValueAdapter();
         this.graph.nestedStackNodes.forEach(
             (node) => node.resourceAddress && this.nestedStackNodes.set(node.resourceAddress, node),
         );
@@ -704,29 +707,12 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
             throw new Error(`No output ${outputName} found in nested stack ${nestedStackNode.construct.path}`);
         }
 
-        // CFN CustomResources have a `data` property that contains the attributes. It is part of the response
-        // of the Lambda Function backing the Custom Resource.
-        if (aws.cloudformation.CustomResourceEmulator.isInstance(mapping.resource)) {
-            return mapping.resource.data.apply((attrs) => {
-                const descs = Object.getOwnPropertyDescriptors(attrs);
-                const d = descs[attribute];
-                if (!d) {
-                    throw new Error(
-                        `No attribute ${attribute} on custom resource ${resourceAddress.id} in stack ${resourceAddress.stackPath}`,
-                    );
-                }
-                return d.value;
-            });
-        }
-
-        const descs = Object.getOwnPropertyDescriptors(mapping.attributes || mapping.resource);
-        const d = descs[propertyName];
-        if (!d) {
-            throw new CdkAdapterError(
-                `No property ${propertyName} for attribute ${attribute} on resource ${resourceAddress.id} in stack ${resourceAddress.stackPath}`,
-            );
-        }
-        return d.value;
+        return this.valueAdapter.getResourceAttribute({
+            mapping,
+            attribute,
+            propertyName,
+            resourceAddress,
+        });
     }
 
     findCondition(stackAddress: StackAddress): intrinsics.Expression | undefined {

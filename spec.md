@@ -24,7 +24,8 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 - [ ] Ensure existing code under `src/` re-exports the package where necessary so current imports continue working.
 
 ### Intermediate Representation (IR)
-- [ ] Define TypeScript types for the neutral resource description (type token, logical ID, inputs, options such as dependsOn/parent/retain).
+- [x] Define TypeScript types for the neutral resource description (type token, logical ID, inputs, options such as dependsOn/parent/retain).
+- [ ] Introduce an intrinsic/value adapter so `StackConverter` can resolve expressions into either Pulumi Outputs or IR-safe reference objects.
 - [ ] Teach `StackConverter` to populate the IR via the new emitter instead of directly instantiating Pulumi resources when requested.
 - [ ] Add support for stack outputs and parameters in the IR so the CLI can emit them as Pulumi stack outputs/config.
 

@@ -6,3 +6,4 @@ export * from './stack-map';
 export * from './sub';
 export * from './logging';
 export * from './resource-emitter';
+export * from './ir';
