@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { SubPart, parseSub } from '../src/sub';
+import { SubPart, parseSub } from '@pulumi/cdk-convert-core/sub';
 
 type SubCase = {
     template: string;

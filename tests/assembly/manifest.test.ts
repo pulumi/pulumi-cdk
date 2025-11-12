@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as mockfs from 'mock-fs';
-import { AssemblyManifestReader } from '../../src/assembly';
+import { AssemblyManifestReader } from '@pulumi/cdk-convert-core/assembly';
 
 describe('cloud assembly manifest reader', () => {
     describe('single stack', () => {

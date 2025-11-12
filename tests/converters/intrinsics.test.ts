@@ -5,11 +5,11 @@ import * as intrinsics from '../../src/converters/intrinsics';
 import {
     CloudFormationParameter,
     CloudFormationParameterWithId,
-} from '../../src/cfn';
+} from '@pulumi/cdk-convert-core/cfn';
 import { Mapping } from '../../src/types';
 import { PulumiResource } from '../../src/pulumi-metadata';
 import { OutputRepr } from '../../src/output-map';
-import { StackAddress } from '../../src/assembly';
+import { StackAddress } from '@pulumi/cdk-convert-core/assembly';
 
 describe('Fn::If', () => {
     test('picks true', async () => {

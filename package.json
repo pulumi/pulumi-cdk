@@ -92,6 +92,10 @@
         }
       ]
     },
+    "moduleNameMapper": {
+      "^@pulumi/cdk-convert-core$": "<rootDir>/packages/cdk-convert-core/src/index.ts",
+      "^@pulumi/cdk-convert-core/(.*)$": "<rootDir>/packages/cdk-convert-core/src/$1"
+    },
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.ts?(x)",
       "<rootDir>/(tests|src)/**/*(*.)@(spec|test).ts?(x)"

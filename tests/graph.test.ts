@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { GraphBuilder, GraphNode } from '../src/graph';
-import { ConstructTree, StackManifest, StackManifestProps } from '../src/assembly';
+import { GraphBuilder, GraphNode } from '@pulumi/cdk-convert-core/graph';
+import { ConstructTree, StackManifest, StackManifestProps } from '@pulumi/cdk-convert-core/assembly';
 import { createNestedStackManifest, createStackManifest } from './utils';
 import * as fs from 'fs';
 import * as path from 'path';
