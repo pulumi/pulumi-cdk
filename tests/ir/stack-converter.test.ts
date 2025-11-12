@@ -45,6 +45,7 @@ describe('convertStackToIr', () => {
                   "value": {
                     "attributeName": "Ref",
                     "kind": "resourceAttribute",
+                    "propertyName": "ref",
                     "resource": {
                       "id": "MyBucket",
                       "stackPath": "My/Stack",
@@ -152,6 +153,7 @@ describe('convertStackToIr - intrinsics', () => {
                 {
                     kind: 'resourceAttribute',
                     attributeName: 'Ref',
+                    propertyName: 'ref',
                     resource: { id: 'MyBucket', stackPath: 'My/Stack' },
                 },
             ],

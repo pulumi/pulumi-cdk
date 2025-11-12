@@ -106,6 +106,7 @@ export interface ResourceAttributeReference {
     kind: 'resourceAttribute';
     resource: StackAddress;
     attributeName: string;
+    propertyName?: string;
 }
 
 export interface StackOutputReference {

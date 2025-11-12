@@ -34,6 +34,7 @@
     "@pulumi/pulumi": "3.172.0",
     "@types/archiver": "^6.0.2",
     "@types/fs-extra": "^11.0.4",
+    "@types/glob": "^8.1.0",
     "@types/jest": "^29.5.2",
     "@types/mock-fs": "^4.13.4",
     "@types/node": "^20.12.13",
@@ -51,7 +52,6 @@
     "typedoc": "^0.26.11",
     "typedoc-plugin-markdown": "^4.2.10",
     "typescript": "^5.4.5",
-    "@types/glob": "^8.1.0",
     "typescript-eslint": "^7.16.1"
   },
   "peerDependencies": {
@@ -65,11 +65,12 @@
   "dependencies": {
     "@aws-cdk/toolkit-lib": "1.10.0",
     "@aws-cdk/cli-plugin-contract": "^2.0.0",
+    "@pulumi/cdk-convert-core": "file:packages/cdk-convert-core",
     "archiver": "^7.0.1",
     "cdk-assets": "^2.154.8",
-    "@pulumi/cdk-convert-core": "file:packages/cdk-convert-core",
     "fast-deep-equal": "^3.1.3",
-    "fs-extra": "^11.2.0"
+    "fs-extra": "^11.2.0",
+    "yaml": "^2.8.1"
   },
   "scripts": {
     "set-version": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",

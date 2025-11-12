@@ -17,7 +17,7 @@ import { CdkAdapterError, getAttributesFromResource } from './types';
 import * as aws from '@pulumi/aws-native';
 import { ResourceMapping, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
-import { toSdkName, typeName as pulumiTypeName, moduleName } from '@pulumi/cdk-convert-core';
+import { attributePropertyName, typeName as pulumiTypeName, moduleName } from '@pulumi/cdk-convert-core';
 
 export function mapToCfnResource(
     logicalId: string,
@@ -133,8 +133,4 @@ export function mapToCfnResource(
             return new awsModule[mName][pType](logicalId, props, options);
         }
     }
-}
-
-export function attributePropertyName(attributeName: string): string {
-    return toSdkName(attributeName.split('.')[0]);
 }

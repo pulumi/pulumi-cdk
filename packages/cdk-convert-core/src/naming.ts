@@ -59,6 +59,10 @@ export function toSdkName(s: string): string {
     return s;
 }
 
+export function attributePropertyName(attributeName: string): string {
+    return toSdkName(attributeName.split('.')[0]);
+}
+
 // ToCfnName converts a lowerCamelCase schema property name to the Cloud Formation property or attribute name
 // either by looking up in the table if present or converting to PascalCase.
 export function toCfnName(s: string, lookupTable: { [key: string]: string }): string {

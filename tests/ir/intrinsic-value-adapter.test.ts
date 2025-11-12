@@ -44,6 +44,7 @@ describe('IrIntrinsicValueAdapter', () => {
             kind: 'resourceAttribute',
             resource: resourceAddress,
             attributeName: 'Arn',
+            propertyName: 'arn',
         });
     });
 });

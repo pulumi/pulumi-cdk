@@ -18,7 +18,7 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 
 ### Package Extraction
 - [x] Create `packages/cdk-convert-core` with its own `package.json`, tsconfig, and build outputs.
-- [ ] Move/rewire modules that do not depend on Pulumi runtime (`assembly`, `graph`, `cfn*`, `sub`, `stack-map`, converters minus Pulumi-specific bits) into the package.
+- [x] Move/rewire modules that do not depend on Pulumi runtime (`assembly`, `graph`, `cfn*`, `sub`, `stack-map`, converters minus Pulumi-specific bits) into the package.
   - `assembly`, `cfn`, `graph`, `sub`, and `stack-map` now live under `packages/cdk-convert-core`; converter cleanup underway (shared Mapping/intrinsic value adapter interfaces now exported from the core package to prep IR work).
 - [x] Introduce an explicit interface (e.g., `ResourceEmitter`) that `StackConverter` uses to emit resources so we can provide multiple implementations.
 - [ ] Ensure existing code under `src/` re-exports the package where necessary so current imports continue working.
@@ -34,12 +34,44 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 
 ### CLI Prototype
 - [ ] Add a new executable under `bin/` (wired via `package.json#bin`) named `cdk-to-pulumi`.
-- [ ] CLI responsibilities:
-  - Accept either `--cdk-app <cmd>` (run CDK synth) or `--assembly <path>`.
-  - When running the app, reuse existing `AwsCdkCli` helper/synthesizer logic if possible; otherwise shell out to `cdk synth`.
-  - Invoke the core converter to get the IR.
-  - Serialize the IR to Pulumi YAML (resources + outputs) in an output file/folder.
-- [ ] Provide minimal documentation (`README` section) describing usage of the CLI.
+- [ ] Expose a helper that loads a Cloud Assembly via `AssemblyManifestReader`, feeds each stack through `convertStackToIr`, and returns a combined `ProgramIR` so both the CLI and runtime can share it.
+- [ ] CLI responsibilities (initial prototype):
+  - Accept `--assembly <path>` that points at an already-synthesized `cdk.out`. Defer `--cdk-app`/`cdk synth` orchestration until later.
+  - Invoke the new assembly-to-IR helper to get the `ProgramIR`.
+  - Serialize all stacks into a single Pulumi YAML program (resources + outputs) written to an output file/folder.
+- [x] Add a serializer module (e.g., `src/cli/ir-to-yaml.ts`) that converts `ProgramIR` into Pulumi YAML using the `yaml` npm package.
+    - [x] Ensure resource names are unique/stable by deriving them from `stackPath` + `logicalId`, keeping a lookup so cross-resource references can be rewritten.
+    - [x] Implement intrinsic/value conversions in YAML serialization:
+      - [x] primitives/maps/arrays map directly
+      - [x] `ConcatValue` → `fn::join`
+      - [x] `DynamicReferenceValue` → `fn::invoke` (`aws-native:ssm/getParameter`, `aws-native:secretsmanager/getSecretValue`, etc.)
+      - [x] `ResourceAttributeReference` → `${resourceName.property}` using `attributePropertyName`/`cfRef` metadata for property names
+      - [x] `StackOutputReference` → flattened to the referenced `PropertyValue` so cross-stack consumers interpolate the source resource directly (top-level Pulumi outputs are backlogged)
+      - [x] `ParameterReference` → parameter defaults (error if missing)
+      - [x] surface an explicit error for intrinsics we can’t yet represent
+- [x] Add serializer-focused unit tests that exercise resource naming, options rewriting, intrinsic conversions, and error paths.
+- [ ] Provide minimal documentation (`README` section) describing usage of the CLI and the current assumptions (pre-built assembly, single YAML output).
+
+#### Serializer Module Detail
+
+- [x] **Module Skeleton**
+  - [x] Create `src/cli/ir-to-yaml.ts` exporting `serializeProgramIr(program: ProgramIR): string`.
+  - [x] Add the `yaml` npm dependency and wire any necessary build/test plumbing.
+- [x] **Resource Name Planner**
+  - [x] Implement deterministic name derivation from `stackPath` + `logicalId` (slugify + dedupe).
+  - [x] Maintain a lookup table so other serializer stages can resolve references.
+- [ ] **Program Writer**
+  - [x] Translate each `ResourceIR` into a Pulumi YAML resource block, including options (`dependsOn` → resource names, `retainOnDelete` → `protect`).
+  - [ ] Emit stack outputs as top-level Pulumi outputs with stable names and ensure cross-stack references surface correctly. _(Backlog per latest handoff; serializer currently skips outputs entirely.)_
+  - [x] Enforce parameter defaults during serialization (fail fast if a parameter is referenced without a default).
+- [ ] **Property Value Converters**
+  - [x] Primitive/map/array passthrough.
+  - [x] `ConcatValue` → `fn::join`.
+  - [x] `DynamicReferenceValue` → `fn::invoke` with service-specific functions.
+  - [x] `ResourceAttributeReference` → `${resourceName.property}` using attribute metadata; `StackOutputReference` is flattened before serialization so cross-stack references point straight at resources; `ParameterReference` → default value.
+  - [x] Explicit error for unsupported intrinsics to keep behavior predictable.
+- [x] **Testing**
+  - [x] Add focused serializer unit tests covering naming, dependsOn/protect options, each property value variant, and missing parameter default errors.
 
 ### Pulumi Runtime Integration
 - [ ] Update the existing Pulumi adapter (`src/stack.ts` etc.) to import the shared package and use the Pulumi-specific `ResourceEmitter`, eliminating duplicate logic.
