@@ -1,0 +1,12 @@
+{
+  "name": "@pulumi/cdk-convert-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Core conversion primitives shared between the Pulumi/CDK runtime and CLI prototype.",
+  "license": "Apache-2.0",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc -b"
+  }
+}
