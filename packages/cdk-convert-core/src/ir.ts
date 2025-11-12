@@ -96,7 +96,9 @@ export type PropertyValue =
     | PropertyValue[]
     | ResourceAttributeReference
     | StackOutputReference
-    | ParameterReference;
+    | ParameterReference
+    | DynamicReferenceValue
+    | ConcatValue;
 
 export type PrimitiveValue = string | number | boolean | null;
 
@@ -116,4 +118,27 @@ export interface ParameterReference {
     kind: 'parameter';
     stackPath: string;
     parameterName: string;
+}
+
+export type DynamicReferenceValue = SsmDynamicReferenceValue | SecretsManagerDynamicReferenceValue;
+
+export interface SsmDynamicReferenceValue {
+    kind: 'ssmDynamicReference';
+    parameterName: string;
+    secure: boolean;
+}
+
+export interface SecretsManagerDynamicReferenceValue {
+    kind: 'secretsManagerDynamicReference';
+    secretId: string;
+    secretString?: string;
+    jsonKey?: string;
+    versionStage?: string;
+    versionId?: string;
+}
+
+export interface ConcatValue {
+    kind: 'concat';
+    delimiter: string;
+    values: PropertyValue[];
 }

@@ -18,16 +18,19 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 
 ### Package Extraction
 - [x] Create `packages/cdk-convert-core` with its own `package.json`, tsconfig, and build outputs.
-- [ ] Move/rewire modules that do not depend on Pulumi runtime (`assembly`, `graph`, `cfn*`, `sub`, `stack-map`, `output-map`, `converters` minus Pulumi-specific bits) into the package.
-  - `assembly`, `cfn`, `graph`, `sub`, and `stack-map` now live under `packages/cdk-convert-core`; outstanding: `output-map`, `cfn-resource-mappings`, converter cleanup.
+- [ ] Move/rewire modules that do not depend on Pulumi runtime (`assembly`, `graph`, `cfn*`, `sub`, `stack-map`, converters minus Pulumi-specific bits) into the package.
+  - `assembly`, `cfn`, `graph`, `sub`, and `stack-map` now live under `packages/cdk-convert-core`; converter cleanup underway (shared Mapping/intrinsic value adapter interfaces now exported from the core package to prep IR work).
 - [x] Introduce an explicit interface (e.g., `ResourceEmitter`) that `StackConverter` uses to emit resources so we can provide multiple implementations.
 - [ ] Ensure existing code under `src/` re-exports the package where necessary so current imports continue working.
 
 ### Intermediate Representation (IR)
 - [x] Define TypeScript types for the neutral resource description (type token, logical ID, inputs, options such as dependsOn/parent/retain).
-- [ ] Introduce an intrinsic/value adapter so `StackConverter` can resolve expressions into either Pulumi Outputs or IR-safe reference objects.
-- [ ] Teach `StackConverter` to populate the IR via the new emitter instead of directly instantiating Pulumi resources when requested.
-- [ ] Add support for stack outputs and parameters in the IR so the CLI can emit them as Pulumi stack outputs/config.
+- [x] Introduce an intrinsic/value adapter so `StackConverter` can resolve expressions into either Pulumi Outputs or IR-safe reference objects.
+  - `IrIntrinsicValueAdapter` now powers the shared `IrIntrinsicResolver`, which rewrites `Ref`/`Fn::*` expressions into IR-friendly values for both the standalone converter and the new StackConverter IR mode.
+- [x] Teach `StackConverter` to populate the IR via the new emitter instead of directly instantiating Pulumi resources when requested.
+  - Added a reusable path that calls `convertStackToIr` with `IrResourceEmitter`/`IrIntrinsicValueAdapter`, so stack manifests can produce `ProgramIR` snapshots without registering Pulumi resources.
+- [x] Add support for stack outputs and parameters in the IR so the CLI can emit them as Pulumi stack outputs/config.
+  - Outputs and parameter defaults now flow through the resolver, so joins/splits/conditionals/dynamic references are normalized before landing in `StackIR`.
 
 ### CLI Prototype
 - [ ] Add a new executable under `bin/` (wired via `package.json#bin`) named `cdk-to-pulumi`.
