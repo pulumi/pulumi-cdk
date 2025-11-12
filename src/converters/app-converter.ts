@@ -23,6 +23,7 @@ import {
     convertStackToIr,
     IrResourceEmitter,
     IrIntrinsicValueAdapter,
+    attributePropertyName,
 } from '@pulumi/cdk-convert-core';
 import { ArtifactConverter } from './artifact-converter';
 import { lift, Mapping, AppComponent, CdkAdapterError } from '../types';
@@ -37,7 +38,6 @@ import {
     getSsmParameterString,
     getUrlSuffix,
 } from '@pulumi/aws-native';
-import { attributePropertyName } from '../cfn-resource-mappings';
 import { OutputMap, OutputRepr } from '../output-map';
 import { getPartition } from '@pulumi/aws-native/getPartition';
 import * as intrinsics from './intrinsics';
