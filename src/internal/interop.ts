@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { PulumiResourceType } from '../graph';
+import { PulumiResourceType } from '@pulumi/cdk-convert-core/graph';
 import { ResourceMapping } from '../interop';
 
 export function firstToLower(str: string) {

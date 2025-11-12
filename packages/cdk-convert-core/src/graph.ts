@@ -11,13 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { debug, warn } from '@pulumi/pulumi/log';
 import { CloudFormationResource } from './cfn';
 import { parseSub } from './sub';
 import { ConstructTree, StackAddress, StackManifest } from './assembly';
-import { CdkAdapterError } from './types';
+import { CdkAdapterError } from './errors';
 import { StackMap } from './stack-map';
 import { Node } from 'aws-cdk-lib/core/lib/private/tree-metadata';
+import { debug, warn } from './logging';
 
 // Represents a value that will be used as the (or part of the) pulumi resource
 // type token

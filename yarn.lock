@@ -2687,6 +2687,9 @@
     "@pulumi/pulumi" "^3.142.0"
     mime "^2.0.0"
 
+"@pulumi/cdk-convert-core@file:packages/cdk-convert-core":
+  version "0.0.0"
+
 "@pulumi/docker-build@0.0.13":
   version "0.0.13"
   resolved "https://registry.yarnpkg.com/@pulumi/docker-build/-/docker-build-0.0.13.tgz#4722068e36a359bf829e6555d5b2970d9f301106"

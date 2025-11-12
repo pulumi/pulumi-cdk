@@ -11,3 +11,5 @@ Thanks and good luck!
 ## Status Updates
 
 - Scaffolded the `packages/cdk-convert-core` package with its own `package.json`, tsconfig, and placeholder source; updated root TypeScript configs (`tsconfig.base.json`, `tsconfig.build.json`) plus build scripts to compile both projects.
+- Moved the Pulumi-independent modules (`assembly`, `cfn`, `graph`, `sub`, `stack-map`) into `packages/cdk-convert-core` and wired imports via a new local dependency; added lightweight logging + error exports there so the runtime can keep using them.
+- Added a generic `ResourceEmitter` interface in the core package and refactored `StackConverter` to use a Pulumi implementation, paving the way for an IR-based emitter.

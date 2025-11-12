@@ -19,7 +19,8 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 ### Package Extraction
 - [x] Create `packages/cdk-convert-core` with its own `package.json`, tsconfig, and build outputs.
 - [ ] Move/rewire modules that do not depend on Pulumi runtime (`assembly`, `graph`, `cfn*`, `sub`, `stack-map`, `output-map`, `converters` minus Pulumi-specific bits) into the package.
-- [ ] Introduce an explicit interface (e.g., `ResourceEmitter`) that `StackConverter` uses to emit resources so we can provide multiple implementations.
+  - `assembly`, `cfn`, `graph`, `sub`, and `stack-map` now live under `packages/cdk-convert-core`; outstanding: `output-map`, `cfn-resource-mappings`, converter cleanup.
+- [x] Introduce an explicit interface (e.g., `ResourceEmitter`) that `StackConverter` uses to emit resources so we can provide multiple implementations.
 - [ ] Ensure existing code under `src/` re-exports the package where necessary so current imports continue working.
 
 ### Intermediate Representation (IR)

@@ -186,8 +186,4 @@ export function getAttributesFromResource(resource: pulumi.Resource): { [key: st
  *
  * @internal
  */
-export class CdkAdapterError extends Error {
-    constructor(message: string) {
-        super(`[CDK Adapter] ${message}`);
-    }
-}
+export { CdkAdapterError } from '@pulumi/cdk-convert-core/errors';

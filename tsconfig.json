@@ -3,9 +3,16 @@
   "compilerOptions": {
     "outDir": "lib",
     "rootDir": "src",
-    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
+    "paths": {
+      "@pulumi/cdk-convert-core": ["./packages/cdk-convert-core/src/index"],
+      "@pulumi/cdk-convert-core/*": ["./packages/cdk-convert-core/src/*"]
+    }
   },
   "include": [
     "src/**/*.ts"
+  ],
+  "references": [
+    { "path": "./packages/cdk-convert-core/tsconfig.json" }
   ]
 }

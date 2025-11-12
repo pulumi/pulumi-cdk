@@ -1,8 +1,23 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as aws from '@pulumi/aws-native';
 import * as pulumi from '@pulumi/pulumi';
-import { AssemblyManifestReader, StackAddress, StackManifest } from '../assembly';
-import { ConstructInfo, Graph, GraphBuilder, GraphNode } from '../graph';
+import {
+    AssemblyManifestReader,
+    StackAddress,
+    StackManifest,
+    ConstructInfo,
+    Graph,
+    GraphBuilder,
+    GraphNode,
+    CloudFormationParameter,
+    CloudFormationParameterWithId,
+    CloudFormationResource,
+    CloudFormationTemplate,
+    StackMap,
+    getDependsOn,
+    parseSub,
+    ResourceEmitter,
+} from '@pulumi/cdk-convert-core';
 import { ArtifactConverter } from './artifact-converter';
 import { lift, Mapping, AppComponent, CdkAdapterError } from '../types';
 import { ResourceAttributeMapping, ResourceMapping } from '../interop';
@@ -16,21 +31,16 @@ import {
     getSsmParameterString,
     getUrlSuffix,
 } from '@pulumi/aws-native';
-import { mapToAwsResource } from '../aws-resource-mappings';
-import { attributePropertyName, mapToCfnResource } from '../cfn-resource-mappings';
-import { CloudFormationResource, CloudFormationTemplate, getDependsOn } from '../cfn';
+import { attributePropertyName } from '../cfn-resource-mappings';
 import { OutputMap, OutputRepr } from '../output-map';
-import { parseSub } from '../sub';
 import { getPartition } from '@pulumi/aws-native/getPartition';
-import { mapToCustomResource } from '../custom-resource-mapping';
 import * as intrinsics from './intrinsics';
-import { CloudFormationParameter, CloudFormationParameterWithId } from '../cfn';
 import { Metadata, PulumiResource } from '../pulumi-metadata';
 import { PulumiProvider } from '../types';
 import { parseDynamicValue } from './dynamic-references';
-import { StackMap } from '../stack-map';
 import { NestedStackParameter } from './intrinsics';
 import { CdkConstruct, NestedStackConstruct, resourcesFromResourceMapping } from '../internal/interop';
+import { PulumiResourceEmitter } from './pulumi-resource-emitter';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -105,6 +115,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     readonly nestedStackNodes = new StackMap<GraphNode>();
     private readonly cdkStack: cdk.Stack;
     private readonly stackOptions?: pulumi.ComponentResourceOptions;
+    private readonly resourceEmitter: ResourceEmitter<ResourceMapping, pulumi.ResourceOptions, StackAddress>;
 
     private _stackResource?: CdkConstruct;
     private readonly graph: Graph;
@@ -121,6 +132,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         this.cdkStack = host.stacks[stack.id];
         this.stackOptions = host.stackOptions[stack.id];
         this.graph = GraphBuilder.build(this.stack);
+        this.resourceEmitter = new PulumiResourceEmitter(host, this.cdkStack);
         this.graph.nestedStackNodes.forEach(
             (node) => node.resourceAddress && this.nestedStackNodes.set(node.resourceAddress, node),
         );
@@ -172,7 +184,13 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
                 const props = this.processIntrinsics(cfn.Properties, n.resourceAddress.stackPath);
                 const options = this.processOptions(n.resourceAddress, cfn, parent);
 
-                const mapped = this.mapResource(n.resourceAddress, cfn.Type, props, options);
+                const mapped = this.resourceEmitter.emitResource({
+                    logicalId: n.resourceAddress.id,
+                    typeName: cfn.Type,
+                    props,
+                    options,
+                    resourceAddress: n.resourceAddress,
+                });
                 this.registerResource(mapped, n);
 
                 debug(`Done creating resource ${n.resourceAddress.id} in stack ${n.resourceAddress.stackPath}`);
@@ -325,51 +343,6 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
         }
 
         this.parameters.set(stackAddress, parameterValue(this.app.component));
-    }
-
-    private mapResource(
-        resourceAddress: StackAddress,
-        typeName: string,
-        props: any,
-        options: pulumi.ResourceOptions,
-    ): ResourceMapping {
-        if (this.app.appOptions?.remapCloudControlResource !== undefined) {
-            const res = this.app.appOptions.remapCloudControlResource(resourceAddress.id, typeName, props, options);
-            if (res !== undefined) {
-                resourcesFromResourceMapping(res).forEach((r) =>
-                    debug(`[CDK Adapter] remapped type ${typeName} with logicalId ${resourceAddress.id}`, r),
-                );
-                return res;
-            }
-        }
-
-        const awsMapping = mapToAwsResource(resourceAddress.id, typeName, props, options);
-        if (awsMapping !== undefined) {
-            resourcesFromResourceMapping(awsMapping).forEach((r) =>
-                debug(
-                    `[CDK Adapter] mapped type ${typeName} with logicalId ${resourceAddress.id} to AWS Provider resource`,
-                    r,
-                ),
-            );
-            return awsMapping;
-        }
-
-        const customResourceMapping = mapToCustomResource(resourceAddress.id, typeName, props, options, this.cdkStack);
-        if (customResourceMapping !== undefined) {
-            resourcesFromResourceMapping(customResourceMapping).forEach((r) =>
-                debug(
-                    `[CDK Adapter] mapped type ${typeName} with logicalId ${resourceAddress.id} to Custom resource`,
-                    r,
-                ),
-            );
-            return customResourceMapping;
-        }
-
-        const cfnMapping = mapToCfnResource(resourceAddress.id, typeName, props, options);
-        resourcesFromResourceMapping(cfnMapping).forEach((r) =>
-            debug(`[CDK Adapter] mapped type ${typeName} with logicalId ${resourceAddress.id} to CCAPI resource`, r),
-        );
-        return cfnMapping;
     }
 
     private getStackTemplate(stackPath: string): CloudFormationTemplate {

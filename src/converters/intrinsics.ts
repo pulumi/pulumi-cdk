@@ -16,12 +16,11 @@ import * as aws from '@pulumi/aws-native';
 import * as equal from 'fast-deep-equal';
 import * as pulumi from '@pulumi/pulumi';
 import { debug } from '@pulumi/pulumi/log';
-import { CloudFormationParameterWithId } from '../cfn';
+import { CloudFormationParameterWithId, StackAddress } from '@pulumi/cdk-convert-core';
 import { Mapping } from '../types';
 import { PulumiResource } from '../pulumi-metadata';
 import { toSdkName } from '../naming';
 import { OutputRepr, isOutputReprInstance } from '../output-map';
-import { StackAddress } from '../assembly';
 
 /**
  * Models a CF Intrinsic Function.
