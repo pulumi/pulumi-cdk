@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as path from 'path';
-import { toSdkName, typeToken } from './naming';
+import { toSdkName, typeToken } from '@pulumi/cdk-convert-core';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pulumiMetadata = require(path.join(__dirname, '../schemas/aws-native-metadata.json'));
 import { PulumiProvider } from './types';

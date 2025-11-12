@@ -13,7 +13,7 @@ import { MockCallArgs, MockCallResult, MockResourceArgs } from '@pulumi/pulumi/r
 import { Construct } from 'constructs';
 import { App, Stack } from '../src/stack';
 import { PulumiSynthesizerBase } from '../src/synthesizer';
-import { toSdkName } from '../src/naming';
+import { toSdkName } from '@pulumi/cdk-convert-core';
 
 // Convert a pulumi.Output to a promise of the same type.
 export function promiseOf<T>(output: pulumi.Output<T>): Promise<T> {

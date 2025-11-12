@@ -2,7 +2,7 @@ import { Stack } from 'aws-cdk-lib';
 import { mapToCustomResource } from '../src/custom-resource-mapping';
 import * as aws from '@pulumi/aws-native';
 import { MockSynth } from './mocks';
-import { typeName } from '../src/naming';
+import { typeName } from '@pulumi/cdk-convert-core';
 
 jest.mock('@pulumi/aws-native', () => {
     return {

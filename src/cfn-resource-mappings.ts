@@ -17,7 +17,7 @@ import { CdkAdapterError, getAttributesFromResource } from './types';
 import * as aws from '@pulumi/aws-native';
 import { ResourceMapping, normalize } from './interop';
 import { debug } from '@pulumi/pulumi/log';
-import { toSdkName, typeName as pulumiTypeName, moduleName } from './naming';
+import { toSdkName, typeName as pulumiTypeName, moduleName } from '@pulumi/cdk-convert-core';
 
 export function mapToCfnResource(
     logicalId: string,

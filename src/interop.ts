@@ -14,7 +14,7 @@
 
 import * as pulumi from '@pulumi/pulumi';
 import { normalizeObject } from './pulumi-metadata';
-import { toSdkName } from './naming';
+import { toSdkName } from '@pulumi/cdk-convert-core';
 import { PulumiProvider } from './types';
 
 /**

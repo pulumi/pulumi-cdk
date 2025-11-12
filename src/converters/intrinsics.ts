@@ -19,7 +19,7 @@ import { debug } from '@pulumi/pulumi/log';
 import { CloudFormationParameterWithId, StackAddress } from '@pulumi/cdk-convert-core';
 import { Mapping } from '../types';
 import { PulumiResource } from '../pulumi-metadata';
-import { toSdkName } from '../naming';
+import { toSdkName } from '@pulumi/cdk-convert-core';
 import { OutputRepr, isOutputReprInstance } from '../output-map';
 
 /**

@@ -1,21 +1,17 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws-native';
-import { StackAddress } from '@pulumi/cdk-convert-core';
-import { Mapping, CdkAdapterError } from '../types';
+import {
+    IntrinsicValueAdapter,
+    ResourceAttributeRequest,
+} from '@pulumi/cdk-convert-core';
+import { CdkAdapterError } from '../types';
 
-export interface ResourceAttributeRequest {
-    mapping: Mapping<pulumi.Resource>;
-    attribute: string;
-    propertyName: string;
-    resourceAddress: StackAddress;
-}
+type PulumiResourceAttributeRequest = ResourceAttributeRequest<pulumi.Resource, pulumi.Input<any>>;
 
-export interface IntrinsicValueAdapter {
-    getResourceAttribute(request: ResourceAttributeRequest): pulumi.Input<any>;
-}
-
-export class PulumiIntrinsicValueAdapter implements IntrinsicValueAdapter {
-    getResourceAttribute(request: ResourceAttributeRequest): pulumi.Input<any> {
+export class PulumiIntrinsicValueAdapter
+    implements IntrinsicValueAdapter<pulumi.Resource, pulumi.Input<any>>
+{
+    getResourceAttribute(request: PulumiResourceAttributeRequest): pulumi.Input<any> {
         const { mapping, attribute, propertyName, resourceAddress } = request;
 
         if (aws.cloudformation.CustomResourceEmulator.isInstance(mapping.resource)) {

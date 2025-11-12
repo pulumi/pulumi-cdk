@@ -1,4 +1,10 @@
-import { toSdkName, toCfnName, hasUppercaseAcronym, findFirstRunOfUppercase, typeToken } from '../src/naming';
+import {
+    toSdkName,
+    toCfnName,
+    hasUppercaseAcronym,
+    findFirstRunOfUppercase,
+    typeToken,
+} from '@pulumi/cdk-convert-core';
 import { normalize } from '../src/interop';
 
 describe('Naming tests', () => {

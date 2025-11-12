@@ -17,6 +17,12 @@ import {
     getDependsOn,
     parseSub,
     ResourceEmitter,
+    IntrinsicValueAdapter,
+    StackIR,
+    ProgramIR,
+    convertStackToIr,
+    IrResourceEmitter,
+    IrIntrinsicValueAdapter,
 } from '@pulumi/cdk-convert-core';
 import { ArtifactConverter } from './artifact-converter';
 import { lift, Mapping, AppComponent, CdkAdapterError } from '../types';
@@ -41,7 +47,7 @@ import { parseDynamicValue } from './dynamic-references';
 import { NestedStackParameter } from './intrinsics';
 import { CdkConstruct, NestedStackConstruct, resourcesFromResourceMapping } from '../internal/interop';
 import { PulumiResourceEmitter } from './pulumi-resource-emitter';
-import { IntrinsicValueAdapter, PulumiIntrinsicValueAdapter } from './intrinsic-value-adapter';
+import { PulumiIntrinsicValueAdapter } from './intrinsic-value-adapter';
 
 /**
  * AppConverter will convert all CDK resources into Pulumi resources.
@@ -117,7 +123,7 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
     private readonly cdkStack: cdk.Stack;
     private readonly stackOptions?: pulumi.ComponentResourceOptions;
     private readonly resourceEmitter: ResourceEmitter<ResourceMapping, pulumi.ResourceOptions, StackAddress>;
-    private readonly valueAdapter: IntrinsicValueAdapter;
+    private readonly valueAdapter: IntrinsicValueAdapter<pulumi.Resource, pulumi.Input<any>>;
 
     private _stackResource?: CdkConstruct;
     private readonly graph: Graph;
@@ -791,5 +797,42 @@ export class StackConverter extends ArtifactConverter implements intrinsics.Intr
 
     getURLSuffix(): intrinsics.Result<string> {
         return getUrlSuffix({ parent: this.stackResource }).then((r) => r.urlSuffix);
+    }
+
+    public convertStacksToProgramIr(): ProgramIR {
+        const stacks: StackIR[] = [];
+        for (const [stackPath, template] of Object.entries(this.stack.stacks)) {
+            stacks.push(this.buildStackIr(stackPath, template));
+        }
+        return { stacks };
+    }
+
+    private buildStackIr(stackPath: string, template: CloudFormationTemplate): StackIR {
+        const stackId = this.deriveStackId(stackPath);
+        const stackIr: StackIR = {
+            stackId,
+            stackPath,
+            resources: [],
+        };
+
+        const adapter = new IrIntrinsicValueAdapter();
+        const emitter = new IrResourceEmitter(stackIr);
+
+        return convertStackToIr(
+            {
+                stackId,
+                stackPath,
+                template,
+            },
+            {
+                stack: stackIr,
+                adapter,
+                emitter,
+            },
+        );
+    }
+
+    private deriveStackId(stackPath: string): string {
+        return stackPath === this.stack.constructTree.path ? this.stack.id : stackPath;
     }
 }
