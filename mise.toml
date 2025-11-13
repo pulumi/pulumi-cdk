@@ -1,0 +1,4 @@
+[tools]
+node = "22.19.0"
+"npm:yarn" = "1.22.22"
+pulumi = "latest"

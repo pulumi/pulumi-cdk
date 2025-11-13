@@ -17,7 +17,7 @@ import * as aws from '@pulumi/aws';
 import { AppComponent, AppOptions, AppResourceOptions, CdkAdapterError } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
-import { AwsCdkCli, ICloudAssemblyDirectoryProducer } from '@aws-cdk/cli-lib-alpha';
+import { NonInteractiveIoHost, Toolkit, ToolkitError } from '@aws-cdk/toolkit-lib';
 import { CdkConstruct } from './internal/interop';
 import { makeUniqueId } from './cdk-logical-id';
 import * as native from '@pulumi/aws-native';
@@ -50,10 +50,7 @@ interface AppResource {
  *
  * export const bucket = app.outputs['bucket'];
  */
-export class App
-    extends pulumi.ComponentResource<AppResource>
-    implements ICloudAssemblyDirectoryProducer, AppComponent
-{
+export class App extends pulumi.ComponentResource<AppResource> implements AppComponent {
     public readonly name: string;
 
     /**
@@ -174,7 +171,9 @@ export class App
         args?: AppOptions;
         opts?: pulumi.ComponentResourceOptions;
     }): Promise<AppResource> {
-        const cli = AwsCdkCli.fromCloudAssemblyDirectoryProducer(this);
+        const toolkit = new Toolkit({
+            ioHost: new NonInteractiveIoHost({ logLevel: 'error' }),
+        });
         this.appProps = props.args?.props;
         this.appOptions = props.args;
         const lookupsEnabled = process.env.PULUMI_CDK_EXPERIMENTAL_LOOKUPS === 'true';
@@ -192,12 +191,26 @@ export class App
             account,
             region,
         };
+        const source = await toolkit.fromAssemblyBuilder(
+            async (builderProps) => this.createAssembly(builderProps.context ?? {}, builderProps.outdir),
+            { lookups },
+        );
+        let cachedAssembly: Awaited<ReturnType<typeof toolkit.synth>> | undefined;
         try {
             // TODO: support lookups https://github.com/pulumi/pulumi-cdk/issues/184
-            await cli.synth({ quiet: true, lookups });
+            cachedAssembly = await toolkit.synth(source);
         } catch (e: any) {
-            if (typeof e.message === 'string' && e.message.includes('Context lookups have been disabled')) {
-                const message = e.message as string;
+            const message = typeof e.message === 'string' ? e.message : undefined;
+            const missingMatches = message?.match(/Missing context keys:\s*'([^']+)'/);
+            if (ToolkitError.isAssemblyError(e) && missingMatches) {
+                throw new CdkAdapterError(
+                    'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". ' +
+                        'Or set "PULUMI_CDK_EXPERIMENTAL_LOOKUPS" to true. \n' +
+                        'Missing context keys: ' +
+                        missingMatches[1],
+                );
+            }
+            if (message && message.includes('Context lookups have been disabled')) {
                 const messageParts = message.split('Context lookups have been disabled. ');
                 const missingParts = messageParts[1].split('Missing context keys: ');
                 throw new CdkAdapterError(
@@ -210,12 +223,16 @@ export class App
             throw e;
         }
 
-        const converter = new AppConverter(this);
-        converter.convert();
+        try {
+            const converter = new AppConverter(this);
+            converter.convert();
 
-        return {
-            converter,
-        };
+            return {
+                converter,
+            };
+        } finally {
+            await cachedAssembly?.dispose();
+        }
     }
 
     /**
@@ -225,11 +242,17 @@ export class App
      * Note: currently lookups are disabled so this will only be executed once
      *
      * @hidden
+     * @deprecated Will be made private in the next major release.
      *
      * @param context The CDK context collected by the CLI that needs to be passed to the cdk.App
      * @returns the path to the CDK Assembly directory
      */
-    async produce(context: Record<string, any>): Promise<string> {
+    public async produce(context: Record<string, any>): Promise<string> {
+        const assembly = await this.createAssembly(context);
+        return assembly.directory;
+    }
+
+    private async createAssembly(context: Record<string, any>, outdir?: string) {
         const appId = this.appOptions?.appId ?? generateAppId();
         const synthesizer = this.appProps?.defaultStackSynthesizer ?? new PulumiSynthesizer({ appId, parent: this });
 
@@ -239,6 +262,7 @@ export class App
 
         const app = new cdk.App({
             ...(this.appProps ?? {}),
+            outdir,
             autoSynth: false,
             analyticsReporting: false,
             // We require tree metadata to walk the construct tree
@@ -259,9 +283,9 @@ export class App
             }
         });
 
-        const dir = app.synth().directory;
-        this.assemblyDir = dir;
-        return dir;
+        const assembly = app.synth();
+        this.assemblyDir = assembly.directory;
+        return assembly;
     }
 }
 
