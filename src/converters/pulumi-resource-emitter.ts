@@ -1,11 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as cdk from 'aws-cdk-lib/core';
 import { debug } from '@pulumi/pulumi/log';
-import {
-    EmitResourceRequest,
-    ResourceEmitter,
-    StackAddress,
-} from '@pulumi/cdk-convert-core';
+import { EmitResourceRequest, ResourceEmitter, StackAddress } from '@pulumi/cdk-convert-core';
 import { AppComponent } from '../types';
 import { ResourceMapping } from '../interop';
 import { mapToAwsResource } from '../aws-resource-mappings';
@@ -13,9 +9,7 @@ import { mapToCustomResource } from '../custom-resource-mapping';
 import { mapToCfnResource } from '../cfn-resource-mappings';
 import { resourcesFromResourceMapping } from '../internal/interop';
 
-export class PulumiResourceEmitter
-    implements ResourceEmitter<ResourceMapping, pulumi.ResourceOptions, StackAddress>
-{
+export class PulumiResourceEmitter implements ResourceEmitter<ResourceMapping, pulumi.ResourceOptions, StackAddress> {
     constructor(private readonly app: AppComponent, private readonly cdkStack: cdk.Stack) {}
 
     emitResource(request: EmitResourceRequest<pulumi.ResourceOptions, StackAddress>): ResourceMapping {

@@ -1,6 +1,18 @@
 // typescript representation of https://github.com/pulumi/pulumi-aws-native/blob/master/provider/pkg/naming/naming.go
 
 const PACKAGE_NAME = 'aws-native';
+const CUSTOM_RESOURCE_NAMESPACE = 'Custom';
+
+function normalizeResourceTypeComponents(resourceType: string): [string, string, string] {
+    const components = resourceType.split('::');
+    if (components.length === 3) {
+        return components as [string, string, string];
+    }
+    if (components.length === 2 && components[0] === CUSTOM_RESOURCE_NAMESPACE) {
+        return [components[0], CUSTOM_RESOURCE_NAMESPACE, components[1]];
+    }
+    throw new Error(`expected three parts in type ${resourceType}`);
+}
 
 export function typeToken(typ: string): string {
     const resourceName = typeName(typ);
@@ -10,11 +22,8 @@ export function typeToken(typ: string): string {
 }
 
 export function moduleName(resourceType: string): string {
-    const resourceTypeComponents = resourceType.split('::');
-    if (resourceTypeComponents.length !== 3) {
-        throw new Error(`expected three parts in type ${resourceTypeComponents}`);
-    }
-    let mName = resourceTypeComponents[1];
+    const [, module] = normalizeResourceTypeComponents(resourceType);
+    let mName = module;
 
     // Override the name of the Config module.
     if (mName === 'Config') {
@@ -25,11 +34,8 @@ export function moduleName(resourceType: string): string {
 }
 
 export function typeName(typ: string): string {
-    const resourceTypeComponents = typ.split('::');
-    if (resourceTypeComponents.length !== 3) {
-        throw new Error(`expected three parts in type ${resourceTypeComponents}`);
-    }
-    let name = resourceTypeComponents[2];
+    const [, , rawName] = normalizeResourceTypeComponents(typ);
+    let name = rawName;
     // Override name to avoid duplicate types due to "Output" suffix
     // See https://github.com/pulumi/pulumi/issues/8018
     if (name.endsWith('Output')) {

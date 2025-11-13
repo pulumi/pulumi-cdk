@@ -88,10 +88,7 @@ function serializeParameterReference(value: ParameterReference, ctx: PropertySer
 
 function serializeConcatValue(value: ConcatValue, ctx: PropertySerializationContext) {
     return {
-        'fn::join': [
-            value.delimiter,
-            value.values.map((item) => serializePropertyValue(item, ctx)),
-        ],
+        'fn::join': [value.delimiter, value.values.map((item) => serializePropertyValue(item, ctx))],
     };
 }
 

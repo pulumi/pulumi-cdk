@@ -1,11 +1,5 @@
 import { stringify } from 'yaml';
-import {
-    ProgramIR,
-    PropertyMap,
-    PropertyValue,
-    ResourceIR,
-    StackAddress,
-} from '@pulumi/cdk-convert-core';
+import { ProgramIR, PropertyMap, PropertyValue, ResourceIR, StackAddress } from '@pulumi/cdk-convert-core';
 import { PropertySerializationContext, serializePropertyValue } from './property-serializer';
 
 const DEFAULT_PROJECT_NAME = 'cdk-converted';
@@ -219,7 +213,11 @@ function stackOutputKey(stackPath: string, outputName: string): string {
     return `${stackPath}::${outputName}`;
 }
 
-function resolveStackOutputReferences(value: PropertyValue, stackOutputs: Map<string, PropertyValue>, seen?: string[]): PropertyValue {
+function resolveStackOutputReferences(
+    value: PropertyValue,
+    stackOutputs: Map<string, PropertyValue>,
+    seen?: string[],
+): PropertyValue {
     if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
         return value;
     }
@@ -230,7 +228,10 @@ function resolveStackOutputReferences(value: PropertyValue, stackOutputs: Map<st
 
     if (isPropertyMap(value)) {
         return Object.fromEntries(
-            Object.entries(value).map(([key, nested]) => [key, resolveStackOutputReferences(nested, stackOutputs, seen)]),
+            Object.entries(value).map(([key, nested]) => [
+                key,
+                resolveStackOutputReferences(nested, stackOutputs, seen),
+            ]),
         );
     }
 

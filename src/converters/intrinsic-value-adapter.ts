@@ -1,16 +1,11 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as aws from '@pulumi/aws-native';
-import {
-    IntrinsicValueAdapter,
-    ResourceAttributeRequest,
-} from '@pulumi/cdk-convert-core';
+import { IntrinsicValueAdapter, ResourceAttributeRequest } from '@pulumi/cdk-convert-core';
 import { CdkAdapterError } from '../types';
 
 type PulumiResourceAttributeRequest = ResourceAttributeRequest<pulumi.Resource, pulumi.Input<any>>;
 
-export class PulumiIntrinsicValueAdapter
-    implements IntrinsicValueAdapter<pulumi.Resource, pulumi.Input<any>>
-{
+export class PulumiIntrinsicValueAdapter implements IntrinsicValueAdapter<pulumi.Resource, pulumi.Input<any>> {
     getResourceAttribute(request: PulumiResourceAttributeRequest): pulumi.Input<any> {
         const { mapping, attribute, propertyName, resourceAddress } = request;
 

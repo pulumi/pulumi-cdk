@@ -13,10 +13,9 @@
 // limitations under the License.
 import { CloudFormationResource } from './cfn';
 import { parseSub } from './sub';
-import { ConstructTree, StackAddress, StackManifest } from './assembly';
+import { ConstructTree, StackAddress, StackManifest, Node } from './assembly';
 import { CdkAdapterError } from './errors';
 import { StackMap } from './stack-map';
-import { Node } from 'aws-cdk-lib/core/lib/private/tree-metadata';
 import { debug, warn } from './logging';
 
 // Represents a value that will be used as the (or part of the) pulumi resource

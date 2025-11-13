@@ -1,5 +1,18 @@
-import { Node } from 'aws-cdk-lib/core/lib/private/tree-metadata';
+import { ConstructInfo as CoreConstructInfo } from 'aws-cdk-lib/core/lib/private/runtime-info';
 import { DockerImageManifestEntry, FileManifestEntry } from 'cdk-assets';
+
+// Taken from https://github.com/aws/aws-cdk/blob/295a547149795cf224cf2fade9f36b6a7654c8ab/packages/aws-cdk-lib/core/lib/private/tree-metadata.ts#L90
+export interface Node {
+    readonly id: string;
+    readonly path: string;
+    readonly children?: { [key: string]: Node };
+    readonly attributes?: { [key: string]: any };
+
+    /**
+     * Information on the construct class that led to this node, if available
+     */
+    readonly constructInfo?: CoreConstructInfo;
+}
 
 export type StackAsset = FileManifestEntry | DockerImageManifestEntry;
 

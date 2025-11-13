@@ -1000,15 +1000,15 @@ See [API Docs](./api-docs/README.md) for more details.
 Install dependencies, build library, and link for local usage.
 
 ```sh
-$ yarn install
-$ yarn build
-$ yarn link
+$ npm install
+$ npm run build
+$ npm link
 ```
 
 Run unit test:
 
 ```sh
-$ yarn test
+$ npm test
 
   Basic tests
     ✔ Checking single resource registration (124ms)
@@ -1027,6 +1027,5 @@ $ yarn test
 Run Pulumi examples:
 
 ```
-$ yarn test-examples
+$ npm run test-examples
 ```
-
