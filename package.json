@@ -15,6 +15,9 @@
   "engines": {
     "node": ">=8.13.0 || >=10.10.0"
   },
+  "bin": {
+    "cdk-to-pulumi": "./bin/cdk-to-pulumi"
+  },
   "--": {
     "resolutions-notes": {
       "see": "https://stackoverflow.com/questions/77406363/error-err-require-esm-require-of-es-module-node-modules-wrap-ansi-index-js"

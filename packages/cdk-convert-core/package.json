@@ -9,6 +9,8 @@
   "exports": {
     ".": "./lib/index.js",
     "./package.json": "./package.json",
+    "./assembly": "./lib/assembly/index.js",
+    "./assembly/*": "./lib/assembly/*.js",
     "./*": "./lib/*.js"
   },
   "typesVersions": {

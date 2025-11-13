@@ -33,12 +33,12 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
   - Outputs and parameter defaults now flow through the resolver, so joins/splits/conditionals/dynamic references are normalized before landing in `StackIR`.
 
 ### CLI Prototype
-- [ ] Add a new executable under `bin/` (wired via `package.json#bin`) named `cdk-to-pulumi`.
-- [ ] Expose a helper that loads a Cloud Assembly via `AssemblyManifestReader`, feeds each stack through `convertStackToIr`, and returns a combined `ProgramIR` so both the CLI and runtime can share it.
-- [ ] CLI responsibilities (initial prototype):
-  - Accept `--assembly <path>` that points at an already-synthesized `cdk.out`. Defer `--cdk-app`/`cdk synth` orchestration until later.
-  - Invoke the new assembly-to-IR helper to get the `ProgramIR`.
-  - Serialize all stacks into a single Pulumi YAML program (resources + outputs) written to an output file/folder.
+- [x] Add a new executable under `bin/` (wired via `package.json#bin`) named `cdk-to-pulumi`.
+- [x] Expose a helper that loads a Cloud Assembly via `AssemblyManifestReader`, feeds each stack through `convertStackToIr`, and returns a combined `ProgramIR` so both the CLI and runtime can share it.
+- [x] CLI responsibilities (initial prototype):
+  - [x] Accept `--assembly <path>` that points at an already-synthesized `cdk.out`. Defer `--cdk-app`/`cdk synth` orchestration until later.
+  - [x] Invoke the new assembly-to-IR helper to get the `ProgramIR`.
+  - [x] Serialize all stacks into a single Pulumi YAML program (resources + outputs) written to an output file/folder.
 - [x] Add a serializer module (e.g., `src/cli/ir-to-yaml.ts`) that converts `ProgramIR` into Pulumi YAML using the `yaml` npm package.
     - [x] Ensure resource names are unique/stable by deriving them from `stackPath` + `logicalId`, keeping a lookup so cross-resource references can be rewritten.
     - [x] Implement intrinsic/value conversions in YAML serialization:

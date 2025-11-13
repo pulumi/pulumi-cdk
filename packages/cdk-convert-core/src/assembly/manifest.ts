@@ -1,13 +1,15 @@
 import * as path from 'path';
+// import { AssemblyManifest, Manifest, ArtifactType, ArtifactMetadataEntryType } from '@aws-cdk/cloud-assembly-schema';
+import * as fs from 'fs-extra';
+import { CloudFormationResource, CloudFormationTemplate, NestedStackTemplate } from '../cfn';
 import {
+    ArtifactManifest,
+    LogicalIdMetadataEntry,
     AssemblyManifest,
     Manifest,
     ArtifactType,
     ArtifactMetadataEntryType,
-    ArtifactManifest,
-} from '@aws-cdk/cloud-assembly-schema';
-import * as fs from 'fs-extra';
-import { CloudFormationResource, CloudFormationTemplate, NestedStackTemplate } from '../cfn';
+} from 'aws-cdk-lib/cloud-assembly-schema';
 import { StackManifest } from './stack';
 import { ConstructTree, StackMetadata } from './types';
 
