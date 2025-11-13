@@ -48,6 +48,16 @@ export interface ResourceIR {
     logicalId: string;
 
     /**
+     * Original CloudFormation resource type (e.g. AWS::S3::Bucket).
+     */
+    cfnType: string;
+
+    /**
+     * CloudFormation properties after intrinsic resolution but prior to normalization.
+     */
+    cfnProperties: PropertyMap;
+
+    /**
      * Pulumi type token (e.g. aws-native:s3:Bucket).
      */
     typeToken: string;

@@ -1,6 +1,13 @@
 name: cdk-converted
 runtime: yaml
 resources:
+  native-provider:
+    type: pulumi:providers:aws-native
+    defaultProvider: true
+    properties:
+      region: us-east-2
+      autoNaming:
+        autoTrim: true
   chall-cdk-test-app-dev-bucket83908-e77:
     type: aws-native:s3:Bucket
     properties:
@@ -10,7 +17,7 @@ resources:
   chall-cdk-test-app-dev-bucket-policy-e9-a3008-a:
     type: aws-native:s3:BucketPolicy
     properties:
-      bucket: ${chall-cdk-test-app-dev-bucket83908-e77.ref}
+      bucket: ${chall-cdk-test-app-dev-bucket83908-e77.bucketName}
       policyDocument:
         Statement:
           - Action:
@@ -29,13 +36,19 @@ resources:
                     - /*
         Version: 2012-10-17
   chall-cdk-test-app-dev-bucket-auto-delete-objects-custom-resource-bafd23-c2:
-    type: aws-native:custom:S3AutoDeleteObjects
+    type: aws-native:cloudformation:CustomResourceEmulator
     properties:
+      bucketName: cdk-chall-cdk-staging-616138583583-us-east-2
+      bucketKeyPrefix: deploy-time/pulumi/custom-resources/chall-cdk-test-app-dev/BucketAutoDeleteObjectsCustomResourceBAFD23C2
       serviceToken: ${chall-cdk-test-app-dev-custom-s3-auto-delete-objects-custom-resource-provider-handler9-d90184-f.arn}
-      bucketName: ${chall-cdk-test-app-dev-bucket83908-e77.ref}
+      resourceType: Custom::S3AutoDeleteObjects
+      customResourceProperties:
+        ServiceToken: ${chall-cdk-test-app-dev-custom-s3-auto-delete-objects-custom-resource-provider-handler9-d90184-f.arn}
+        BucketName: ${chall-cdk-test-app-dev-bucket83908-e77.bucketName}
+      stackId: chall-cdk-test-app-dev
     options:
       dependsOn:
-        - chall-cdk-test-app-dev-bucket-policy-e9-a3008-a
+        - ${chall-cdk-test-app-dev-bucket-policy-e9-a3008-a}
   chall-cdk-test-app-dev-custom-s3-auto-delete-objects-custom-resource-provider-role3-b1-bd092:
     type: aws-native:iam:Role
     properties:
@@ -47,7 +60,7 @@ resources:
             Principal:
               Service: lambda.amazonaws.com
       managedPolicyArns:
-        - fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn::iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   chall-cdk-test-app-dev-custom-s3-auto-delete-objects-custom-resource-provider-handler9-d90184-f:
     type: aws-native:lambda:Function
     properties:
@@ -63,11 +76,11 @@ resources:
         fn::join:
           - ""
           - - "Lambda function for auto-deleting objects in "
-            - ${chall-cdk-test-app-dev-bucket83908-e77.ref}
+            - ${chall-cdk-test-app-dev-bucket83908-e77.bucketName}
             - " S3 bucket."
     options:
       dependsOn:
-        - chall-cdk-test-app-dev-custom-s3-auto-delete-objects-custom-resource-provider-role3-b1-bd092
+        - ${chall-cdk-test-app-dev-custom-s3-auto-delete-objects-custom-resource-provider-role3-b1-bd092}
   chall-cdk-test-app-dev-handler-service-role187-d5-a5-a:
     type: aws-native:iam:Role
     properties:
@@ -90,7 +103,7 @@ resources:
       runtime: nodejs22.x
     options:
       dependsOn:
-        - chall-cdk-test-app-dev-handler-service-role187-d5-a5-a
+        - ${chall-cdk-test-app-dev-handler-service-role187-d5-a5-a}
   chall-cdk-test-app-dev-handler-log-group-e3-fd91-da:
     type: aws-native:logs:LogGroup
     properties:
@@ -98,7 +111,7 @@ resources:
         fn::join:
           - ""
           - - /aws/lambda/
-            - ${chall-cdk-test-app-dev-handler-e1533-bd5.ref}
+            - ${chall-cdk-test-app-dev-handler-e1533-bd5.functionName}
       retentionInDays: 731
     options:
       protect: true
@@ -108,15 +121,15 @@ resources:
       name: chall-Api
       protocolType: HTTP
   chall-cdk-test-app-dev-chall-api-default-stage-b9-b75-a7-a:
-    type: aws-native:apigatewayv2:Stage
+    type: aws:apigatewayv2/stage:Stage
     properties:
-      apiId: ${chall-cdk-test-app-dev-chall-api48-b32-c1-d.ref}
+      apiId: ${chall-cdk-test-app-dev-chall-api48-b32-c1-d.apiId}
       autoDeploy: true
-      stageName: $default
+      name: $default
   chall-cdk-test-app-dev-chall-api-gethellointegration392349-be:
     type: aws-native:apigatewayv2:Integration
     properties:
-      apiId: ${chall-cdk-test-app-dev-chall-api48-b32-c1-d.ref}
+      apiId: ${chall-cdk-test-app-dev-chall-api48-b32-c1-d.apiId}
       integrationType: AWS_PROXY
       integrationUri: ${chall-cdk-test-app-dev-handler-e1533-bd5.arn}
       payloadFormatVersion: "2.0"
@@ -130,23 +143,19 @@ resources:
         fn::join:
           - ""
           - - "arn:aws:execute-api:us-east-2:616138583583:"
-            - ${chall-cdk-test-app-dev-chall-api48-b32-c1-d.ref}
+            - ${chall-cdk-test-app-dev-chall-api48-b32-c1-d.apiId}
             - /*/*/hello
   chall-cdk-test-app-dev-chall-api-gethello-f5-f722-c0:
     type: aws-native:apigatewayv2:Route
     properties:
-      apiId: ${chall-cdk-test-app-dev-chall-api48-b32-c1-d.ref}
+      apiId: ${chall-cdk-test-app-dev-chall-api48-b32-c1-d.apiId}
       authorizationType: NONE
       routeKey: GET /hello
       target:
         fn::join:
           - ""
           - - integrations/
-            - ${chall-cdk-test-app-dev-chall-api-gethellointegration392349-be.ref}
-  chall-cdk-test-app-dev-cdkmetadata:
-    type: aws-native:cdk:Metadata
-    properties:
-      analytics: v2:deflate64:H4sIAAAAAAAA/12ST4/bIBDFP0s4rjCb9d58qrPVbitVbZSoJ2tVTfDUIcGAGEjkIn/3yv+0yZ5g3vzm8UDkIs+fRVqv4EqZrM+ZVgeR9gHkmcOV/iR6FmkT5RlDlRjEYL+ixoC/DieUgVgRfETOPLb2AnprtZIdK1iNFLztWP/OX/6aaZ5Py8RUiR3GkhXs4Q6b+j3X0B5qEOk1GhmUNVViRzC1Rj+OcOajCarFuZK2xhuvZWrYb9G3ikhZ03MFrUg7q3G4DVFssd50rEjMeWWkcqBLKW00YbadmGGgHP2mIzhrwUCD9RhWIbGiSndaV/qZfZ8CDRY917YhkX7Y5s3b6KrE9Lz9Ce1t/IXoOTjVQMArdJdcpG8huNKpasz2wEa2dIoP+j5Ag9WijtWo72wMsz6U303AxsP4pAt8o01ZY8C+5y+Rgm13SDZ6+WG9CJ/6W28vqka/AUJeEmEYMijT8DuHnq8z0O4IYr36Mv+6R3Auo4nOqDPhiKT+oZ/B36RMUzo3++0/gJ4bW6M40eMlz0X+JJ5WJ1Iqm/+G2E3rf7P5PJLmAgAA
+            - ${chall-cdk-test-app-dev-chall-api-gethellointegration392349-be.integrationId}
   staging-stack-chall-cdk-616138583583-us-east-2-cdk-file-role-e26-ceaba:
     type: aws-native:iam:Role
     properties:
@@ -159,11 +168,12 @@ resources:
         Version: 2012-10-17
       roleName: cdk-chall-cdk-file-role-us-east-2
   staging-stack-chall-cdk-616138583583-us-east-2-cdk-file-role-default-policy621-c7-e5-b:
-    type: aws-native:iam:Policy
+    type: aws:iam/policy:Policy
     properties:
-      policyDocument:
-        statement:
-          - action:
+      name: CdkFileRoleDefaultPolicy621C7E5B
+      policy:
+        Statement:
+          - Action:
               - s3:Abort*
               - s3:DeleteObject*
               - s3:GetBucket*
@@ -174,17 +184,22 @@ resources:
               - s3:PutObjectRetention
               - s3:PutObjectTagging
               - s3:PutObjectVersionTagging
-            effect: Allow
-            resource:
+            Effect: Allow
+            Resource:
               - ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket1636058-c.arn}
               - fn::join:
                   - ""
                   - - ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket1636058-c.arn}
                     - /*
-        version: 2012-10-17
-      policyName: CdkFileRoleDefaultPolicy621C7E5B
-      roles:
-        - ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-file-role-e26-ceaba.ref}
+        Version: 2012-10-17
+  staging-stack-chall-cdk-616138583583-us-east-2-cdk-file-role-default-policy621-c7-e5-b-role-0:
+    type: aws:iam/rolePolicyAttachment:RolePolicyAttachment
+    properties:
+      role: ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-file-role-e26-ceaba.roleName}
+      policyArn: ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-file-role-default-policy621-c7-e5-b.arn}
+    options:
+      dependsOn:
+        - ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-file-role-default-policy621-c7-e5-b}
   staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket1636058-c:
     type: aws-native:s3:Bucket
     properties:
@@ -209,7 +224,7 @@ resources:
   staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket-policy42-bd1-f92:
     type: aws-native:s3:BucketPolicy
     properties:
-      bucket: ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket1636058-c.ref}
+      bucket: ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket1636058-c.bucketName}
       policyDocument:
         Statement:
           - Action: s3:*
@@ -254,13 +269,19 @@ resources:
                     - /*
         Version: 2012-10-17
   staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket-auto-delete-objects-custom-resource800-e998-d:
-    type: aws-native:custom:S3AutoDeleteObjects
+    type: aws-native:cloudformation:CustomResourceEmulator
     properties:
+      bucketName: cdk-chall-cdk-staging-616138583583-us-east-2
+      bucketKeyPrefix: deploy-time/pulumi/custom-resources/StagingStack-chall-cdk-616138583583-us-east-2/CdkStagingBucketAutoDeleteObjectsCustomResource800E998D
       serviceToken: ${staging-stack-chall-cdk-616138583583-us-east-2-custom-s3-auto-delete-objects-custom-resource-provider-handler9-d90184-f.arn}
-      bucketName: ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket1636058-c.ref}
+      resourceType: Custom::S3AutoDeleteObjects
+      customResourceProperties:
+        ServiceToken: ${staging-stack-chall-cdk-616138583583-us-east-2-custom-s3-auto-delete-objects-custom-resource-provider-handler9-d90184-f.arn}
+        BucketName: ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket1636058-c.bucketName}
+      stackId: StagingStack-chall-cdk-616138583583-us-east-2
     options:
       dependsOn:
-        - staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket-policy42-bd1-f92
+        - ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket-policy42-bd1-f92}
   staging-stack-chall-cdk-616138583583-us-east-2-custom-s3-auto-delete-objects-custom-resource-provider-role3-b1-bd092:
     type: aws-native:iam:Role
     properties:
@@ -272,13 +293,13 @@ resources:
             Principal:
               Service: lambda.amazonaws.com
       managedPolicyArns:
-        - fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn::iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   staging-stack-chall-cdk-616138583583-us-east-2-custom-s3-auto-delete-objects-custom-resource-provider-handler9-d90184-f:
     type: aws-native:lambda:Function
     properties:
       code:
         zipFile: |
-          "use strict";var f=Object.create,i=Object.defineProperty,I=Object.getOwnPropertyDescriptor,C=Object.getOwnPropertyNames,w=Object.getPrototypeOf,P=Object.prototype.hasOwnProperty,A=(t,e)=>{for(var o in e)i(t,o,{get:e[o],enumerable:!0})},d=(t,e,o,r)=>{if(e&&typeof e=="object"||typeof e=="function")for(let s of C(e))!P.call(t,s)&&s!==o&&i(t,s,{get:()=>e[s],enumerable:!(r=I(e,s))||r.enumerable});return t},l=(t,e,o)=>(o=t!=null?f(w(t)):{},d(e||!t||!t.__esModule?i(o,"default",{value:t,enumerable:!0}):o,t)),B=t=>d(i({},"__esModule",{value:!0}),t),q={};A(q,{autoDeleteHandler:()=>S,handler:()=>H}),module.exports=B(q);var h=require("@aws-sdk/client-s3"),y=l(require("https")),m=l(require("url")),a={sendHttpRequest:D,log:T,includeStackTraces:!0,userHandlerIndex:"./index"},p="AWSCDK::CustomResourceProviderFramework::CREATE_FAILED",L="AWSCDK::CustomResourceProviderFramework::MISSING_PHYSICAL_ID";function R(t){return async(e,o)=>{let r={...e,ResponseURL:"..."};if(a.log(JSON.stringify(r,void 0,2)),e.RequestType==="Delete"&&e.PhysicalResourceId===p){a.log("ignoring DELETE event caused by a failed CREATE event"),await u("SUCCESS",e);return}try{let s=await t(r,o),n=k(e,s);await u("SUCCESS",n)}catch(s){let n={...e,Reason:a.includeStackTraces?s.stack:s.message};n.PhysicalResourceId||(e.RequestType==="Create"?(a.log("CREATE failed, responding with a marker physical resource id so that the subsequent DELETE will be ignored"),n.PhysicalResourceId=p):a.log(`ERROR: Malformed event. "PhysicalResourceId" is required: ${JSON.stringify(e)}`)),await u("FAILED",n)}}}function k(t,e={}){let o=e.PhysicalResourceId??t.PhysicalResourceId??t.RequestId;if(t.RequestType==="Delete"&&o!==t.PhysicalResourceId)throw new Error(`DELETE: cannot change the physical resource ID from "${t.PhysicalResourceId}" to "${e.PhysicalResourceId}" during deletion`);return{...t,...e,PhysicalResourceId:o}}async function u(t,e){let o={Status:t,Reason:e.Reason??t,StackId:e.StackId,RequestId:e.RequestId,PhysicalResourceId:e.PhysicalResourceId||L,LogicalResourceId:e.LogicalResourceId,NoEcho:e.NoEcho,Data:e.Data},r=m.parse(e.ResponseURL),s=`${r.protocol}//${r.hostname}/${r.pathname}?***`;a.log("submit response to cloudformation",s,o);let n=JSON.stringify(o),E={hostname:r.hostname,path:r.path,method:"PUT",headers:{"content-type":"","content-length":Buffer.byteLength(n,"utf8")}};await O({attempts:5,sleep:1e3},a.sendHttpRequest)(E,n)}async function D(t,e){return new Promise((o,r)=>{try{let s=y.request(t,n=>{n.resume(),!n.statusCode||n.statusCode>=400?r(new Error(`Unsuccessful HTTP response: ${n.statusCode}`)):o()});s.on("error",r),s.write(e),s.end()}catch(s){r(s)}})}function T(t,...e){console.log(t,...e)}function O(t,e){return async(...o)=>{let r=t.attempts,s=t.sleep;for(;;)try{return await e(...o)}catch(n){if(r--<=0)throw n;await b(Math.floor(Math.random()*s)),s*=2}}}async function b(t){return new Promise(e=>setTimeout(e,t))}var g="aws-cdk:auto-delete-objects",x=JSON.stringify({Version:"2012-10-17",Statement:[]}),c=new h.S3({}),H=R(S);async function S(t){switch(t.RequestType){case"Create":return;case"Update":return{PhysicalResourceId:(await F(t)).PhysicalResourceId};case"Delete":return N(t.ResourceProperties?.BucketName)}}async function F(t){let e=t,o=e.OldResourceProperties?.BucketName;return{PhysicalResourceId:e.ResourceProperties?.BucketName??o}}async function _(t){try{let e=(await c.getBucketPolicy({Bucket:t}))?.Policy??x,o=JSON.parse(e);o.Statement.push({Principal:"*",Effect:"Deny",Action:["s3:PutObject"],Resource:[`arn:aws:s3:::${t}/*`]}),await c.putBucketPolicy({Bucket:t,Policy:JSON.stringify(o)})}catch(e){if(e.name==="NoSuchBucket")throw e;console.log(`Could not set new object deny policy on bucket '${t}' prior to deletion.`)}}async function U(t){let e;do{e=await c.listObjectVersions({Bucket:t});let o=[...e.Versions??[],...e.DeleteMarkers??[]];if(o.length===0)return;let r=o.map(s=>({Key:s.Key,VersionId:s.VersionId}));await c.deleteObjects({Bucket:t,Delete:{Objects:r}})}while(e?.IsTruncated)}async function N(t){if(!t)throw new Error("No BucketName was provided.");try{if(!await W(t)){console.log(`Bucket does not have '${g}' tag, skipping cleaning.`);return}await _(t),await U(t)}catch(e){if(e.name==="NoSuchBucket"){console.log(`Bucket '${t}' does not exist.`);return}throw e}}async function W(t){return(await c.getBucketTagging({Bucket:t})).TagSet?.some(o=>o.Key===g&&o.Value==="true")}
+          "use strict";var f=Object.create,i=Object.defineProperty,I=Object.getOwnPropertyDescriptor,C=Object.getOwnPropertyNames,w=Object.getPrototypeOf,P=Object.prototype.hasOwnProperty,A=(t,e)=>{for(var o in e)i(t,o,{get:e[o],enumerable:!0})},d=(t,e,o,r)=>{if(e&&typeof e=="object"||typeof e=="function")for(let s of C(e))!P.call(t,s)&&s!==o&&i(t,s,{get:()=>e[s],enumerable:!(r=I(e,s))||r.enumerable});return t},l=(t,e,o)=>(o=t!=null?f(w(t)):{},d(e||!t||!t.__esModule?i(o,"default",{value:t,enumerable:!0}):o,t)),B=t=>d(i({},"__esModule",{value:!0}),t),q={};A(q,{autoDeleteHandler:()=>S,handler:()=>H}),module.exports=B(q);var h=require("@aws-sdk/client-s3"),y=l(require("https")),m=l(require("url")),a={sendHttpRequest:D,log:T,includeStackTraces:!0,userHandlerIndex:"./index"},p="AWSCDK::CustomResourceProviderFramework::CREATE_FAILED",L="AWSCDK::CustomResourceProviderFramework::MISSING_PHYSICAL_ID";function R(t){return async(e,o)=>{let r={...e,ResponseURL:"..."};if(a.log(JSON.stringify(r,void 0,2)),e.RequestType==="Delete"&&e.PhysicalResourceId===p){a.log("ignoring DELETE event caused by a failed CREATE event"),await u("SUCCESS",e);return}try{let s=await t(r,o),n=k(e,s);await u("SUCCESS",n)}catch(s){let n={...e,Reason:a.includeStackTraces?s.stack:s.message};n.PhysicalResourceId||(e.RequestType==="Create"?(a.log("CREATE failed, responding with a marker physical resource id so that the subsequent DELETE will be ignored"),n.PhysicalResourceId=p):a.log(`ERROR: Malformed event. "PhysicalResourceId" is required: $${JSON.stringify(e)}`)),await u("FAILED",n)}}}function k(t,e={}){let o=e.PhysicalResourceId??t.PhysicalResourceId??t.RequestId;if(t.RequestType==="Delete"&&o!==t.PhysicalResourceId)throw new Error(`DELETE: cannot change the physical resource ID from "$${t.PhysicalResourceId}" to "$${e.PhysicalResourceId}" during deletion`);return{...t,...e,PhysicalResourceId:o}}async function u(t,e){let o={Status:t,Reason:e.Reason??t,StackId:e.StackId,RequestId:e.RequestId,PhysicalResourceId:e.PhysicalResourceId||L,LogicalResourceId:e.LogicalResourceId,NoEcho:e.NoEcho,Data:e.Data},r=m.parse(e.ResponseURL),s=`$${r.protocol}//$${r.hostname}/$${r.pathname}?***`;a.log("submit response to cloudformation",s,o);let n=JSON.stringify(o),E={hostname:r.hostname,path:r.path,method:"PUT",headers:{"content-type":"","content-length":Buffer.byteLength(n,"utf8")}};await O({attempts:5,sleep:1e3},a.sendHttpRequest)(E,n)}async function D(t,e){return new Promise((o,r)=>{try{let s=y.request(t,n=>{n.resume(),!n.statusCode||n.statusCode>=400?r(new Error(`Unsuccessful HTTP response: $${n.statusCode}`)):o()});s.on("error",r),s.write(e),s.end()}catch(s){r(s)}})}function T(t,...e){console.log(t,...e)}function O(t,e){return async(...o)=>{let r=t.attempts,s=t.sleep;for(;;)try{return await e(...o)}catch(n){if(r--<=0)throw n;await b(Math.floor(Math.random()*s)),s*=2}}}async function b(t){return new Promise(e=>setTimeout(e,t))}var g="aws-cdk:auto-delete-objects",x=JSON.stringify({Version:"2012-10-17",Statement:[]}),c=new h.S3({}),H=R(S);async function S(t){switch(t.RequestType){case"Create":return;case"Update":return{PhysicalResourceId:(await F(t)).PhysicalResourceId};case"Delete":return N(t.ResourceProperties?.BucketName)}}async function F(t){let e=t,o=e.OldResourceProperties?.BucketName;return{PhysicalResourceId:e.ResourceProperties?.BucketName??o}}async function _(t){try{let e=(await c.getBucketPolicy({Bucket:t}))?.Policy??x,o=JSON.parse(e);o.Statement.push({Principal:"*",Effect:"Deny",Action:["s3:PutObject"],Resource:[`arn:aws:s3:::$${t}/*`]}),await c.putBucketPolicy({Bucket:t,Policy:JSON.stringify(o)})}catch(e){if(e.name==="NoSuchBucket")throw e;console.log(`Could not set new object deny policy on bucket '$${t}' prior to deletion.`)}}async function U(t){let e;do{e=await c.listObjectVersions({Bucket:t});let o=[...e.Versions??[],...e.DeleteMarkers??[]];if(o.length===0)return;let r=o.map(s=>({Key:s.Key,VersionId:s.VersionId}));await c.deleteObjects({Bucket:t,Delete:{Objects:r}})}while(e?.IsTruncated)}async function N(t){if(!t)throw new Error("No BucketName was provided.");try{if(!await W(t)){console.log(`Bucket does not have '$${g}' tag, skipping cleaning.`);return}await _(t),await U(t)}catch(e){if(e.name==="NoSuchBucket"){console.log(`Bucket '$${t}' does not exist.`);return}throw e}}async function W(t){return(await c.getBucketTagging({Bucket:t})).TagSet?.some(o=>o.Key===g&&o.Value==="true")}
       timeout: 900
       memorySize: 128
       handler: index.handler
@@ -288,8 +309,8 @@ resources:
         fn::join:
           - ""
           - - "Lambda function for auto-deleting objects in "
-            - ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket1636058-c.ref}
+            - ${staging-stack-chall-cdk-616138583583-us-east-2-cdk-staging-bucket1636058-c.bucketName}
             - " S3 bucket."
     options:
       dependsOn:
-        - staging-stack-chall-cdk-616138583583-us-east-2-custom-s3-auto-delete-objects-custom-resource-provider-role3-b1-bd092
+        - ${staging-stack-chall-cdk-616138583583-us-east-2-custom-s3-auto-delete-objects-custom-resource-provider-role3-b1-bd092}

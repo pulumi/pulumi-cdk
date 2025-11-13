@@ -3,6 +3,7 @@ import * as path from 'path';
 import { convertAssemblyDirectoryToProgramIr } from '@pulumi/cdk-convert-core/assembly';
 import { ProgramIR } from '@pulumi/cdk-convert-core';
 import { serializeProgramIr } from './ir-to-yaml';
+import { postProcessProgramIr } from './ir-post-processor';
 
 export const DEFAULT_OUTPUT_FILE = 'pulumi.yaml';
 
@@ -82,7 +83,8 @@ export function main(argv = process.argv.slice(2)) {
 }
 
 function loadProgramIr(assemblyDir: string): ProgramIR {
-    return convertAssemblyDirectoryToProgramIr(assemblyDir);
+    const program = convertAssemblyDirectoryToProgramIr(assemblyDir);
+    return postProcessProgramIr(program);
 }
 
 function requireValue(flag: string, value: string | undefined): string {

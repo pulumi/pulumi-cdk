@@ -45,7 +45,7 @@ describe('convertStackToIr', () => {
                   "value": {
                     "attributeName": "Ref",
                     "kind": "resourceAttribute",
-                    "propertyName": "ref",
+                    "propertyName": "bucketName",
                     "resource": {
                       "id": "MyBucket",
                       "stackPath": "My/Stack",
@@ -62,6 +62,10 @@ describe('convertStackToIr', () => {
               ],
               "resources": [
                 {
+                  "cfnProperties": {
+                    "BucketName": "my-bucket",
+                  },
+                  "cfnType": "AWS::S3::Bucket",
                   "logicalId": "MyBucket",
                   "options": {
                     "dependsOn": [
@@ -78,6 +82,8 @@ describe('convertStackToIr', () => {
                   "typeToken": "aws-native:s3:Bucket",
                 },
                 {
+                  "cfnProperties": {},
+                  "cfnType": "AWS::SQS::Queue",
                   "logicalId": "OtherResource",
                   "options": undefined,
                   "props": {},
@@ -153,7 +159,7 @@ describe('convertStackToIr - intrinsics', () => {
                 {
                     kind: 'resourceAttribute',
                     attributeName: 'Ref',
-                    propertyName: 'ref',
+                    propertyName: 'bucketName',
                     resource: { id: 'MyBucket', stackPath: 'My/Stack' },
                 },
             ],

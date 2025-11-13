@@ -1,6 +1,9 @@
 import { EmitResourceRequest, ResourceEmitter } from './resource-emitter';
 import { ResourceIR, ResourceIROptions, StackIR } from './ir';
 import { StackAddress } from './assembly';
+import { normalizeResourceProperties } from './normalization';
+import { PulumiProvider } from './providers';
+import { typeToken } from './naming';
 
 export interface IrResourceOptions {
     parent?: StackAddress;
@@ -12,10 +15,17 @@ export class IrResourceEmitter implements ResourceEmitter<ResourceIR, IrResource
     constructor(private readonly stack: StackIR) {}
 
     emitResource(request: EmitResourceRequest<IrResourceOptions, StackAddress>): ResourceIR {
+        const pulumiProps = normalizeResourceProperties(request.props, {
+            cfnType: request.typeName,
+            pulumiProvider: PulumiProvider.AWS_NATIVE,
+        });
+
         const resource: ResourceIR = {
             logicalId: request.logicalId,
-            typeToken: request.typeName,
-            props: request.props,
+            cfnType: request.typeName,
+            cfnProperties: request.props,
+            typeToken: typeToken(request.typeName),
+            props: pulumiProps,
             options: this.toResourceOptions(request.options),
         };
 

@@ -1,14 +1,11 @@
 import { CloudFormationTemplate, CloudFormationResource, CloudFormationOutput, CloudFormationParameter } from '../cfn';
 import { StackIR, ProgramIR, StackAddress, PropertyValue } from '../ir';
-import { typeToken } from '../naming';
 import { getDependsOn } from '../cfn';
 import { IrIntrinsicValueAdapter } from './intrinsic-value-adapter';
 import { IrResourceEmitter, IrResourceOptions } from '../ir-resource-emitter';
 import { IrIntrinsicResolver } from './intrinsic-resolver';
 import { IntrinsicValueAdapter } from '../converters/intrinsic-value-adapter';
 import { ResourceEmitter } from '../resource-emitter';
-import { normalizeResourceProperties } from '../normalization';
-import { PulumiProvider } from '../providers';
 
 export interface StackConversionInput {
     stackId: string;
@@ -66,11 +63,8 @@ function convertResources(
     Object.entries(resources).forEach(([logicalId, resource]) => {
         emitter.emitResource({
             logicalId,
-            typeName: typeToken(resource.Type),
-            props: normalizeResourceProperties(resolver.resolvePropertyMap(resource.Properties ?? {}), {
-                cfnType: resource.Type,
-                pulumiProvider: PulumiProvider.AWS_NATIVE,
-            }),
+            typeName: resource.Type,
+            props: resolver.resolvePropertyMap(resource.Properties ?? {}),
             options: buildResourceOptions(stackPath, resource),
             resourceAddress: {
                 id: logicalId,

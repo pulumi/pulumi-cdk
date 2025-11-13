@@ -18,8 +18,12 @@ export interface PropertySerializationContext {
 }
 
 export function serializePropertyValue(value: PropertyValue, ctx: PropertySerializationContext): any {
-    if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    if (value === null || typeof value === 'number' || typeof value === 'boolean') {
         return value;
+    }
+
+    if (typeof value === 'string') {
+        return escapeInterpolations(value);
     }
 
     if (Array.isArray(value)) {
@@ -48,6 +52,10 @@ export function serializePropertyValue(value: PropertyValue, ctx: PropertySerial
         default:
             throw new Error(`Unsupported property value kind ${(value as any).kind}`);
     }
+}
+
+function escapeInterpolations(value: string): string {
+    return value.replace(/\$\{/g, '$$$${');
 }
 
 function isPropertyMap(value: PropertyValue): value is PropertyMap {
