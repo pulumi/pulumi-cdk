@@ -10,6 +10,7 @@ import {
     DynamicReferenceValue,
 } from '../ir';
 import { StackAddress } from '../assembly';
+import { parseSub } from '../sub';
 import { tryParseDynamicReference } from './dynamic-references';
 
 export interface IrIntrinsicResolverProps {
@@ -94,6 +95,38 @@ export class IrIntrinsicResolver {
 
         if (isSplit(value)) {
             return this.resolveSplit(value['Fn::Split']);
+        }
+
+        if (isSelect(value)) {
+            return this.resolveSelect(value['Fn::Select']);
+        }
+
+        if (isSub(value)) {
+            return this.resolveSub(value['Fn::Sub']);
+        }
+
+        if (isBase64(value)) {
+            return this.resolveBase64(value['Fn::Base64']);
+        }
+
+        if (isFindInMap(value)) {
+            return this.resolveFindInMap(value['Fn::FindInMap']);
+        }
+
+        if (isImportValue(value)) {
+            throw new Error('Fn::ImportValue is not yet supported.');
+        }
+
+        if (isTransform(value)) {
+            throw new Error('Fn::Transform is not supported – Cfn Template Macros are not supported yet');
+        }
+
+        if (isCidr(value)) {
+            throw new Error('Fn::Cidr is not supported in IR conversion yet');
+        }
+
+        if (isGetAzs(value)) {
+            throw new Error('Fn::GetAZs is not supported in IR conversion yet');
         }
 
         if (isConditionFunction(value)) {
@@ -197,6 +230,152 @@ export class IrIntrinsicResolver {
             return this.resolveValue(thenValue);
         }
         return this.resolveValue(elseValue);
+    }
+
+    private resolveSelect(params: [any, any]): PropertyValue | undefined {
+        const [indexExpr, listExpr] = params;
+        const list = this.resolveValue(listExpr);
+        if (!Array.isArray(list)) {
+            return undefined;
+        }
+
+        const indexValue = this.resolveValue(indexExpr);
+        const index = this.parseIndex(indexValue);
+        if (index === undefined || index < 0 || index >= list.length) {
+            return undefined;
+        }
+
+        return list[index];
+    }
+
+    private resolveSub(params: any): PropertyValue | undefined {
+        const [template, variables] = typeof params === 'string' ? [params, undefined] : params;
+        if (typeof template !== 'string') {
+            return undefined;
+        }
+
+        const resolvedVars = new Map<string, PropertyValue>();
+        if (variables && typeof variables === 'object') {
+            for (const [name, expr] of Object.entries(variables)) {
+                const resolved = this.resolveValue(expr);
+                if (resolved !== undefined) {
+                    resolvedVars.set(name, resolved);
+                }
+            }
+        }
+
+        const parts: PropertyValue[] = [];
+        for (const part of parseSub(template)) {
+            if (part.str && part.str.length > 0) {
+                parts.push(part.str);
+            }
+
+            if (part.ref) {
+                const resolved = this.resolveSubReference(part.ref.id, part.ref.attr, resolvedVars);
+                if (resolved !== undefined) {
+                    parts.push(resolved);
+                }
+            }
+        }
+
+        return this.concatValues(parts);
+    }
+
+    private resolveSubReference(
+        identifier: string,
+        attribute: string | undefined,
+        variables: Map<string, PropertyValue>,
+    ): PropertyValue | undefined {
+        if (!attribute && variables.has(identifier)) {
+            return variables.get(identifier);
+        }
+
+        if (attribute) {
+            return this.resolveGetAtt([identifier, attribute]);
+        }
+
+        return this.resolveRef(identifier);
+    }
+
+    private concatValues(values: PropertyValue[]): PropertyValue | undefined {
+        const filtered = values.filter(
+            (value): value is PropertyValue => value !== undefined && !(typeof value === 'string' && value.length === 0),
+        );
+
+        if (filtered.length === 0) {
+            return '';
+        }
+
+        if (filtered.every((value) => typeof value === 'string')) {
+            return (filtered as string[]).join('');
+        }
+
+        return <ConcatValue>{
+            kind: 'concat',
+            delimiter: '',
+            values: filtered,
+        };
+    }
+
+    private parseIndex(value: PropertyValue | undefined): number | undefined {
+        if (typeof value === 'number') {
+            return value;
+        }
+        if (typeof value === 'string') {
+            const parsed = parseInt(value, 10);
+            return Number.isNaN(parsed) ? undefined : parsed;
+        }
+        return undefined;
+    }
+
+    private resolveBase64(value: any): PropertyValue | undefined {
+        const resolved = this.resolveValue(value);
+        if (resolved === undefined || resolved === null) {
+            return undefined;
+        }
+        const asString = typeof resolved === 'string' ? resolved : String(resolved);
+        return Buffer.from(asString).toString('base64');
+    }
+
+    private resolveFindInMap(params: [any, any, any]): PropertyValue | undefined {
+        if (!Array.isArray(params) || params.length !== 3) {
+            throw new Error(`Fn::FindInMap requires exactly 3 parameters, got ${params.length}`);
+        }
+
+        const [mappingNameExpr, topKeyExpr, secondKeyExpr] = params;
+        const mappingName = this.resolveString(mappingNameExpr, 'mapping name');
+        const topKey = this.resolveString(topKeyExpr, 'top-level key');
+        const secondKey = this.resolveString(secondKeyExpr, 'second-level key');
+
+        const mappings = this.template.Mappings;
+        if (!mappings) {
+            throw new Error('No mappings defined in template');
+        }
+
+        const mapping = mappings[mappingName];
+        if (!mapping) {
+            throw new Error(`Mapping ${mappingName} not found in template mappings`);
+        }
+
+        const topLevel = mapping[topKey];
+        if (!topLevel) {
+            throw new Error(`Key ${topKey} not found in mapping ${mappingName}`);
+        }
+
+        if (!(secondKey in topLevel)) {
+            throw new Error(`Key ${secondKey} not found in mapping ${mappingName}.${topKey}`);
+        }
+
+        const value = topLevel[secondKey];
+        return this.resolveValue(value);
+    }
+
+    private resolveString(expression: any, description: string): string {
+        const resolved = this.resolveValue(expression);
+        if (typeof resolved !== 'string') {
+            throw new Error(`Fn::FindInMap ${description} must resolve to a string`);
+        }
+        return resolved;
     }
 
     private resolveConditionFunction(value: any): PropertyValue | undefined {
@@ -339,6 +518,43 @@ function isJoin(value: any): value is { 'Fn::Join': [string, any[]] } {
 
 function isSplit(value: any): value is { 'Fn::Split': [string, any] } {
     return typeof value === 'object' && value !== null && Array.isArray(value['Fn::Split']) && value['Fn::Split'].length === 2;
+}
+
+function isSelect(value: any): value is { 'Fn::Select': [any, any] } {
+    return typeof value === 'object' && value !== null && Array.isArray(value['Fn::Select']) && value['Fn::Select'].length === 2;
+}
+
+function isSub(value: any): value is { 'Fn::Sub': any } {
+    return typeof value === 'object' && value !== null && value['Fn::Sub'] !== undefined;
+}
+
+function isBase64(value: any): value is { 'Fn::Base64': any } {
+    return typeof value === 'object' && value !== null && value['Fn::Base64'] !== undefined;
+}
+
+function isFindInMap(value: any): value is { 'Fn::FindInMap': [any, any, any] } {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        Array.isArray(value['Fn::FindInMap']) &&
+        value['Fn::FindInMap'].length === 3
+    );
+}
+
+function isImportValue(value: any): value is { 'Fn::ImportValue': any } {
+    return typeof value === 'object' && value !== null && value['Fn::ImportValue'] !== undefined;
+}
+
+function isTransform(value: any): value is { 'Fn::Transform': any } {
+    return typeof value === 'object' && value !== null && value['Fn::Transform'] !== undefined;
+}
+
+function isCidr(value: any): value is { 'Fn::Cidr': any } {
+    return typeof value === 'object' && value !== null && value['Fn::Cidr'] !== undefined;
+}
+
+function isGetAzs(value: any): value is { 'Fn::GetAZs': any } {
+    return typeof value === 'object' && value !== null && value['Fn::GetAZs'] !== undefined;
 }
 
 function isEquals(value: any): value is { 'Fn::Equals': [any, any] } {

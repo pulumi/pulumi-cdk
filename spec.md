@@ -71,7 +71,17 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
   - [x] `ResourceAttributeReference` → `${resourceName.property}` using attribute metadata; `StackOutputReference` is flattened before serialization so cross-stack references point straight at resources; `ParameterReference` → default value.
   - [x] Explicit error for unsupported intrinsics to keep behavior predictable.
 - [x] **Testing**
-  - [x] Add focused serializer unit tests covering naming, dependsOn/protect options, each property value variant, and missing parameter default errors.
+- [x] Add focused serializer unit tests covering naming, dependsOn/protect options, each property value variant, and missing parameter default errors.
+
+### Intrinsic Resolver Parity
+- [x] `Fn::Sub` – parse template segments and re-emit as concatenations so YAML never surfaces reserved `fn::` prefixes.
+- [x] `Fn::Select` – resolve positional lookups over resolved arrays.
+- [x] `Fn::Base64` – evaluate payloads via Node Buffer equivalent.
+- [x] `Fn::FindInMap` – reuse StackConverter logic to pull values from template mappings.
+- [x] `Fn::ImportValue` – throw with a descriptive error until we wire export resolution.
+- [x] `Fn::Transform` – throw (macros unsupported).
+- [x] `Fn::Cidr` – throw unsupported for now (needs AWS-native helper parity).
+- [x] `Fn::GetAZs` – throw unsupported for now (needs AWS-native helper parity).
 
 ### Pulumi Runtime Integration
 - [ ] Update the existing Pulumi adapter (`src/stack.ts` etc.) to import the shared package and use the Pulumi-specific `ResourceEmitter`, eliminating duplicate logic.
