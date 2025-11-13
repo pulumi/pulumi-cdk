@@ -41,7 +41,7 @@ import {
 import { OutputMap, OutputRepr } from '../output-map';
 import { getPartition } from '@pulumi/aws-native/getPartition';
 import * as intrinsics from './intrinsics';
-import { Metadata, PulumiResource } from '../pulumi-metadata';
+import { Metadata, PulumiResource } from '@pulumi/cdk-convert-core/metadata';
 import { PulumiProvider } from '../types';
 import { parseDynamicValue } from './dynamic-references';
 import { NestedStackParameter } from './intrinsics';

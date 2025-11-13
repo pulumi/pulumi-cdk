@@ -15,3 +15,6 @@ export * from './ir/intrinsic-resolver';
 export * from './ir/dynamic-references';
 export * from './naming';
 export * from './ir/stack-converter';
+export * from './providers';
+export * from './metadata';
+export * from './normalization';

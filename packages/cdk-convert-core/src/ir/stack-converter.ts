@@ -7,6 +7,8 @@ import { IrResourceEmitter, IrResourceOptions } from '../ir-resource-emitter';
 import { IrIntrinsicResolver } from './intrinsic-resolver';
 import { IntrinsicValueAdapter } from '../converters/intrinsic-value-adapter';
 import { ResourceEmitter } from '../resource-emitter';
+import { normalizeResourceProperties } from '../normalization';
+import { PulumiProvider } from '../providers';
 
 export interface StackConversionInput {
     stackId: string;
@@ -65,7 +67,10 @@ function convertResources(
         emitter.emitResource({
             logicalId,
             typeName: typeToken(resource.Type),
-            props: resolver.resolvePropertyMap(resource.Properties ?? {}),
+            props: normalizeResourceProperties(resolver.resolvePropertyMap(resource.Properties ?? {}), {
+                cfnType: resource.Type,
+                pulumiProvider: PulumiProvider.AWS_NATIVE,
+            }),
             options: buildResourceOptions(stackPath, resource),
             resourceAddress: {
                 id: logicalId,

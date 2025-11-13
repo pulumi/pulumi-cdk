@@ -73,7 +73,7 @@ describe('convertStackToIr', () => {
                     "retainOnDelete": true,
                   },
                   "props": {
-                    "BucketName": "my-bucket",
+                    "bucketName": "my-bucket",
                   },
                   "typeToken": "aws-native:s3:Bucket",
                 },
@@ -140,7 +140,7 @@ describe('convertStackToIr - intrinsics', () => {
             template,
         });
 
-        expect(ir.resources[0].props.BucketName).toEqual({
+        expect(ir.resources[0].props.bucketName).toEqual({
             kind: 'concat',
             delimiter: '-',
             values: [
@@ -159,9 +159,9 @@ describe('convertStackToIr - intrinsics', () => {
             ],
         });
 
-        expect(ir.resources[0].props.Tags[0].Value).toBe('non-prod');
-        expect(ir.resources[0].props.NotificationConfiguration.LambdaConfigurations).toEqual(['one', 'two', 'three']);
-        expect(ir.resources[0].props.SecretArn).toEqual({
+        expect(ir.resources[0].props.tags[0].value).toBe('non-prod');
+        expect(ir.resources[0].props.notificationConfiguration.lambdaConfigurations).toEqual(['one', 'two', 'three']);
+        expect(ir.resources[0].props.secretArn).toEqual({
             kind: 'secretsManagerDynamicReference',
             secretId: 'mySecret',
             secretString: 'SecretString',

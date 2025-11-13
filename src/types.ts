@@ -3,6 +3,7 @@ import { Stack, AppProps } from 'aws-cdk-lib/core';
 import type { Mapping as CoreMapping } from '@pulumi/cdk-convert-core';
 import { ResourceMapping } from './interop';
 import { CdkConstruct } from './internal/interop';
+import { PulumiProvider } from '@pulumi/cdk-convert-core/providers';
 
 /**
  * Options for creating a Pulumi CDK App Component
@@ -56,13 +57,7 @@ export interface AppResourceOptions extends pulumi.ComponentResourceOptions {
     appOptions?: AppOptions;
 }
 
-/**
- * The Pulumi provider to read the schema from
- */
-export enum PulumiProvider {
-    // We currently only support aws-native provider resources
-    AWS_NATIVE = 'aws-native',
-}
+export { PulumiProvider };
 
 /**
  * AppComponent is the interface representing the Pulumi CDK App Component Resource

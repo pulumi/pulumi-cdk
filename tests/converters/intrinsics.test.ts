@@ -7,7 +7,7 @@ import {
     CloudFormationParameterWithId,
 } from '@pulumi/cdk-convert-core/cfn';
 import { Mapping } from '../../src/types';
-import { PulumiResource } from '../../src/pulumi-metadata';
+import { PulumiResource } from '@pulumi/cdk-convert-core/metadata';
 import { OutputRepr } from '../../src/output-map';
 import { StackAddress } from '@pulumi/cdk-convert-core/assembly';
 

@@ -13,8 +13,7 @@
 // limitations under the License.
 
 import * as pulumi from '@pulumi/pulumi';
-import { normalizeObject } from './pulumi-metadata';
-import { toSdkName } from '@pulumi/cdk-convert-core';
+import { normalizeResourceProperties } from '@pulumi/cdk-convert-core/normalization';
 import { PulumiProvider } from './types';
 
 /**
@@ -51,12 +50,19 @@ export function normalize(value: any, cfnType?: string, pulumiProvider?: PulumiP
         return value;
     }
 
-    // The remaining case is the object type, representing either Maps or Object types with known field types in Pulumi.
-    const result: any = {};
-    Object.entries(value).forEach(([k, v]) => {
-        result[toSdkName(k)] = normalizeObject([k], v, cfnType, pulumiProvider);
+    return normalizeResourceProperties(value, {
+        cfnType,
+        pulumiProvider,
+        valueTransformer: (val) => {
+            if (val instanceof Promise) {
+                return pulumi.output(val).apply((v) => normalize(v, cfnType, pulumiProvider));
+            }
+            if (pulumi.Output.isInstance(val)) {
+                return val.apply((v) => normalize(v, cfnType, pulumiProvider));
+            }
+            return undefined;
+        },
     });
-    return result;
 }
 
 /**

@@ -24,4 +24,4 @@ yarn install
 VERSION=$(cat package.json | jq -r '.devDependencies["@pulumi/aws-native"]')
 
 echo "Updating metadata.json"
-curl -L  https://raw.githubusercontent.com/pulumi/pulumi-aws-native/refs/tags/v$VERSION/provider/cmd/pulumi-resource-aws-native/metadata.json -o schemas/aws-native-metadata.json
+curl -L  https://raw.githubusercontent.com/pulumi/pulumi-aws-native/refs/tags/v$VERSION/provider/cmd/pulumi-resource-aws-native/metadata.json -o packages/cdk-convert-core/schemas/aws-native-metadata.json
