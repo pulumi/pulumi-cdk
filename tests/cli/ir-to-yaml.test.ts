@@ -22,19 +22,36 @@ describe('serializeProgramIr', () => {
                     resources: [
                         {
                             logicalId: 'Topic',
+                            cfnType: 'AWS::SNS::Topic',
+                            cfnProperties: {},
                             typeToken: 'aws-native:sns:Topic',
                             props: {},
                         },
                         {
                             logicalId: 'Bucket',
-                            typeToken: 'aws-native:s3:Bucket',
-                            props: {
+                            cfnType: 'AWS::S3::Bucket',
+                            cfnProperties: {
                                 BucketName: 'data-bucket',
                                 NotificationArn: topicRef,
                                 Tags: [
                                     {
                                         Key: 'Env',
                                         Value: {
+                                            kind: 'parameter',
+                                            stackPath: 'App/Main',
+                                            parameterName: 'Stage',
+                                        },
+                                    },
+                                ],
+                            },
+                            typeToken: 'aws-native:s3:Bucket',
+                            props: {
+                                bucketName: 'data-bucket',
+                                notificationArn: topicRef,
+                                tags: [
+                                    {
+                                        key: 'Env',
+                                        value: {
                                             kind: 'parameter',
                                             stackPath: 'App/Main',
                                             parameterName: 'Stage',
@@ -75,19 +92,19 @@ describe('serializeProgramIr', () => {
         expect(bucket).toMatchObject({
             type: 'aws-native:s3:Bucket',
             properties: {
-                BucketName: 'data-bucket',
-                NotificationArn: '${app-main-topic.arn}',
-                Tags: [
+                bucketName: 'data-bucket',
+                notificationArn: '${app-main-topic.arn}',
+                tags: [
                     {
-                        Key: 'Env',
-                        Value: {
+                        key: 'Env',
+                        value: {
                             nested: 'value',
                         },
                     },
                 ],
             },
             options: {
-                dependsOn: ['app-main-topic'],
+                dependsOn: ['${app-main-topic}'],
                 protect: true,
             },
         });
@@ -107,6 +124,8 @@ describe('serializeProgramIr', () => {
                     resources: [
                         {
                             logicalId: 'Foo',
+                            cfnType: 'AWS::S3::Bucket',
+                            cfnProperties: {},
                             typeToken: 'aws-native:s3:Bucket',
                             props: {},
                         },
@@ -118,6 +137,8 @@ describe('serializeProgramIr', () => {
                     resources: [
                         {
                             logicalId: 'Foo',
+                            cfnType: 'AWS::SQS::Queue',
+                            cfnProperties: {},
                             typeToken: 'aws-native:sqs:Queue',
                             props: {},
                         },
@@ -139,6 +160,8 @@ describe('serializeProgramIr', () => {
                     resources: [
                         {
                             logicalId: 'Bucket',
+                            cfnType: 'AWS::S3::Bucket',
+                            cfnProperties: {},
                             typeToken: 'aws-native:s3:Bucket',
                             props: {},
                         },
@@ -164,9 +187,17 @@ describe('serializeProgramIr', () => {
                     resources: [
                         {
                             logicalId: 'Topic',
+                            cfnType: 'AWS::SNS::Topic',
+                            cfnProperties: {
+                                SourceArn: {
+                                    kind: 'stackOutput',
+                                    stackPath: 'Stacks/Producer',
+                                    outputName: 'BucketArn',
+                                },
+                            },
                             typeToken: 'aws-native:sns:Topic',
                             props: {
-                                SourceArn: {
+                                sourceArn: {
                                     kind: 'stackOutput',
                                     stackPath: 'Stacks/Producer',
                                     outputName: 'BucketArn',
@@ -179,8 +210,35 @@ describe('serializeProgramIr', () => {
         };
 
         const parsed = parse(serializeProgramIr(program));
-        expect(parsed.resources['stacks-consumer-topic'].properties.SourceArn).toBe(
+        expect(parsed.resources['stacks-consumer-topic'].properties.sourceArn).toBe(
             '${stacks-producer-bucket.arn}',
         );
+    });
+
+    test('escapes interpolation markers inside literal strings', () => {
+        const program: ProgramIR = {
+            stacks: [
+                {
+                    stackId: 'AppStack',
+                    stackPath: 'App/Stack',
+                    resources: [
+                        {
+                            logicalId: 'Function',
+                            cfnType: 'AWS::Lambda::Function',
+                            cfnProperties: {
+                                Code: 'console.log(${JSON.stringify("test")});',
+                            },
+                            typeToken: 'aws-native:lambda:Function',
+                            props: {
+                                code: 'console.log(${JSON.stringify("test")});',
+                            },
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const yaml = serializeProgramIr(program);
+        expect(yaml).toContain('console.log($${JSON.stringify("test")});');
     });
 });

@@ -105,7 +105,7 @@ function serializeResourceOptions(
             if (!name) {
                 throw new Error(`Failed to resolve dependsOn target ${address.stackPath}/${address.id}`);
             }
-            return name;
+            return formatResourceReference(name);
         });
 
         if (resolved.length > 0) {
@@ -118,6 +118,10 @@ function serializeResourceOptions(
     }
 
     return Object.keys(opts).length > 0 ? opts : undefined;
+}
+
+function formatResourceReference(name: string): string {
+    return `\${${name}}`;
 }
 
 class ResourceNameAllocator {
