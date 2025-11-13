@@ -66,9 +66,6 @@ export function toSdkName(s: string): string {
 }
 
 export function attributePropertyName(attributeName: string): string {
-    if (attributeName === 'Ref') {
-        return 'id';
-    }
     return toSdkName(attributeName.split('.')[0]);
 }
 

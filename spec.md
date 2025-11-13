@@ -82,6 +82,7 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 - [x] `Fn::Transform` – throw (macros unsupported).
 - [x] `Fn::Cidr` – throw unsupported for now (needs AWS-native helper parity).
 - [x] `Fn::GetAZs` – throw unsupported for now (needs AWS-native helper parity).
+- [x] `Ref` parity – use cfRef metadata (or fall back to `.id`) so IR/YAML references match Pulumi runtime behavior.
 
 ### Pulumi Runtime Integration
 - [ ] Update the existing Pulumi adapter (`src/stack.ts` etc.) to import the shared package and use the Pulumi-specific `ResourceEmitter`, eliminating duplicate logic.

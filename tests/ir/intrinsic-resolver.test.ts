@@ -6,6 +6,8 @@ import {
     IrIntrinsicValueAdapter,
     PropertyValue,
     ResourceAttributeReference,
+    ResourceMetadataProvider,
+    CfRefBehavior,
 } from '@pulumi/cdk-convert-core';
 
 class StubIntrinsicValueAdapter implements IntrinsicValueAdapter<any, PropertyValue> {
@@ -42,6 +44,20 @@ function createResolver(
         template,
         adapter,
     });
+}
+
+const emptyMetadata: ResourceMetadataProvider = {
+    tryFindResource: () => undefined,
+};
+
+function metadataWithCfRef(cfRef: CfRefBehavior): ResourceMetadataProvider {
+    return {
+        tryFindResource: () => ({
+            inputs: {},
+            outputs: {},
+            cfRef,
+        }),
+    };
 }
 
 describe('IrIntrinsicResolver intrinsics', () => {
@@ -150,12 +166,45 @@ describe('IrIntrinsicResolver intrinsics', () => {
         ).toThrow('Fn::GetAZs is not supported in IR conversion yet');
     });
 
-    test('Refs point at resource id property by default', () => {
-        const resolver = createResolver({}, new IrIntrinsicValueAdapter());
+    test('Refs point at resource id property when metadata is missing', () => {
+        const resolver = createResolver({}, new IrIntrinsicValueAdapter(emptyMetadata));
         const value = resolver.resolveValue({
             Ref: 'MyBucket',
         }) as ResourceAttributeReference;
 
         expect(value.propertyName).toBe('id');
+    });
+
+    test('Refs use cfRef property metadata when available', () => {
+        const resolver = createResolver({}, new IrIntrinsicValueAdapter(metadataWithCfRef({ property: 'BucketName' })));
+        const value = resolver.resolveValue({
+            Ref: 'MyBucket',
+        }) as ResourceAttributeReference;
+
+        expect(value.propertyName).toBe('bucketName');
+    });
+
+    test('Refs concatenate multiple metadata properties with delimiter', () => {
+        const resolver = createResolver(
+            {},
+            new IrIntrinsicValueAdapter(metadataWithCfRef({ properties: ['Region', 'AccountId'], delimiter: ':' })),
+        );
+        const value = resolver.resolveValue({
+            Ref: 'MyBucket',
+        }) as ConcatValue;
+
+        expect(value.delimiter).toBe(':');
+        expect(value.values).toHaveLength(2);
+        expect(value.values[0]).toMatchObject({ propertyName: 'region' });
+        expect(value.values[1]).toMatchObject({ propertyName: 'accountId' });
+    });
+
+    test('Refs throw when metadata marks cfRef unsupported', () => {
+        const resolver = createResolver({}, new IrIntrinsicValueAdapter(metadataWithCfRef({ notSupported: true })));
+        expect(() =>
+            resolver.resolveValue({
+                Ref: 'MyBucket',
+            }),
+        ).toThrow('Ref intrinsic is not supported for the AWS::S3::Bucket resource type');
     });
 });
