@@ -9,24 +9,32 @@ import {
     ResourceAttributeReference,
 } from '@pulumi/cdk-convert-core';
 
+export interface PostProcessOptions {
+    skipCustomResources?: boolean;
+}
+
 interface BootstrapBucketRef {
     stackPath: string;
     logicalId: string;
     resource: ResourceIR;
 }
 
-export function postProcessProgramIr(program: ProgramIR): ProgramIR {
-    const bootstrapBucket = findBootstrapBucket(program);
+export function postProcessProgramIr(program: ProgramIR, options: PostProcessOptions = {}): ProgramIR {
+    const bootstrapBucket = options.skipCustomResources ? undefined : findBootstrapBucket(program);
     return {
         ...program,
         stacks: program.stacks.map((stack) => ({
             ...stack,
-            resources: rewriteResources(stack, bootstrapBucket),
+            resources: rewriteResources(stack, bootstrapBucket, options),
         })),
     };
 }
 
-function rewriteResources(stack: StackIR, bootstrapBucket: BootstrapBucketRef | undefined): ResourceIR[] {
+function rewriteResources(
+    stack: StackIR,
+    bootstrapBucket: BootstrapBucketRef | undefined,
+    options: PostProcessOptions = {},
+): ResourceIR[] {
     const rewritten: ResourceIR[] = [];
     for (const resource of stack.resources) {
         if (resource.cfnType === 'AWS::CDK::Metadata') {
@@ -44,6 +52,9 @@ function rewriteResources(stack: StackIR, bootstrapBucket: BootstrapBucketRef | 
         }
 
         if (isCustomResource(resource)) {
+            if (options.skipCustomResources) {
+                continue;
+            }
             if (!bootstrapBucket) {
                 throw new Error(
                     `Unable to locate the CDK staging bucket required to emulate custom resource ${resource.logicalId}.`,

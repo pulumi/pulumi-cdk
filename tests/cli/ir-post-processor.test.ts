@@ -125,4 +125,24 @@ describe('postProcessProgramIr', () => {
             resourceType: 'Custom::Demo',
         });
     });
+
+    test('skips custom resources when option enabled', () => {
+        const program: ProgramIR = {
+            stacks: [
+                {
+                    stackId: 'AppStack',
+                    stackPath: 'App/Stack',
+                    resources: [
+                        makeResource({
+                            logicalId: 'CustomResource',
+                            cfnType: 'Custom::Demo',
+                        }),
+                    ],
+                },
+            ],
+        } as any;
+
+        const processed = postProcessProgramIr(program, { skipCustomResources: true });
+        expect(processed.stacks[0].resources).toHaveLength(0);
+    });
 });
