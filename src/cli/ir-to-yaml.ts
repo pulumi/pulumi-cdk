@@ -126,7 +126,6 @@ function formatResourceReference(name: string): string {
 
 class ResourceNameAllocator {
     private readonly nameByAddress = new Map<string, string>();
-    private readonly usedNames = new Set<string>();
 
     constructor(program: ProgramIR) {
         for (const stack of program.stacks) {
@@ -135,9 +134,9 @@ class ResourceNameAllocator {
                     id: resource.logicalId,
                     stackPath: stack.stackPath,
                 };
-                const slug = slugifyName(stack.stackPath, resource.logicalId);
-                const unique = this.ensureUnique(slug);
-                this.nameByAddress.set(addressKey(address), unique);
+
+                const normalized = normalizeResourceName(resource);
+                this.nameByAddress.set(addressKey(address), normalized);
             }
         }
     }
@@ -145,36 +144,6 @@ class ResourceNameAllocator {
     getName(address: StackAddress): string | undefined {
         return this.nameByAddress.get(addressKey(address));
     }
-
-    private ensureUnique(base: string): string {
-        const normalized = base || 'resource';
-        if (!this.usedNames.has(normalized)) {
-            this.usedNames.add(normalized);
-            return normalized;
-        }
-
-        let suffix = 1;
-        while (this.usedNames.has(`${normalized}-${suffix}`)) {
-            suffix++;
-        }
-
-        const unique = `${normalized}-${suffix}`;
-        this.usedNames.add(unique);
-        return unique;
-    }
-}
-
-function slugifyName(stackPath: string, logicalId: string): string {
-    const combined = `${stackPath}-${logicalId}`;
-    const withWordBoundaries = combined.replace(/([a-z0-9])([A-Z])/g, '$1-$2');
-    const slug = withWordBoundaries
-        .replace(/[^A-Za-z0-9]+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '')
-        .toLowerCase();
-
-    return slug || 'resource';
 }
 
 function collectParameterDefaults(program: ProgramIR): Map<string, PropertyValue> {
@@ -198,6 +167,23 @@ function parameterKey(stackPath: string, parameterName: string): string {
 
 function addressKey(address: StackAddress): string {
     return `${address.stackPath}::${address.id}`;
+}
+
+function normalizeResourceName(resource: ResourceIR): string {
+    if (requiresLowercaseResourceName(resource.cfnType)) {
+        return resource.logicalId.toLowerCase();
+    }
+    return resource.logicalId;
+}
+
+const LOWERCASE_NAME_CFN_TYPES = new Set([
+    'AWS::S3::Bucket',
+    'AWS::S3::AccessPoint',
+    'AWS::ECR::Repository',
+]);
+
+function requiresLowercaseResourceName(cfnType: string): boolean {
+    return LOWERCASE_NAME_CFN_TYPES.has(cfnType);
 }
 
 function collectStackOutputs(program: ProgramIR): Map<string, PropertyValue> {

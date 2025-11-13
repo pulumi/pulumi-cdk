@@ -88,12 +88,12 @@ describe('serializeProgramIr', () => {
         expect(parsed.name).toBe('cdk-converted');
         expect(parsed.runtime).toBe('yaml');
 
-        const bucket = parsed.resources['app-main-bucket'];
+        const bucket = parsed.resources['bucket'];
         expect(bucket).toMatchObject({
             type: 'aws-native:s3:Bucket',
             properties: {
                 bucketName: 'data-bucket',
-                notificationArn: '${app-main-topic.arn}',
+                notificationArn: '${Topic.arn}',
                 tags: [
                     {
                         key: 'Env',
@@ -104,18 +104,18 @@ describe('serializeProgramIr', () => {
                 ],
             },
             options: {
-                dependsOn: ['${app-main-topic}'],
+                dependsOn: ['${Topic}'],
                 protect: true,
             },
         });
 
-        const topic = parsed.resources['app-main-topic'];
+        const topic = parsed.resources['Topic'];
         expect(topic).toEqual({
             type: 'aws-native:sns:Topic',
         });
     });
 
-    test('dedupes colliding resource names', () => {
+    test('uses logical IDs as emitted resource names', () => {
         const program: ProgramIR = {
             stacks: [
                 {
@@ -123,10 +123,10 @@ describe('serializeProgramIr', () => {
                     stackPath: 'App-Res',
                     resources: [
                         {
-                            logicalId: 'Foo',
-                            cfnType: 'AWS::S3::Bucket',
+                            logicalId: 'FooBar',
+                            cfnType: 'AWS::SNS::Topic',
                             cfnProperties: {},
-                            typeToken: 'aws-native:s3:Bucket',
+                            typeToken: 'aws-native:sns:Topic',
                             props: {},
                         },
                     ],
@@ -136,7 +136,7 @@ describe('serializeProgramIr', () => {
                     stackPath: 'App_Res',
                     resources: [
                         {
-                            logicalId: 'Foo',
+                            logicalId: 'Baz_Qux-Topic',
                             cfnType: 'AWS::SQS::Queue',
                             cfnProperties: {},
                             typeToken: 'aws-native:sqs:Queue',
@@ -148,7 +148,31 @@ describe('serializeProgramIr', () => {
         };
 
         const parsed = parse(serializeProgramIr(program));
-        expect(Object.keys(parsed.resources)).toEqual(['app-res-foo', 'app-res-foo-1']);
+        expect(Object.keys(parsed.resources)).toEqual(['FooBar', 'Baz_Qux-Topic']);
+    });
+
+    test('lowercases logical IDs for resources that require it', () => {
+        const program: ProgramIR = {
+            stacks: [
+                {
+                    stackId: 'AppStack',
+                    stackPath: 'App/Main',
+                    resources: [
+                        {
+                            logicalId: 'MyBucket',
+                            cfnType: 'AWS::S3::Bucket',
+                            cfnProperties: {},
+                            typeToken: 'aws-native:s3:Bucket',
+                            props: {},
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const parsed = parse(serializeProgramIr(program));
+        expect(parsed.resources.MyBucket).toBeUndefined();
+        expect(parsed.resources['mybucket']).toEqual({ type: 'aws-native:s3:Bucket' });
     });
 
     test('inlines stack output references across stacks', () => {
@@ -210,9 +234,7 @@ describe('serializeProgramIr', () => {
         };
 
         const parsed = parse(serializeProgramIr(program));
-        expect(parsed.resources['stacks-consumer-topic'].properties.sourceArn).toBe(
-            '${stacks-producer-bucket.arn}',
-        );
+        expect(parsed.resources['Topic'].properties.sourceArn).toBe('${bucket.arn}');
     });
 
     test('escapes interpolation markers inside literal strings', () => {
