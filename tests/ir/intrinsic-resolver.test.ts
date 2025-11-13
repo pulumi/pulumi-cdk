@@ -3,6 +3,7 @@ import {
     ConcatValue,
     IntrinsicValueAdapter,
     IrIntrinsicResolver,
+    IrIntrinsicValueAdapter,
     PropertyValue,
     ResourceAttributeReference,
 } from '@pulumi/cdk-convert-core';
@@ -22,7 +23,10 @@ class StubIntrinsicValueAdapter implements IntrinsicValueAdapter<any, PropertyVa
     }
 }
 
-function createResolver(overrides: Partial<CloudFormationTemplate> = {}) {
+function createResolver(
+    overrides: Partial<CloudFormationTemplate> = {},
+    adapter: IntrinsicValueAdapter<any, PropertyValue> = new StubIntrinsicValueAdapter(),
+) {
     const template: CloudFormationTemplate = {
         Resources: {
             MyBucket: {
@@ -36,7 +40,7 @@ function createResolver(overrides: Partial<CloudFormationTemplate> = {}) {
     return new IrIntrinsicResolver({
         stackPath: 'App/Main',
         template,
-        adapter: new StubIntrinsicValueAdapter(),
+        adapter,
     });
 }
 
@@ -144,5 +148,14 @@ describe('IrIntrinsicResolver intrinsics', () => {
                 'Fn::GetAZs': '',
             }),
         ).toThrow('Fn::GetAZs is not supported in IR conversion yet');
+    });
+
+    test('Refs point at resource id property by default', () => {
+        const resolver = createResolver({}, new IrIntrinsicValueAdapter());
+        const value = resolver.resolveValue({
+            Ref: 'MyBucket',
+        }) as ResourceAttributeReference;
+
+        expect(value.propertyName).toBe('id');
     });
 });
