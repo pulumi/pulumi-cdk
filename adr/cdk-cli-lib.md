@@ -1,9 +1,8 @@
 # CDK CLI Library
 
 Updating to use the
-[cdk-cli-lib](https://docs.aws.amazon.com/cdk/api/v2/docs/cli-lib-alpha-readme.html#cloud-assembly-directory-producer)
-in order to support CDK Context requires us to make some user-facing API
-changes.
+[@aws-cdk/toolkit-lib](https://github.com/aws/aws-cdk-cli/tree/main/packages/%40aws-cdk/toolkit-lib)
+in order to support CDK Context requires us to make some user-facing API changes.
 
 ## Context
 
@@ -50,27 +49,26 @@ I’ve included whether it should be possible to use a Pulumi lookup instead.
 ## Constraints
 
 1. We can use the
-   [cdk-cli-lib](https://docs.aws.amazon.com/cdk/api/v2/docs/cli-lib-alpha-readme.html#cloud-assembly-directory-producer)
-   to handle gathering context and handle the multiple passes of executing the
-   framework, but we have to create the `cdk.App` within an async method.
+   [@aws-cdk/toolkit-lib](https://github.com/aws/aws-cdk-cli/tree/main/packages/%40aws-cdk/toolkit-lib)
+   to handle gathering context and perform any required lookups. This library
+   provides a `Toolkit` with helpers such as `fromAssemblyBuilder` that allow us
+   to create the `cdk.App` inside an async function with the complete context.
 
 ```javascript
-class MyProducer implements ICloudAssemblyDirectoryProducer {
-  async produce(context: Record<string, any>) {
-    const app = new cdk.App({ context });
-    const stack = new cdk.Stack(app);
-    return app.synth().directory;
-  }
-}
+const toolkit = new Toolkit();
 
-const cli = AwsCdkCli.fromCloudAssemblyDirectoryProducer(new MyProducer());
-await cli.synth();
+const source = await toolkit.fromAssemblyBuilder(async ({ context, outdir }) => {
+  const app = new cdk.App({ context, outdir });
+  const stack = new cdk.Stack(app);
+  return app.synth();
+});
+
+await toolkit.synth(source);
 ```
 
-This library requires us to create the `cdk.App` within the `produce` method of
-`ICloudAssemblyDirectoryProducer`. This is because the `App` and all constructs
-within it must be constructed with the full `context` value. It is not possible
-to add context after a construct has been constructed.
+This approach requires us to create the `cdk.App` inside the assembly builder,
+because the `App` and all constructs must be constructed with the full context
+value. It is not possible to add context after a construct has been constructed.
 
 2. Because the constructs can be called multiple times, any Pulumi resources
    which are created inside a construct class will also be constructed multiple
@@ -139,16 +137,17 @@ in core. At a very high level it could look something like this.
 ```javascript
 export class App extends pulumi.ComponentResource {
     async initialize() {
-        const cli = AwsCdkCli.fromCloudAssemblyDirectoryProducer(this);
+        const toolkit = new Toolkit();
+        const source = await toolkit.fromAssemblyBuilder(async (props) => this.synthesizeAssembly(props));
         // set mocks before we synth
         pulumi.runtime.setMocks();
         // multiple passes will occur within this. Once we are done
         // it will proceed past this.
-        await cli.synth();
+        await toolkit.synth(source);
         // restore
         pulumi.runtime.resetMocks();
         // create resources 1 last time with all context available.
-        await cli.synth();
+        await toolkit.synth(source);
     }
 }
 ```

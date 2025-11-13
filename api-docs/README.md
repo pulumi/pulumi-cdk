@@ -47,7 +47,6 @@ export const bucket = app.outputs['bucket'];
 
 #### Implements
 
-- `ICloudAssemblyDirectoryProducer`
 - [`AppComponent`](README.md#appcomponent)
 
 #### Constructors
@@ -74,14 +73,14 @@ export const bucket = app.outputs['bucket'];
 
 ###### Defined in
 
-[stack.ts:105](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L105)
+[stack.ts:102](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L102)
 
 #### Properties
 
 | Property | Modifier | Type | Default value | Description | Defined in |
 | ------ | ------ | ------ | ------ | ------ | ------ |
-| `name` | `readonly` | `string` | `undefined` | The name of the component | [stack.ts:57](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L57) |
-| `outputs` | `public` | `object` | `{}` | The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs. | [stack.ts:63](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L63) |
+| `name` | `readonly` | `string` | `undefined` | The name of the component | [stack.ts:54](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L54) |
+| `outputs` | `public` | `object` | `{}` | The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs. | [stack.ts:60](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L60) |
 
 #### Accessors
 
@@ -112,7 +111,7 @@ the CDK Environment configured for the App
 
 ###### Defined in
 
-[stack.ts:155](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L155)
+[stack.ts:152](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L152)
 
 ***
 
@@ -152,7 +151,7 @@ Create and register an AWS CDK stack deployed with Pulumi.
 
 ###### Defined in
 
-[stack.ts:336](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L336)
+[stack.ts:360](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L360)
 
 #### Methods
 
@@ -182,7 +181,7 @@ A Pulumi Output value.
 
 ###### Defined in
 
-[stack.ts:418](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L418)
+[stack.ts:442](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L442)
 
 ## Interfaces
 
@@ -297,7 +296,7 @@ new App('testapp', (scope: App) => {
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| `props?` | `StackProps` | The CDK Stack props | [stack.ts:297](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L297) |
+| `props?` | `StackProps` | The CDK Stack props | [stack.ts:321](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L321) |
 
 ## Type Aliases
 
