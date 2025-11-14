@@ -45,6 +45,114 @@ describe('postProcessProgramIr', () => {
         });
     });
 
+    test('converts Service Discovery Service to aws classic type', () => {
+        const program: ProgramIR = {
+            stacks: [
+                {
+                    stackId: 'AppStack',
+                    stackPath: 'App/Stack',
+                    resources: [
+                        makeResource({
+                            logicalId: 'Service',
+                            cfnType: 'AWS::ServiceDiscovery::Service',
+                            cfnProperties: {
+                                Name: 'example',
+                                NamespaceId: 'ns-1234',
+                                Type: 'HTTP',
+                                DnsConfig: {
+                                    NamespaceId: 'ns-1234',
+                                    RoutingPolicy: 'MULTIVALUE',
+                                    DnsRecords: [{
+                                        TTL: 10,
+                                        Type: 'A',
+                                    }],
+                                },
+                                HealthCheckConfig: {
+                                    Type: 'HTTP',
+                                    ResourcePath: '/health',
+                                    FailureThreshold: 5,
+                                },
+                                Tags: [
+                                    {
+                                        Key: 'env',
+                                        Value: 'dev',
+                                    },
+                                ],
+                            },
+                        }),
+                    ],
+                },
+            ],
+        } as any;
+
+        const processed = postProcessProgramIr(program);
+        const resource = processed.stacks[0].resources[0];
+        expect(resource.typeToken).toBe('aws:servicediscovery/service:Service');
+        expect(resource.props).toMatchObject({
+            name: 'example',
+            namespaceId: 'ns-1234',
+            type: 'HTTP',
+            dnsConfig: {
+                namespaceId: 'ns-1234',
+                routingPolicy: 'MULTIVALUE',
+                dnsRecords: [
+                    {
+                        ttl: 10,
+                        type: 'A',
+                    },
+                ],
+            },
+            healthCheckConfig: {
+                type: 'HTTP',
+                resourcePath: '/health',
+                failureThreshold: 5,
+            },
+            tags: {
+                env: 'dev',
+            },
+        });
+    });
+
+    test('converts Service Discovery Private DNS Namespace to aws classic type', () => {
+        const program: ProgramIR = {
+            stacks: [
+                {
+                    stackId: 'AppStack',
+                    stackPath: 'App/Stack',
+                    resources: [
+                        makeResource({
+                            logicalId: 'Namespace',
+                            cfnType: 'AWS::ServiceDiscovery::PrivateDnsNamespace',
+                            cfnProperties: {
+                                Name: 'example.local',
+                                Description: 'example',
+                                Vpc: 'vpc-1234',
+                                Tags: [
+                                    {
+                                        Key: 'env',
+                                        Value: 'prod',
+                                    },
+                                ],
+                            },
+                        }),
+                    ],
+                },
+            ],
+        } as any;
+
+        const processed = postProcessProgramIr(program);
+        const resource = processed.stacks[0].resources[0];
+        expect(resource.typeToken).toBe('aws:servicediscovery/privateDnsNamespace:PrivateDnsNamespace');
+        expect(resource.props).toMatchObject({
+            name: 'example.local',
+            description: 'example',
+            vpc: 'vpc-1234',
+            tags: {
+                env: 'prod',
+            },
+        });
+    });
+
     test('expands IAM policies into attachments', () => {
         const program: ProgramIR = {
             stacks: [

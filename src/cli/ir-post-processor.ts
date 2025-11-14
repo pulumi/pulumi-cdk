@@ -46,6 +46,16 @@ function rewriteResources(
             continue;
         }
 
+        if (resource.cfnType === 'AWS::ServiceDiscovery::Service') {
+            rewritten.push(convertServiceDiscoveryService(resource));
+            continue;
+        }
+
+        if (resource.cfnType === 'AWS::ServiceDiscovery::PrivateDnsNamespace') {
+            rewritten.push(convertServiceDiscoveryPrivateDnsNamespace(resource));
+            continue;
+        }
+
         if (resource.cfnType === 'AWS::IAM::Policy') {
             rewritten.push(...convertIamPolicy(resource, stack.stackPath));
             continue;
@@ -72,27 +82,60 @@ function rewriteResources(
 
 function convertApiGatewayV2Stage(resource: ResourceIR): ResourceIR {
     const props = resource.cfnProperties;
-    const stageProps: PropertyMap = {};
-    setIfDefined(stageProps, 'accessLogSettings', props.AccessLogSettings);
-    setIfDefined(stageProps, 'apiId', props.ApiId);
-    setIfDefined(stageProps, 'autoDeploy', props.AutoDeploy);
-    setIfDefined(stageProps, 'clientCertificateId', props.ClientCertificateId);
-    setIfDefined(stageProps, 'defaultRouteSettings', props.DefaultRouteSettings);
-    setIfDefined(stageProps, 'deploymentId', props.DeploymentId);
-    setIfDefined(stageProps, 'description', props.Description);
-    setIfDefined(stageProps, 'name', props.StageName);
-    setIfDefined(stageProps, 'routeSettings', props.RouteSettings);
-    setIfDefined(stageProps, 'stageVariables', props.StageVariables);
-
-    const tags = convertTags(props.Tags);
-    if (tags) {
-        stageProps.tags = tags;
-    }
+    const stageProps = removeUndefined({
+        accessLogSettings: props.AccessLogSettings,
+        apiId: props.ApiId,
+        autoDeploy: props.AutoDeploy,
+        clientCertificateId: props.ClientCertificateId,
+        defaultRouteSettings: props.DefaultRouteSettings,
+        deploymentId: props.DeploymentId,
+        description: props.Description,
+        name: props.StageName,
+        routeSettings: props.RouteSettings,
+        stageVariables: props.StageVariables,
+        tags: convertTags(props.Tags),
+    });
 
     return {
         ...resource,
         typeToken: 'aws:apigatewayv2/stage:Stage',
         props: stageProps,
+    };
+}
+
+function convertServiceDiscoveryService(resource: ResourceIR): ResourceIR {
+    const props = resource.cfnProperties;
+    const serviceProps = removeUndefined({
+        description: props.Description,
+        dnsConfig: convertServiceDiscoveryDnsConfig(props.DnsConfig),
+        healthCheckConfig: convertServiceDiscoveryHealthCheckConfig(props.HealthCheckConfig),
+        healthCheckCustomConfig: convertServiceDiscoveryHealthCheckCustomConfig(props.HealthCheckCustomConfig),
+        name: props.Name,
+        namespaceId: props.NamespaceId,
+        tags: convertTags(props.Tags),
+        type: props.Type,
+    });
+
+    return {
+        ...resource,
+        typeToken: 'aws:servicediscovery/service:Service',
+        props: serviceProps,
+    };
+}
+
+function convertServiceDiscoveryPrivateDnsNamespace(resource: ResourceIR): ResourceIR {
+    const props = resource.cfnProperties;
+    const namespaceProps = removeUndefined({
+        description: props.Description,
+        name: props.Name,
+        tags: convertTags(props.Tags),
+        vpc: props.Vpc,
+    });
+
+    return {
+        ...resource,
+        typeToken: 'aws:servicediscovery/privateDnsNamespace:PrivateDnsNamespace',
+        props: namespaceProps,
     };
 }
 
@@ -255,18 +298,80 @@ function convertTags(tags: PropertyValue | undefined): PropertyMap | undefined {
 }
 
 function buildIamPolicyProps(props: PropertyMap): PropertyMap {
-    const result: PropertyMap = {};
-    setIfDefined(result, 'description', props.Description);
-    setIfDefined(result, 'name', props.PolicyName);
-    setIfDefined(result, 'path', props.Path);
-    setIfDefined(result, 'policy', props.PolicyDocument);
-    return result;
+    return removeUndefined({
+        description: props.Description,
+        name: props.PolicyName,
+        path: props.Path,
+        policy: props.PolicyDocument,
+    });
 }
 
-function setIfDefined(target: PropertyMap, key: string, value: PropertyValue | undefined): void {
-    if (value !== undefined) {
-        target[key] = value;
+function convertServiceDiscoveryDnsConfig(value: PropertyValue | undefined): PropertyMap | undefined {
+    if (typeof value !== 'object' || value === null) {
+        return undefined;
     }
+    const config = value as PropertyMap;
+    const dnsRecords = convertServiceDiscoveryDnsRecords(config.DnsRecords);
+    const converted = removeUndefined({
+        dnsRecords,
+        namespaceId: config.NamespaceId,
+        routingPolicy: config.RoutingPolicy,
+    });
+    return Object.keys(converted).length > 0 ? converted : undefined;
+}
+
+function convertServiceDiscoveryDnsRecords(value: PropertyValue | undefined): PropertyValue | undefined {
+    if (!Array.isArray(value)) {
+        return undefined;
+    }
+    const records = value
+        .map((record) => {
+            if (typeof record !== 'object' || record === null) {
+                return undefined;
+            }
+            const recordMap = record as PropertyMap;
+            const converted = removeUndefined({
+                ttl: (recordMap.TTL ?? recordMap.Ttl ?? recordMap.ttl) as PropertyValue | undefined,
+                type: recordMap.Type,
+            });
+            return Object.keys(converted).length > 0 ? converted : undefined;
+        })
+        .filter((record): record is PropertyMap => record !== undefined);
+    return records.length > 0 ? (records as PropertyValue) : undefined;
+}
+
+function convertServiceDiscoveryHealthCheckConfig(value: PropertyValue | undefined): PropertyMap | undefined {
+    if (typeof value !== 'object' || value === null) {
+        return undefined;
+    }
+    const config = value as PropertyMap;
+    const converted = removeUndefined({
+        failureThreshold: config.FailureThreshold,
+        resourcePath: config.ResourcePath,
+        type: config.Type,
+    });
+    return Object.keys(converted).length > 0 ? converted : undefined;
+}
+
+function convertServiceDiscoveryHealthCheckCustomConfig(value: PropertyValue | undefined): PropertyMap | undefined {
+    if (typeof value !== 'object' || value === null) {
+        return undefined;
+    }
+    const config = value as PropertyMap;
+    const converted = removeUndefined({
+        failureThreshold: config.FailureThreshold,
+    });
+    return Object.keys(converted).length > 0 ? converted : undefined;
+}
+
+function removeUndefined(values: Record<string, PropertyValue | undefined>): PropertyMap {
+    const result: PropertyMap = {};
+    for (const [key, value] of Object.entries(values)) {
+        if (value !== undefined) {
+            result[key] = value;
+        }
+    }
+    return result;
 }
 
 function isCustomResource(resource: ResourceIR): boolean {
