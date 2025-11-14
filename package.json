@@ -30,7 +30,7 @@
     "string-width": "4.1.0"
   },
   "workspaces": [
-    "packages/*"
+    "packages/@pulumi/cdk-convert-core"
   ],
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
@@ -72,7 +72,7 @@
   },
   "dependencies": {
     "@aws-cdk/toolkit-lib": "1.10.0",
-    "@pulumi/cdk-convert-core": "workspace:*",
+    "@pulumi/cdk-convert-core": "0.0.0",
     "archiver": "^7.0.1",
     "cdk-assets": "^2.154.8",
     "fast-deep-equal": "^3.1.3",
@@ -102,8 +102,8 @@
       ]
     },
     "moduleNameMapper": {
-      "^@pulumi/cdk-convert-core$": "<rootDir>/packages/cdk-convert-core/src/index.ts",
-      "^@pulumi/cdk-convert-core/(.*)$": "<rootDir>/packages/cdk-convert-core/src/$1"
+      "^@pulumi/cdk-convert-core$": "<rootDir>/packages/@pulumi/cdk-convert-core/src/index.ts",
+      "^@pulumi/cdk-convert-core/(.*)$": "<rootDir>/packages/@pulumi/cdk-convert-core/src/$1"
     },
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.ts?(x)",

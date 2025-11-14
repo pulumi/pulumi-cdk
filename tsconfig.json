@@ -16,13 +16,10 @@
     "forceConsistentCasingInFileNames": true,
     "composite": true
   },
-  "exclude": [
-    "node_modules"
-  ],
   "include": [
     "src/**/*.ts"
   ],
   "references": [
-    { "path": "packages/cdk-convert-core" }
+    { "path": "packages/@pulumi/cdk-convert-core" }
   ]
 }
