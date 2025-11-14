@@ -70,17 +70,17 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
   - [x] Unit tests for the new manifest/tree helper behavior, including resolving stages by both artifact ID and display name.
 
 ### Fn::ImportValue Flattening
-- [ ] Teach the IR intrinsic resolver to understand `Fn::ImportValue`.
-  - [ ] Parse the import token, normalize it (CDK emits `StackName:ExportName`), and return an object that records the source stack/output (either reuse `StackOutputReference` or add a new IR subtype if needed).
-  - [ ] Provide lookup helpers on the assembly/IR side to map export names to stack/output pairs. The data already exists in each stack template’s `Outputs`; add an index keyed by `Export.Name`.
-  - [ ] Ensure cycles/unknown exports produce descriptive errors rather than silently returning `undefined`.
+- [x] Teach the IR intrinsic resolver to understand `Fn::ImportValue`.
+  - [x] Parse the import token, normalize it (CDK emits `StackName:ExportName`), and return an object that records the source stack/output (either reuse `StackOutputReference` or add a new IR subtype if needed).
+  - [x] Provide lookup helpers on the assembly/IR side to map export names to stack/output pairs. The data already exists in each stack template’s `Outputs`; add an index keyed by `Export.Name`.
+  - [x] Ensure cycles/unknown exports produce descriptive errors rather than silently returning `undefined`.
 - [ ] Update the CLI/YAML pipeline to resolve the new import references.
-  - [ ] Extend `collectStackOutputs` / `resolveStackOutputReferences` so that imports are de-referenced just like direct `Ref`-to-output mappings.
-  - [ ] If the importer references a stack that was filtered out via `--stacks`, decide whether to emit a warning or error (failing fast is preferable).
+  - [x] Extend `collectStackOutputs` / `resolveStackOutputReferences` so that imports are de-referenced just like direct `Ref`-to-output mappings.
+  - [x] If the importer references a stack that was filtered out via `--stacks`, decide whether to emit a warning or error (failing fast is preferable).
 - [ ] Add tests:
-  - [ ] Unit tests in `packages/@pulumi/cdk-convert-core` covering the intrinsic resolver’s import handling (happy path + missing export).
+  - [x] Unit tests in `packages/@pulumi/cdk-convert-core` covering the intrinsic resolver’s import handling (happy path + missing export).
   - [ ] CLI serializer tests proving cross-stack imports get flattened to the underlying resource properties.
-  - [ ] Update the stage integration test to run without `--stacks` once imports are supported (i.e., convert the entire Dev stage).
+  - [ ] Update the stage integration test to run without `--stacks` once imports are supported (i.e., convert the entire Dev stage). _(Currently blocked by the unresolved `Fn::GetAZs` intrinsic; see `tests/cli/stage.integration.test.ts` for the regression test that captures the failure case.)_
 
 #### Serializer Module Detail
 

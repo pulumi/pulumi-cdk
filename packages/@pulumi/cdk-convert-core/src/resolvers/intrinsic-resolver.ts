@@ -17,6 +17,7 @@ export interface IrIntrinsicResolverProps {
     stackPath: string;
     template: CloudFormationTemplate;
     adapter: IntrinsicValueAdapter<any, PropertyValue>;
+    lookupStackOutputByExportName?: (exportName: string) => StackOutputReference | undefined;
 }
 
 type ConditionExpression = any;
@@ -25,12 +26,14 @@ export class IrIntrinsicResolver {
     private readonly stackPath: string;
     private readonly template: CloudFormationTemplate;
     private readonly adapter: IntrinsicValueAdapter<any, PropertyValue>;
+    private readonly lookupStackOutputByExportName?: (exportName: string) => StackOutputReference | undefined;
     private readonly conditionCache = new Map<string, boolean>();
 
     constructor(props: IrIntrinsicResolverProps) {
         this.stackPath = props.stackPath;
         this.template = props.template;
         this.adapter = props.adapter;
+        this.lookupStackOutputByExportName = props.lookupStackOutputByExportName;
     }
 
     resolvePropertyMap(props: { [key: string]: any } | undefined): PropertyMap {
@@ -114,7 +117,7 @@ export class IrIntrinsicResolver {
         }
 
         if (isImportValue(value)) {
-            throw new Error('Fn::ImportValue is not yet supported.');
+            return this.resolveImportValue(value['Fn::ImportValue']);
         }
 
         if (isTransform(value)) {
@@ -212,6 +215,24 @@ export class IrIntrinsicResolver {
             delimiter,
             values: resolvedItems,
         };
+    }
+
+    private resolveImportValue(param: any): PropertyValue | undefined {
+        if (!this.lookupStackOutputByExportName) {
+            throw new Error('Fn::ImportValue is not supported in this context');
+        }
+
+        const resolved = this.resolveValue(param);
+        if (typeof resolved !== 'string') {
+            throw new Error('Fn::ImportValue only supports string literal export names at this time');
+        }
+
+        const reference = this.lookupStackOutputByExportName(resolved);
+        if (!reference) {
+            throw new Error(`Unable to resolve export '${resolved}' referenced by Fn::ImportValue in ${this.stackPath}`);
+        }
+
+        return reference;
     }
 
     private resolveSplit(params: [string, any]): PropertyValue | undefined {

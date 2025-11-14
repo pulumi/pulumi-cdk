@@ -1,5 +1,5 @@
 import { CloudFormationTemplate, CloudFormationResource, CloudFormationOutput, CloudFormationParameter } from '../cfn';
-import { StackIR, ProgramIR, StackAddress, PropertyValue } from '../ir';
+import { StackIR, ProgramIR, StackAddress, PropertyValue, StackOutputReference } from '../ir';
 import { getDependsOn } from '../cfn';
 import { IrIntrinsicValueAdapter } from './intrinsic-value-adapter';
 import { IrResourceEmitter, IrResourceOptions } from '../ir-resource-emitter';
@@ -17,6 +17,7 @@ export interface StackIrConversionOptions {
     adapter?: IntrinsicValueAdapter<any, PropertyValue>;
     emitter?: ResourceEmitter<any, IrResourceOptions, StackAddress>;
     stack?: StackIR;
+    lookupExport?: (exportName: string) => StackOutputReference | undefined;
 }
 
 export function convertStacksToProgramIr(stacks: StackConversionInput[]): ProgramIR {
@@ -45,6 +46,7 @@ export function convertStackToIr(input: StackConversionInput, options?: StackIrC
         stackPath,
         template,
         adapter,
+        lookupStackOutputByExportName: options?.lookupExport,
     });
 
     convertResources(stackPath, template.Resources ?? {}, resolver, emitter);
@@ -109,7 +111,7 @@ function convertOutputs(
         resolvedOutputs.push({
             name,
             value,
-            description: undefined,
+            description: output.Description,
         });
     }
 

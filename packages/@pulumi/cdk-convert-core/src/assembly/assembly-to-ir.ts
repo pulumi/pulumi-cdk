@@ -1,8 +1,8 @@
 import { AssemblyManifestReader } from './manifest';
 import { StackManifest } from './stack';
 import { CloudFormationTemplate } from '../cfn';
-import { ProgramIR, StackIR } from '../ir';
-import { convertStackToIr } from '../ir/stack-converter';
+import { ProgramIR, StackIR, StackOutputReference } from '../ir';
+import { convertStackToIr, StackConversionInput } from '../resolvers/stack-converter';
 
 /**
  * Loads a Cloud Assembly from disk and converts every stack into ProgramIR using the shared
@@ -30,27 +30,61 @@ export function convertStageInAssemblyDirectoryToProgramIr(
  * Converts the stacks contained in the supplied manifest reader into a ProgramIR snapshot.
  */
 export function convertAssemblyToProgramIr(manifest: AssemblyManifestReader, stackFilter?: Set<string>): ProgramIR {
-    const stacks: StackIR[] = [];
+    const inputs: StackConversionInput[] = [];
     for (const stackManifest of manifest.stackManifests) {
         if (stackFilter && !stackFilter.has(stackManifest.id)) {
             continue;
         }
-        stacks.push(...convertStackManifest(stackManifest));
+        inputs.push(...collectStackConversionInputs(stackManifest));
     }
+
+    const exportLookup = buildExportLookup(inputs);
+    const stacks = inputs.map((input) =>
+        convertStackToIr(input, {
+            lookupExport: (name) => exportLookup.get(name),
+        }),
+    );
 
     return { stacks };
 }
 
-function convertStackManifest(stack: StackManifest): StackIR[] {
-    return Object.entries(stack.stacks).map(([stackPath, template]) =>
-        convertStackToIr({
-            stackId: deriveStackId(stack, stackPath),
-            stackPath,
-            template: template as CloudFormationTemplate,
-        }),
-    );
+function collectStackConversionInputs(stack: StackManifest): StackConversionInput[] {
+    return Object.entries(stack.stacks).map(([stackPath, template]) => ({
+        stackId: deriveStackId(stack, stackPath),
+        stackPath,
+        template: template as CloudFormationTemplate,
+    }));
 }
 
 function deriveStackId(stack: StackManifest, stackPath: string): string {
     return stackPath === stack.constructTree.path ? stack.id : stackPath;
+}
+
+function buildExportLookup(inputs: StackConversionInput[]): Map<string, StackOutputReference> {
+    const exports = new Map<string, StackOutputReference>();
+
+    for (const input of inputs) {
+        const outputEntries = Object.entries(input.template.Outputs ?? {});
+        for (const [outputName, output] of outputEntries) {
+            const exportName = output.Export?.Name;
+            if (typeof exportName !== 'string' || exportName.length === 0) {
+                continue;
+            }
+
+            if (exports.has(exportName)) {
+                const existing = exports.get(exportName)!;
+                throw new Error(
+                    `Duplicate export name '${exportName}' found in stacks ${existing.stackPath} and ${input.stackPath}`,
+                );
+            }
+
+            exports.set(exportName, {
+                kind: 'stackOutput',
+                stackPath: input.stackPath,
+                outputName,
+            });
+        }
+    }
+
+    return exports;
 }

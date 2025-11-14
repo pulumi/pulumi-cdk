@@ -8,6 +8,7 @@ import {
     ResourceAttributeReference,
     ResourceMetadataProvider,
     CfRefBehavior,
+    StackOutputReference,
 } from '@pulumi/cdk-convert-core';
 
 class StubIntrinsicValueAdapter implements IntrinsicValueAdapter<any, PropertyValue> {
@@ -28,6 +29,7 @@ class StubIntrinsicValueAdapter implements IntrinsicValueAdapter<any, PropertyVa
 function createResolver(
     overrides: Partial<CloudFormationTemplate> = {},
     adapter: IntrinsicValueAdapter<any, PropertyValue> = new StubIntrinsicValueAdapter(),
+    lookup?: (exportName: string) => StackOutputReference | undefined,
 ) {
     const template: CloudFormationTemplate = {
         Resources: {
@@ -43,6 +45,7 @@ function createResolver(
         stackPath: 'App/Main',
         template,
         adapter,
+        lookupStackOutputByExportName: lookup,
     });
 }
 
@@ -128,13 +131,35 @@ describe('IrIntrinsicResolver intrinsics', () => {
         expect(value).toBe('ami-123');
     });
 
-    test('throws for unsupported Fn::ImportValue', () => {
-        const resolver = createResolver();
+    test('resolves Fn::ImportValue when export is known', () => {
+        const resolver = createResolver({}, undefined, (name) =>
+            name === 'SharedExport'
+                ? {
+                      kind: 'stackOutput',
+                      stackPath: 'App/Producer',
+                      outputName: 'BucketArn',
+                  }
+                : undefined,
+        );
+
+        expect(
+            resolver.resolveValue({
+                'Fn::ImportValue': 'SharedExport',
+            }),
+        ).toEqual({
+            kind: 'stackOutput',
+            stackPath: 'App/Producer',
+            outputName: 'BucketArn',
+        });
+    });
+
+    test('throws when Fn::ImportValue cannot resolve export', () => {
+        const resolver = createResolver({}, undefined, () => undefined);
         expect(() =>
             resolver.resolveValue({
-                'Fn::ImportValue': 'SharedValue',
+                'Fn::ImportValue': 'SharedExport',
             }),
-        ).toThrow('Fn::ImportValue is not yet supported.');
+        ).toThrow("Unable to resolve export 'SharedExport' referenced by Fn::ImportValue in App/Main");
     });
 
     test('throws for unsupported Fn::Transform', () => {

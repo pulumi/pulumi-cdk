@@ -86,6 +86,74 @@ describe('convertAssemblyToProgramIr', () => {
         expect(program.stacks).toHaveLength(1);
         expect(program.stacks[0].stackId).toBe('FilteredStack');
     });
+
+    test('Fn::ImportValue references resolve to stack output references', () => {
+        const producer = new StackManifest({
+            id: 'ProducerStack',
+            templatePath: 'producer.json',
+            metadata: {},
+            tree: {
+                id: 'ProducerStack',
+                path: 'App/Producer',
+            },
+            template: {
+                Resources: {
+                    Bucket: {
+                        Type: 'AWS::S3::Bucket',
+                        Properties: {},
+                    },
+                },
+                Outputs: {
+                    BucketArn: {
+                        Value: 'arn:aws:s3:::bucket',
+                        Export: {
+                            Name: 'SharedExport',
+                        },
+                    },
+                },
+            },
+            dependencies: [],
+            nestedStacks: {},
+        });
+
+        const consumer = new StackManifest({
+            id: 'ConsumerStack',
+            templatePath: 'consumer.json',
+            metadata: {},
+            tree: {
+                id: 'ConsumerStack',
+                path: 'App/Consumer',
+            },
+            template: {
+                Resources: {
+                    Topic: {
+                        Type: 'AWS::SNS::Topic',
+                        Properties: {
+                            SourceArn: {
+                                'Fn::ImportValue': 'SharedExport',
+                            },
+                        },
+                    },
+                },
+            },
+            dependencies: [],
+            nestedStacks: {},
+        });
+
+        const reader = { stackManifests: [producer, consumer] } as unknown as AssemblyManifestReader;
+
+        const program = convertAssemblyToProgramIr(reader);
+        const consumerStack = program.stacks.find((stack) => stack.stackId === 'ConsumerStack');
+        expect(consumerStack).toBeDefined();
+        const topic = consumerStack!.resources.find((resource) => resource.logicalId === 'Topic');
+        expect(topic?.props).toMatchObject({
+            sourceArn: {
+                kind: 'stackOutput',
+                stackPath: 'App/Producer',
+                outputName: 'BucketArn',
+            },
+        });
+    });
 });
 
 function createStackManifest(): StackManifest {

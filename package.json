@@ -96,14 +96,9 @@
       "^.+\\.ts$": [
         "ts-jest",
         {
-          "isolatedModules": true,
-          "tsconfig": "tsconfig.json"
+          "tsconfig": "tsconfig.dev.json"
         }
       ]
-    },
-    "moduleNameMapper": {
-      "^@pulumi/cdk-convert-core$": "<rootDir>/packages/@pulumi/cdk-convert-core/src/index.ts",
-      "^@pulumi/cdk-convert-core/(.*)$": "<rootDir>/packages/@pulumi/cdk-convert-core/src/$1"
     },
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.ts?(x)",

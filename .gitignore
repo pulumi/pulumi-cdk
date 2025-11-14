@@ -128,3 +128,4 @@ lib/
 import.json
 cdk-to-pulumi
 Pulumi.yaml
+Pulumi-*.yaml

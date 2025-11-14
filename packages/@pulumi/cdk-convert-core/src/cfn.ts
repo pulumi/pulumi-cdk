@@ -44,6 +44,10 @@ export interface CloudFormationResource {
 
 export interface CloudFormationOutput {
     Value: any;
+    Description?: string;
+    Export?: {
+        Name?: string;
+    };
 }
 
 export type CloudFormationMapping = { [mappingLogicalName: string]: TopLevelMapping };

@@ -3,7 +3,7 @@ import * as path from 'path';
 import {
     convertAssemblyDirectoryToProgramIr,
     convertStageInAssemblyDirectoryToProgramIr,
-} from '@pulumi/cdk-convert-core/assembly';
+} from '@pulumi/cdk-convert-core/src/assembly';
 import { ProgramIR } from '@pulumi/cdk-convert-core';
 import { serializeProgramIr } from './ir-to-yaml';
 import { postProcessProgramIr, PostProcessOptions } from './ir-post-processor';

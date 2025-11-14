@@ -27,4 +27,22 @@ describe('cli stage integration', () => {
             fs.removeSync(tmpDir);
         }
     });
+
+    test('surfaces fn::GetAZs limitation when converting all DevStage stacks', () => {
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulumi-stage-all-'));
+        const outFile = path.join(tmpDir, 'Pulumi.yaml');
+        try {
+            expect(() =>
+                runCliWithOptions({
+                    assemblyDir,
+                    outFile,
+                    skipCustomResources: true,
+                    stackFilters: [],
+                    stage: 'DevStage',
+                }),
+            ).toThrow('Fn::GetAZs is not supported in IR conversion yet');
+        } finally {
+            fs.removeSync(tmpDir);
+        }
+    });
 });
