@@ -164,6 +164,27 @@ describe('cloud assembly manifest reader', () => {
         });
     });
 
+    describe('stage assemblies', () => {
+        const fixtureDir = path.join(__dirname, '../test-data/staged-assembly');
+
+        test('loads nested assembly via display name', () => {
+            const manifest = AssemblyManifestReader.fromDirectory(fixtureDir);
+            const stage = manifest.loadNestedAssembly('DevStage');
+
+            expect(stage.stackManifests).toHaveLength(1);
+            const stack = stage.stackManifests[0];
+            expect(stack.id).toEqual('DevStageAppStackABC123');
+            expect(stack.constructTree.path).toEqual('DevStage/AppStack');
+        });
+
+        test('loads nested assembly via artifact id', () => {
+            const manifest = AssemblyManifestReader.fromDirectory(fixtureDir);
+            const stage = manifest.loadNestedAssembly('assembly-DevStage');
+
+            expect(stage.stackManifests).toHaveLength(1);
+        });
+    });
+
     describe('nested stacks', () => {
         afterEach(() => {
             mockfs.restore();

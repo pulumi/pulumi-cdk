@@ -8,17 +8,33 @@ import { convertStackToIr } from '../ir/stack-converter';
  * Loads a Cloud Assembly from disk and converts every stack into ProgramIR using the shared
  * StackConverter pipeline.
  */
-export function convertAssemblyDirectoryToProgramIr(assemblyDir: string): ProgramIR {
+export function convertAssemblyDirectoryToProgramIr(assemblyDir: string, stackFilter?: Set<string>): ProgramIR {
     const manifest = AssemblyManifestReader.fromDirectory(assemblyDir);
-    return convertAssemblyToProgramIr(manifest);
+    return convertAssemblyToProgramIr(manifest, stackFilter);
+}
+
+/**
+ * Loads a nested stage within a Cloud Assembly and converts its stacks into ProgramIR.
+ */
+export function convertStageInAssemblyDirectoryToProgramIr(
+    assemblyDir: string,
+    stageName: string,
+    stackFilter?: Set<string>,
+): ProgramIR {
+    const manifest = AssemblyManifestReader.fromDirectory(assemblyDir);
+    const stageManifest = manifest.loadNestedAssembly(stageName);
+    return convertAssemblyToProgramIr(stageManifest, stackFilter);
 }
 
 /**
  * Converts the stacks contained in the supplied manifest reader into a ProgramIR snapshot.
  */
-export function convertAssemblyToProgramIr(manifest: AssemblyManifestReader): ProgramIR {
+export function convertAssemblyToProgramIr(manifest: AssemblyManifestReader, stackFilter?: Set<string>): ProgramIR {
     const stacks: StackIR[] = [];
     for (const stackManifest of manifest.stackManifests) {
+        if (stackFilter && !stackFilter.has(stackManifest.id)) {
+            continue;
+        }
         stacks.push(...convertStackManifest(stackManifest));
     }
 

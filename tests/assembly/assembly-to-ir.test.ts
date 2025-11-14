@@ -3,6 +3,7 @@ import {
     StackManifest,
     convertAssemblyDirectoryToProgramIr,
     convertAssemblyToProgramIr,
+    convertStageInAssemblyDirectoryToProgramIr,
 } from '@pulumi/cdk-convert-core/assembly';
 import { CloudFormationTemplate, NestedStackTemplate } from '@pulumi/cdk-convert-core';
 
@@ -39,6 +40,51 @@ describe('convertAssemblyToProgramIr', () => {
 
         expect(spy).toHaveBeenCalledWith('/fake/assembly');
         expect(program.stacks).toHaveLength(2);
+    });
+
+    test('convertStageInAssemblyDirectoryToProgramIr loads nested manifest', () => {
+        const manifest = createStackManifest();
+        const nestedReader = { stackManifests: [manifest] } as unknown as AssemblyManifestReader;
+        const rootReader = {
+            stackManifests: [],
+            loadNestedAssembly: jest.fn().mockReturnValue(nestedReader),
+        } as unknown as AssemblyManifestReader;
+        const spy = jest.spyOn(AssemblyManifestReader, 'fromDirectory').mockReturnValue(rootReader);
+
+        const program = convertStageInAssemblyDirectoryToProgramIr('/fake/assembly', 'DevStage');
+
+        expect(spy).toHaveBeenCalledWith('/fake/assembly');
+        expect(rootReader.loadNestedAssembly).toHaveBeenCalledWith('DevStage');
+        expect(program.stacks).toHaveLength(2);
+    });
+
+    test('convertAssemblyToProgramIr skips stacks outside the filter set', () => {
+        const manifestA = createStackManifest();
+        const manifestB = new StackManifest({
+            id: 'FilteredStack',
+            templatePath: 'stacks/filtered.json',
+            metadata: {},
+            tree: {
+                id: 'FilteredStack',
+                path: 'App/Filtered',
+            },
+            template: {
+                Resources: {
+                    Topic: {
+                        Type: 'AWS::SNS::Topic',
+                        Properties: {},
+                    },
+                },
+            },
+            dependencies: [],
+            nestedStacks: {},
+        });
+        const reader = { stackManifests: [manifestA, manifestB] } as unknown as AssemblyManifestReader;
+
+        const program = convertAssemblyToProgramIr(reader, new Set(['FilteredStack']));
+
+        expect(program.stacks).toHaveLength(1);
+        expect(program.stacks[0].stackId).toBe('FilteredStack');
     });
 });
 

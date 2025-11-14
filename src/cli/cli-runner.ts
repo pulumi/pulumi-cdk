@@ -1,6 +1,9 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { convertAssemblyDirectoryToProgramIr } from '@pulumi/cdk-convert-core/assembly';
+import {
+    convertAssemblyDirectoryToProgramIr,
+    convertStageInAssemblyDirectoryToProgramIr,
+} from '@pulumi/cdk-convert-core/assembly';
 import { ProgramIR } from '@pulumi/cdk-convert-core';
 import { serializeProgramIr } from './ir-to-yaml';
 import { postProcessProgramIr, PostProcessOptions } from './ir-post-processor';
@@ -12,6 +15,7 @@ export interface CliOptions {
     outFile: string;
     skipCustomResources: boolean;
     stackFilters: string[];
+    stage?: string;
 }
 
 class CliError extends Error {}
@@ -21,6 +25,7 @@ export function parseArguments(argv: string[]): CliOptions {
     let outFile: string | undefined;
     let skipCustomResources = false;
     const stackFilters: string[] = [];
+    let stage: string | undefined;
 
     for (let i = 0; i < argv.length; i++) {
         const arg = argv[i];
@@ -39,6 +44,9 @@ export function parseArguments(argv: string[]): CliOptions {
                 stackFilters.push(...parseList(value));
                 break;
             }
+            case '--stage':
+                stage = requireValue(arg, argv[++i]);
+                break;
             case '--help':
             case '-h':
                 throw new CliError(usage());
@@ -56,6 +64,7 @@ export function parseArguments(argv: string[]): CliOptions {
         outFile: outFile ?? DEFAULT_OUTPUT_FILE,
         skipCustomResources,
         stackFilters,
+        stage,
     };
 }
 
@@ -66,6 +75,7 @@ export function runCliWithOptions(options: CliOptions): void {
             skipCustomResources: options.skipCustomResources,
         },
         options.stackFilters,
+        options.stage,
     );
     const yaml = serializeProgramIr(program);
     const targetDir = path.dirname(options.outFile);
@@ -81,6 +91,7 @@ export function runCli(argv: string[], logger: Pick<Console, 'log' | 'error'> = 
             outFile: path.resolve(options.outFile),
             skipCustomResources: options.skipCustomResources,
             stackFilters: options.stackFilters,
+            stage: options.stage,
         };
         runCliWithOptions(resolved);
         logger.log(`Wrote Pulumi YAML to ${resolved.outFile}`);
@@ -104,8 +115,16 @@ export function main(argv = process.argv.slice(2)) {
     }
 }
 
-function loadProgramIr(assemblyDir: string, options?: PostProcessOptions, stackFilters?: string[]): ProgramIR {
-    const program = convertAssemblyDirectoryToProgramIr(assemblyDir);
+function loadProgramIr(
+    assemblyDir: string,
+    options?: PostProcessOptions,
+    stackFilters?: string[],
+    stage?: string,
+): ProgramIR {
+    const stackFilterSet = stackFilters && stackFilters.length > 0 ? new Set(stackFilters) : undefined;
+    const program = stage
+        ? convertStageInAssemblyDirectoryToProgramIr(assemblyDir, stage, stackFilterSet)
+        : convertAssemblyDirectoryToProgramIr(assemblyDir, stackFilterSet);
     const filtered = filterProgramStacks(program, stackFilters);
     return postProcessProgramIr(filtered, options);
 }
@@ -118,7 +137,7 @@ function requireValue(flag: string, value: string | undefined): string {
 }
 
 function usage(): string {
-    return 'Usage: cdk-to-pulumi --assembly <cdk.out> [--out <pulumi.yaml>] [--skip-custom] [--stacks <name1,name2>]';
+    return 'Usage: cdk-to-pulumi --assembly <cdk.out> [--stage <name>] [--out <pulumi.yaml>] [--skip-custom] [--stacks <name1,name2>]';
 }
 
 function parseList(value: string): string[] {

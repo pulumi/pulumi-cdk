@@ -57,6 +57,31 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 - [x] Add serializer-focused unit tests that exercise resource naming, options rewriting, intrinsic conversions, and error paths.
 - [ ] Provide minimal documentation (`README` section) describing usage of the CLI and the current assumptions (pre-built assembly, single YAML output).
 
+### Stage Support
+- [x] Add a `--stage <name>` CLI flag that restricts conversion to a single nested cloud assembly.
+  - [x] Accept either the nested assembly artifact ID (e.g., `assembly-DevStage`) or the stage display/name (e.g., `DevStage`).
+  - [x] Update `usage()` messaging, `CliOptions`, and argument parsing to surface the new flag.
+- [x] Extend `AssemblyManifestReader` so nested assemblies that lack their own `tree.json` can reuse the root construct tree.
+  - [x] Provide a helper API that resolves a `cdk:cloud-assembly` artifact, loads its manifest directory, and returns a new reader bound to the parent tree.
+- [x] Fix construct-tree lookups so stack artifacts with hashed IDs (`DevStageMonitoringStack31822C3B`) still match tree nodes referenced by path (`DevStage/MonitoringStack`).
+- [x] Wire the CLI execution path to detect `--stage`, load/convert only the selected stage, and then apply existing stack filters/YAML serialization.
+- [x] Add coverage:
+  - [x] Integration-style test running the CLI against `cdk-with-stages.out --stage DevStage` (filtering supported stacks) to ensure nested assembly conversion works.
+  - [x] Unit tests for the new manifest/tree helper behavior, including resolving stages by both artifact ID and display name.
+
+### Fn::ImportValue Flattening
+- [ ] Teach the IR intrinsic resolver to understand `Fn::ImportValue`.
+  - [ ] Parse the import token, normalize it (CDK emits `StackName:ExportName`), and return an object that records the source stack/output (either reuse `StackOutputReference` or add a new IR subtype if needed).
+  - [ ] Provide lookup helpers on the assembly/IR side to map export names to stack/output pairs. The data already exists in each stack template’s `Outputs`; add an index keyed by `Export.Name`.
+  - [ ] Ensure cycles/unknown exports produce descriptive errors rather than silently returning `undefined`.
+- [ ] Update the CLI/YAML pipeline to resolve the new import references.
+  - [ ] Extend `collectStackOutputs` / `resolveStackOutputReferences` so that imports are de-referenced just like direct `Ref`-to-output mappings.
+  - [ ] If the importer references a stack that was filtered out via `--stacks`, decide whether to emit a warning or error (failing fast is preferable).
+- [ ] Add tests:
+  - [ ] Unit tests in `packages/@pulumi/cdk-convert-core` covering the intrinsic resolver’s import handling (happy path + missing export).
+  - [ ] CLI serializer tests proving cross-stack imports get flattened to the underlying resource properties.
+  - [ ] Update the stage integration test to run without `--stacks` once imports are supported (i.e., convert the entire Dev stage).
+
 #### Serializer Module Detail
 
 - [x] **Module Skeleton**

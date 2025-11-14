@@ -6,6 +6,15 @@
     "target": "es2022",
     "module": "commonjs",
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@pulumi/cdk-convert-core": [
+        "packages/@pulumi/cdk-convert-core/src/index.ts"
+      ],
+      "@pulumi/cdk-convert-core/*": [
+        "packages/@pulumi/cdk-convert-core/src/*"
+      ]
+    },
     "declaration": true,
     "sourceMap": true,
     "stripInternal": true,

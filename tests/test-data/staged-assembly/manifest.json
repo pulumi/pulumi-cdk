@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "artifacts": {
+    "assembly-DevStage": {
+      "type": "cdk:cloud-assembly",
+      "properties": {
+        "directoryName": "assembly-DevStage",
+        "displayName": "DevStage"
+      }
+    }
+  }
+}

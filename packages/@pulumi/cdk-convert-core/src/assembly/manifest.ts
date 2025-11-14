@@ -38,6 +38,23 @@ export class AssemblyManifestReader {
     }
 
     /**
+     * Reads a Cloud Assembly manifest but overrides the construct tree with the provided node.
+     * Useful for nested assemblies that do not emit their own tree.json.
+     */
+    public static fromDirectoryWithTree(dir: string, tree: ConstructTree): AssemblyManifestReader {
+        const filePath = path.join(dir, AssemblyManifestReader.DEFAULT_FILENAME);
+        try {
+            fs.statSync(dir);
+            const obj = Manifest.loadAssemblyManifest(filePath, {
+                skipVersionCheck: true,
+            });
+            return new AssemblyManifestReader(dir, obj, tree);
+        } catch (e: any) {
+            throw new Error(`Cannot read manifest at '${filePath}': ${e}`);
+        }
+    }
+
+    /**
      * The directory where the manifest was found
      */
     public readonly directory: string;
@@ -45,14 +62,18 @@ export class AssemblyManifestReader {
     private readonly _stackManifests = new Map<string, StackManifest>();
     private readonly tree: ConstructTree;
 
-    constructor(directory: string, private readonly manifest: AssemblyManifest) {
+    constructor(directory: string, private readonly manifest: AssemblyManifest, treeOverride?: ConstructTree) {
         this.directory = directory;
         try {
-            const fullTree = fs.readJsonSync(path.resolve(this.directory, 'tree.json'));
-            if (!fullTree.tree || !fullTree.tree.children) {
-                throw new Error(`Invalid tree.json found ${JSON.stringify(fullTree)}`);
+            if (treeOverride) {
+                this.tree = treeOverride;
+            } else {
+                const fullTree = fs.readJsonSync(path.resolve(this.directory, 'tree.json'));
+                if (!fullTree.tree) {
+                    throw new Error(`Invalid tree.json found ${JSON.stringify(fullTree)}`);
+                }
+                this.tree = fullTree.tree;
             }
-            this.tree = fullTree.tree;
             this.renderStackManifests();
         } catch (e) {
             throw new Error(`Could not process CDK Cloud Assembly directory: ${e}`);
@@ -81,11 +102,7 @@ export class AssemblyManifestReader {
                     throw new Error(`Failed to read CloudFormation template at path: ${templateFile}: ${e}`);
                 }
 
-                if (!this.tree.children) {
-                    throw new Error('Invalid tree.json found');
-                }
-
-                const stackTree = this.tree.children[artifactId];
+                const stackTree = this.getStackTreeNode(artifactId, artifact);
                 const nestedStacks = this.loadNestedStacks(template.Resources);
                 const stackPaths = Object.keys(nestedStacks).concat([stackTree.path]);
                 const metadata = this.getMetadata(artifact, stackPaths);
@@ -224,4 +241,100 @@ export class AssemblyManifestReader {
     public get stackManifests(): StackManifest[] {
         return Array.from(this._stackManifests.values());
     }
+
+    /**
+     * Loads a nested cloud assembly artifact (stage) using the current tree as the source of construct paths.
+     *
+     * @param stageIdentifier - Artifact id, directory name, or display name of the nested assembly.
+     */
+    public loadNestedAssembly(stageIdentifier: string): AssemblyManifestReader {
+        for (const [artifactId, artifact] of Object.entries(this.manifest.artifacts ?? {})) {
+            if (artifact.type !== ArtifactType.NESTED_CLOUD_ASSEMBLY) {
+                continue;
+            }
+            if (!this.matchesStageIdentifier(stageIdentifier, artifactId, artifact)) {
+                continue;
+            }
+
+            const props = artifact.properties as NestedAssemblyArtifactProperties | undefined;
+            if (!props?.directoryName) {
+                throw new Error(`Nested assembly '${artifactId}' is missing the 'directoryName' property`);
+            }
+
+            const stagePath = props.displayName ?? artifact.displayName ?? stageIdentifier;
+            const stageTree = this.findConstructTreeNode(stagePath);
+            if (!stageTree) {
+                throw new Error(`Could not locate construct tree node for nested assembly '${stageIdentifier}'`);
+            }
+
+            const nestedDir = path.resolve(this.directory, props.directoryName);
+            return AssemblyManifestReader.fromDirectoryWithTree(nestedDir, stageTree);
+        }
+
+        throw new Error(`Unknown stage '${stageIdentifier}' in assembly at '${this.directory}'`);
+    }
+
+    private matchesStageIdentifier(identifier: string, artifactId: string, artifact: ArtifactManifest): boolean {
+        if (artifactId === identifier || artifact.displayName === identifier) {
+            return true;
+        }
+
+        const props = artifact.properties as NestedAssemblyArtifactProperties | undefined;
+        return props?.displayName === identifier || props?.directoryName === identifier;
+    }
+
+    private getStackTreeNode(artifactId: string, artifact: ArtifactManifest): ConstructTree {
+        const treeNode = this.tree.children?.[artifactId];
+        if (treeNode) {
+            return treeNode;
+        }
+
+        const displayNameNode = this.findConstructTreeNode(artifact.displayName ?? artifactId);
+        if (displayNameNode) {
+            return displayNameNode;
+        }
+
+        throw new Error(`Could not find construct tree entry for stack '${artifactId}'`);
+    }
+
+    private findConstructTreeNode(pathValue?: string): ConstructTree | undefined {
+        if (!pathValue) {
+            return undefined;
+        }
+
+        const trimmed = pathValue.startsWith('/') ? pathValue.slice(1) : pathValue;
+        let segments = trimmed.split('/').filter((segment) => segment.length > 0);
+        if (segments.length === 0) {
+            return this.tree;
+        }
+
+        const normalizedTreePath = this.normalizeTreePath(this.tree.path);
+        if (segments[0] === this.tree.id || (normalizedTreePath && segments[0] === normalizedTreePath)) {
+            segments = segments.slice(1);
+        }
+
+        let current: ConstructTree | undefined = this.tree;
+        for (const segment of segments) {
+            if (!current?.children) {
+                return undefined;
+            }
+            current = current.children[segment];
+            if (!current) {
+                return undefined;
+            }
+        }
+        return current;
+    }
+
+    private normalizeTreePath(pathValue?: string): string {
+        if (!pathValue) {
+            return '';
+        }
+        return pathValue.startsWith('/') ? pathValue.slice(1) : pathValue;
+    }
+}
+
+interface NestedAssemblyArtifactProperties {
+    readonly directoryName: string;
+    readonly displayName?: string;
 }

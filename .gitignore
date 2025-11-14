@@ -115,7 +115,7 @@ dist
 test-reports/
 lib/
 
-**/cdk.out
+**/cdk*.out
 **/cdk.context.json
 
 # direnv
