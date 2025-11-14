@@ -5,7 +5,7 @@ import { ProgramIR } from '@pulumi/cdk-convert-core';
 import { serializeProgramIr } from './ir-to-yaml';
 import { postProcessProgramIr, PostProcessOptions } from './ir-post-processor';
 
-export const DEFAULT_OUTPUT_FILE = 'pulumi.yaml';
+export const DEFAULT_OUTPUT_FILE = 'Pulumi.yaml';
 
 export interface CliOptions {
     assemblyDir: string;
@@ -60,9 +60,13 @@ export function parseArguments(argv: string[]): CliOptions {
 }
 
 export function runCliWithOptions(options: CliOptions): void {
-    const program = loadProgramIr(options.assemblyDir, {
-        skipCustomResources: options.skipCustomResources,
-    }, options.stackFilters);
+    const program = loadProgramIr(
+        options.assemblyDir,
+        {
+            skipCustomResources: options.skipCustomResources,
+        },
+        options.stackFilters,
+    );
     const yaml = serializeProgramIr(program);
     const targetDir = path.dirname(options.outFile);
     fs.ensureDirSync(targetDir);
@@ -100,11 +104,7 @@ export function main(argv = process.argv.slice(2)) {
     }
 }
 
-function loadProgramIr(
-    assemblyDir: string,
-    options?: PostProcessOptions,
-    stackFilters?: string[],
-): ProgramIR {
+function loadProgramIr(assemblyDir: string, options?: PostProcessOptions, stackFilters?: string[]): ProgramIR {
     const program = convertAssemblyDirectoryToProgramIr(assemblyDir);
     const filtered = filterProgramStacks(program, stackFilters);
     return postProcessProgramIr(filtered, options);

@@ -1,7 +1,0 @@
-{
-  "files": [],
-  "references": [
-    { "path": "./packages/cdk-convert-core/tsconfig.json" },
-    { "path": "./tsconfig.json" }
-  ]
-}

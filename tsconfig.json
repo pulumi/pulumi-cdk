@@ -1,18 +1,28 @@
 {
-  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "outDir": "lib",
     "rootDir": "src",
-    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
-    "paths": {
-      "@pulumi/cdk-convert-core": ["./packages/cdk-convert-core/src/index"],
-      "@pulumi/cdk-convert-core/*": ["./packages/cdk-convert-core/src/*"]
-    }
+    "strict": true,
+    "target": "es2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,
+    "sourceMap": true,
+    "stripInternal": true,
+    "experimentalDecorators": true,
+    "pretty": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true,
+    "composite": true
   },
+  "exclude": [
+    "node_modules"
+  ],
   "include": [
     "src/**/*.ts"
   ],
   "references": [
-    { "path": "./packages/cdk-convert-core/tsconfig.json" }
+    { "path": "packages/cdk-convert-core" }
   ]
 }

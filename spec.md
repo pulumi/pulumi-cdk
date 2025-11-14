@@ -14,6 +14,11 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 3. Build a CLI (`bin/cdk-to-pulumi`) that runs a CDK app (or consumes a pre-built assembly), invokes the core library, and writes Pulumi YAML.
 4. Leave room for future extraction into its own repo by keeping the package API narrow and documented.
 
+## Bun Executable Builds
+- Install [Bun](https://bun.sh) locally and run `npm run build:bun-cli` to emit a standalone binary at `dist/bin/cdk-to-pulumi` (the script enables `--minify` and `--sourcemap` by default).
+- Pass additional Bun flags via `npm run build:bun-cli -- --target=bun-linux-x64` to cross-compile; run the script multiple times to produce binaries for each platform you care about.
+- These binaries embed the Bun runtime; keep using the Node-based workflow for local development/tests and reserve Bun builds for packaging/distribution experiments.
+
 ## Detailed TODOs
 
 ### Package Extraction
@@ -85,8 +90,10 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 - [x] `Ref` parity – use cfRef metadata (or fall back to `.id`) so IR/YAML references match Pulumi runtime behavior.
 
 ### Pulumi Runtime Integration
-- [ ] Update the existing Pulumi adapter (`src/stack.ts` etc.) to import the shared package and use the Pulumi-specific `ResourceEmitter`, eliminating duplicate logic.
-- [ ] Validate that existing tests/examples still pass.
+- [ ] **Unify Stack conversion paths** – Refactor `StackConverter` to call `convertStackToIr` for every stack (even when running inside Pulumi) by providing a Pulumi-flavored `IntrinsicValueAdapter`/`ResourceEmitter`. The emitter should translate `StackAddress` references in `IrResourceOptions` into actual Pulumi dependencies/parents, while the adapter converts resolved `PropertyValue` structures (refs, dynamic references, parameters) into `pulumi.Input` values using the runtime `Mapping` tables.
+- [ ] **Bridge nested-stack + parameter handling** – Replace the bespoke `processIntrinsics`/`IntrinsicContext` logic with helpers that consume the IR output. Ensure nested stack parameters, stack outputs, and `OutputMap` wiring continue to function by feeding IR-evaluated parameter defaults and outputs back into the existing `StackMap` structures.
+- [ ] **Remove legacy intrinsic implementation** – After the runtime successfully emits resources from IR, delete `src/converters/intrinsics.ts`, `processIntrinsics`, and other now-redundant evaluators. Port the relevant tests to exercise the shared IR resolver (e.g., reuse `tests/ir/intrinsic-resolver.test.ts` plus a Pulumi integration test that provisions a representative stack via the runtime).
+- [ ] **Regression testing** – Re-run the current unit/integration suites plus at least one end-to-end example (`examples/simple/` or similar) to verify both the CLI and `@pulumi/cdk` paths keep emitting identical resource graphs.
 
 ### Testing & Validation
 - [ ] Add unit tests for the new package covering manifest parsing, IR emission, and CLI serialization paths.

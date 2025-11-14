@@ -83,6 +83,7 @@
     "set-version": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",
     "build": "tsc --build tsconfig.build.json && npm run docs && npm run format && npm run lint",
     "watch": "tsc --build tsconfig.build.json --watch",
+    "build:bun-cli": "node -e \"require('fs').mkdirSync('dist/bin', { recursive: true })\" && bun build src/cli/cli-runner.ts --compile --minify --sourcemap --outfile dist/bin/cdk-to-pulumi",
     "docs": "npx typedoc",
     "lint": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --fix --no-error-on-unmatched-pattern src",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\" \"examples/**/*.ts\"",

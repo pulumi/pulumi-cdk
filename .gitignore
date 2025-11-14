@@ -123,3 +123,8 @@ lib/
 
 # Emacs
 .dir-locals.el
+
+.p
+import.json
+cdk-to-pulumi
+Pulumi.yaml

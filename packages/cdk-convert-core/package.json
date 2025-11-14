@@ -6,20 +6,6 @@
   "license": "Apache-2.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "exports": {
-    ".": "./lib/index.js",
-    "./package.json": "./package.json",
-    "./assembly": "./lib/assembly/index.js",
-    "./assembly/*": "./lib/assembly/*.js",
-    "./*": "./lib/*.js"
-  },
-  "typesVersions": {
-    "*": {
-      "*": [
-        "lib/*"
-      ]
-    }
-  },
   "scripts": {
     "build": "tsc -b"
   }
