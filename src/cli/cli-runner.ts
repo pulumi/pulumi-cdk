@@ -7,6 +7,7 @@ import {
 import { ProgramIR } from '@pulumi/cdk-convert-core';
 import { serializeProgramIr } from './ir-to-yaml';
 import { postProcessProgramIr, PostProcessOptions } from './ir-post-processor';
+import { ConversionReportBuilder } from './conversion-report';
 
 export const DEFAULT_OUTPUT_FILE = 'Pulumi.yaml';
 
@@ -86,10 +87,12 @@ export function parseArguments(argv: string[]): CliOptions {
 }
 
 export function runCliWithOptions(options: CliOptions): void {
+    const reportBuilder = options.reportFile ? new ConversionReportBuilder() : undefined;
     const program = loadProgramIr(
         options.assemblyDir,
         {
             skipCustomResources: options.skipCustomResources,
+            reportCollector: reportBuilder,
         },
         options.stackFilters,
         options.stage,
@@ -98,6 +101,11 @@ export function runCliWithOptions(options: CliOptions): void {
     const targetDir = path.dirname(options.outFile);
     fs.ensureDirSync(targetDir);
     fs.writeFileSync(options.outFile, yaml);
+    if (options.reportFile && reportBuilder) {
+        const reportDir = path.dirname(options.reportFile);
+        fs.ensureDirSync(reportDir);
+        fs.writeFileSync(options.reportFile, JSON.stringify(reportBuilder.build(), null, 2));
+    }
 }
 
 export function runCli(argv: string[], logger: Pick<Console, 'log' | 'error'> = console): number {

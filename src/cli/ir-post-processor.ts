@@ -8,9 +8,11 @@ import {
     PropertyValue,
     ResourceAttributeReference,
 } from '@pulumi/cdk-convert-core';
+import { ConversionReportCollector } from './conversion-report';
 
 export interface PostProcessOptions {
     skipCustomResources?: boolean;
+    reportCollector?: ConversionReportCollector;
 }
 
 interface BootstrapBucketRef {
@@ -23,10 +25,15 @@ export function postProcessProgramIr(program: ProgramIR, options: PostProcessOpt
     const bootstrapBucket = options.skipCustomResources ? undefined : findBootstrapBucket(program);
     return {
         ...program,
-        stacks: program.stacks.map((stack) => ({
-            ...stack,
-            resources: rewriteResources(stack, bootstrapBucket, options),
-        })),
+        stacks: program.stacks.map((stack) => {
+            options.reportCollector?.stackStarted(stack);
+            const resources = rewriteResources(stack, bootstrapBucket, options);
+            options.reportCollector?.stackFinished(stack, resources.length);
+            return {
+                ...stack,
+                resources,
+            };
+        }),
     };
 }
 
@@ -35,34 +42,45 @@ function rewriteResources(
     bootstrapBucket: BootstrapBucketRef | undefined,
     options: PostProcessOptions = {},
 ): ResourceIR[] {
+    const collector = options.reportCollector;
     const rewritten: ResourceIR[] = [];
     for (const resource of stack.resources) {
         if (resource.cfnType === 'AWS::CDK::Metadata') {
+            collector?.resourceSkipped(stack, resource, 'cdkMetadata');
             continue;
         }
 
         if (resource.cfnType === 'AWS::ApiGatewayV2::Stage') {
-            rewritten.push(convertApiGatewayV2Stage(resource));
+            const converted = convertApiGatewayV2Stage(resource);
+            recordConversionArtifacts(collector, stack, resource, [converted]);
+            rewritten.push(converted);
             continue;
         }
 
         if (resource.cfnType === 'AWS::ServiceDiscovery::Service') {
-            rewritten.push(convertServiceDiscoveryService(resource));
+            const converted = convertServiceDiscoveryService(resource);
+            recordConversionArtifacts(collector, stack, resource, [converted]);
+            rewritten.push(converted);
             continue;
         }
 
         if (resource.cfnType === 'AWS::ServiceDiscovery::PrivateDnsNamespace') {
-            rewritten.push(convertServiceDiscoveryPrivateDnsNamespace(resource));
+            const converted = convertServiceDiscoveryPrivateDnsNamespace(resource);
+            recordConversionArtifacts(collector, stack, resource, [converted]);
+            rewritten.push(converted);
             continue;
         }
 
         if (resource.cfnType === 'AWS::IAM::Policy') {
-            rewritten.push(...convertIamPolicy(resource, stack.stackPath));
+            const converted = convertIamPolicy(resource, stack.stackPath);
+            recordConversionArtifacts(collector, stack, resource, converted);
+            rewritten.push(...converted);
             continue;
         }
 
         if (isCustomResource(resource)) {
             if (options.skipCustomResources) {
+                collector?.resourceSkipped(stack, resource, 'customResourceFiltered');
                 continue;
             }
             if (!bootstrapBucket) {
@@ -78,6 +96,26 @@ function rewriteResources(
     }
 
     return rewritten;
+}
+
+function recordConversionArtifacts(
+    collector: ConversionReportCollector | undefined,
+    stack: StackIR,
+    source: ResourceIR,
+    produced: ResourceIR[],
+) {
+    if (!collector) {
+        return;
+    }
+    const classicTargets = Array.from(
+        new Set(produced.filter((result) => result.typeToken.startsWith('aws:')).map((result) => result.typeToken)),
+    );
+    if (classicTargets.length > 0) {
+        collector.classicConversion(stack, source, classicTargets);
+    }
+    if (produced.length > 1) {
+        collector.fanOut(stack, source, produced);
+    }
 }
 
 function convertApiGatewayV2Stage(resource: ResourceIR): ResourceIR {

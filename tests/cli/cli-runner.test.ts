@@ -113,7 +113,7 @@ describe('parseArguments', () => {
 });
 
 describe('runCliWithOptions', () => {
-    test('loads program IR and writes YAML', () => {
+    test('loads program IR and writes YAML plus report', () => {
         mockedConvert.mockReturnValue({ stacks: [] });
         mockedSerialize.mockReturnValue('name: cdk');
 
@@ -123,12 +123,16 @@ describe('runCliWithOptions', () => {
             skipCustomResources: false,
             stackFilters: [],
             stage: undefined,
+            reportFile: '/tmp/out/pulumi.yaml.report.json',
         });
 
         expect(mockedConvert).toHaveBeenCalledWith('/app/cdk.out', undefined);
         expect(mockedSerialize).toHaveBeenCalledWith({ stacks: [] });
-        expect(mockedFs.ensureDirSync).toHaveBeenCalledWith('/tmp/out');
-        expect(mockedFs.writeFileSync).toHaveBeenCalledWith('/tmp/out/pulumi.yaml', 'name: cdk');
+        expect(mockedFs.ensureDirSync).toHaveBeenNthCalledWith(1, '/tmp/out');
+        expect(mockedFs.writeFileSync).toHaveBeenNthCalledWith(1, '/tmp/out/pulumi.yaml', 'name: cdk');
+        expect(mockedFs.ensureDirSync).toHaveBeenNthCalledWith(2, '/tmp/out');
+        expect(mockedFs.writeFileSync.mock.calls[1][0]).toBe('/tmp/out/pulumi.yaml.report.json');
+        expect(mockedFs.writeFileSync.mock.calls[1][1]).toContain('"stacks"');
     });
 
     test('filters stacks before post-processing', () => {
@@ -147,6 +151,7 @@ describe('runCliWithOptions', () => {
             skipCustomResources: false,
             stackFilters: ['StackB'],
             stage: undefined,
+            reportFile: undefined,
         });
 
         const passedSet = mockedConvert.mock.calls[0][1] as Set<string>;
@@ -156,7 +161,7 @@ describe('runCliWithOptions', () => {
             {
                 stacks: [{ stackId: 'StackB', stackPath: 'StackB', resources: [] }],
             },
-            { skipCustomResources: false },
+            { skipCustomResources: false, reportCollector: undefined },
         );
     });
 
@@ -170,6 +175,7 @@ describe('runCliWithOptions', () => {
                 skipCustomResources: false,
                 stackFilters: ['Missing'],
                 stage: undefined,
+                reportFile: undefined,
             }),
         ).toThrow(/Unknown stack/);
     });
@@ -183,10 +189,28 @@ describe('runCliWithOptions', () => {
             skipCustomResources: false,
             stackFilters: [],
             stage: 'DevStage',
+            reportFile: undefined,
         });
 
         expect(mockedConvert).not.toHaveBeenCalled();
         expect(mockedConvertStage).toHaveBeenCalledWith('/app/cdk.out', 'DevStage', undefined);
+    });
+
+    test('skips report generation when disabled', () => {
+        mockedConvert.mockReturnValue({ stacks: [] });
+        mockedSerialize.mockReturnValue('name: cdk');
+
+        runCliWithOptions({
+            assemblyDir: '/app/cdk.out',
+            outFile: '/tmp/out/pulumi.yaml',
+            skipCustomResources: false,
+            stackFilters: [],
+            stage: undefined,
+            reportFile: undefined,
+        });
+
+        expect(mockedFs.writeFileSync).toHaveBeenCalledTimes(1);
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith('/tmp/out/pulumi.yaml', 'name: cdk');
     });
 });
 
