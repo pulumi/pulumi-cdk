@@ -57,6 +57,12 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 - [x] Add serializer-focused unit tests that exercise resource naming, options rewriting, intrinsic conversions, and error paths.
 - [ ] Provide minimal documentation (`README` section) describing usage of the CLI and the current assumptions (pre-built assembly, single YAML output).
 
+### Conversion Report
+- [x] Add CLI flags to control report output (default JSON path `<outFile>.report.json`, `--report <path>` override, and `--no-report` to disable) alongside the YAML emission.
+- [ ] Extend the post-processing pipeline to capture per-stack stats while rewriting resources (original CDK resource count, final Pulumi resource count).
+- [ ] Record detailed difference entries: skipped resources with logical ID/type/reason, resources converted to AWS Classic types, and fan-out mappings where a single CFN resource produces multiple Pulumi resources.
+- [ ] Emit the structured report file and cover it with unit tests for the builder plus a CLI smoke test that asserts the JSON is generated.
+
 ### Stage Support
 - [x] Add a `--stage <name>` CLI flag that restricts conversion to a single nested cloud assembly.
   - [x] Accept either the nested assembly artifact ID (e.g., `assembly-DevStage`) or the stage display/name (e.g., `DevStage`).
@@ -127,6 +133,7 @@ Prototype a reusable conversion pipeline that can take an existing AWS CDK appli
 ### Developer Experience
 - [ ] Document repo structure changes and the new workflow in `AGENTS.md` (see instructions there).
 - [ ] Note any follow-up tasks (e.g., extraction into its own repo, GA features, additional resource mappers).
+  - [ ] Ensure CLI serializer resource names are unique per stack so logical ID collisions across stacks (or nested stacks) cannot drop resources in multi-stack assemblies.
 
 ## Notes & Risks
 - Asset handling currently uploads files via Pulumi resources. For the CLI prototype, decide whether to skip uploads (preferable) or stub them out. Document the chosen approach.

@@ -1,18 +1,13 @@
 import {
     convertAssemblyDirectoryToProgramIr,
     convertStageInAssemblyDirectoryToProgramIr,
-} from '@pulumi/cdk-convert-core/assembly';
+} from '@pulumi/cdk-convert-core/src/assembly';
 import { serializeProgramIr } from '../../src/cli/ir-to-yaml';
 import { postProcessProgramIr } from '../../src/cli/ir-post-processor';
 import * as fs from 'fs-extra';
-import {
-    DEFAULT_OUTPUT_FILE,
-    parseArguments,
-    runCliWithOptions,
-    runCli,
-} from '../../src/cli/cli-runner';
+import { DEFAULT_OUTPUT_FILE, parseArguments, runCliWithOptions, runCli } from '../../src/cli/cli-runner';
 
-jest.mock('@pulumi/cdk-convert-core/assembly', () => ({
+jest.mock('@pulumi/cdk-convert-core/src/assembly', () => ({
     convertAssemblyDirectoryToProgramIr: jest.fn(),
     convertStageInAssemblyDirectoryToProgramIr: jest.fn(),
 }));
@@ -53,6 +48,7 @@ describe('parseArguments', () => {
             skipCustomResources: false,
             stackFilters: [],
             stage: undefined,
+            reportFile: `${DEFAULT_OUTPUT_FILE}.report.json`,
         });
     });
 
@@ -67,6 +63,7 @@ describe('parseArguments', () => {
             skipCustomResources: true,
             stackFilters: [],
             stage: undefined,
+            reportFile: `${DEFAULT_OUTPUT_FILE}.report.json`,
         });
     });
 
@@ -77,6 +74,7 @@ describe('parseArguments', () => {
             skipCustomResources: false,
             stackFilters: ['StackA', 'StackB'],
             stage: undefined,
+            reportFile: `${DEFAULT_OUTPUT_FILE}.report.json`,
         });
     });
 
@@ -87,6 +85,29 @@ describe('parseArguments', () => {
             skipCustomResources: false,
             stackFilters: [],
             stage: 'DevStage',
+            reportFile: `${DEFAULT_OUTPUT_FILE}.report.json`,
+        });
+    });
+
+    test('overrides report path', () => {
+        expect(parseArguments(['--assembly', './cdk.out', '--out', 'foo.yaml', '--report', 'foo.json'])).toEqual({
+            assemblyDir: './cdk.out',
+            outFile: 'foo.yaml',
+            skipCustomResources: false,
+            stackFilters: [],
+            stage: undefined,
+            reportFile: 'foo.json',
+        });
+    });
+
+    test('disables reports when requested', () => {
+        expect(parseArguments(['--assembly', './cdk.out', '--no-report'])).toEqual({
+            assemblyDir: './cdk.out',
+            outFile: DEFAULT_OUTPUT_FILE,
+            skipCustomResources: false,
+            stackFilters: [],
+            stage: undefined,
+            reportFile: undefined,
         });
     });
 });

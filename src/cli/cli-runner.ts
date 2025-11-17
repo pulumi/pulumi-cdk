@@ -16,6 +16,7 @@ export interface CliOptions {
     skipCustomResources: boolean;
     stackFilters: string[];
     stage?: string;
+    reportFile?: string;
 }
 
 class CliError extends Error {}
@@ -26,6 +27,8 @@ export function parseArguments(argv: string[]): CliOptions {
     let skipCustomResources = false;
     const stackFilters: string[] = [];
     let stage: string | undefined;
+    let reportFile: string | undefined;
+    let disableReport = false;
 
     for (let i = 0; i < argv.length; i++) {
         const arg = argv[i];
@@ -47,6 +50,12 @@ export function parseArguments(argv: string[]): CliOptions {
             case '--stage':
                 stage = requireValue(arg, argv[++i]);
                 break;
+            case '--report':
+                reportFile = requireValue(arg, argv[++i]);
+                break;
+            case '--no-report':
+                disableReport = true;
+                break;
             case '--help':
             case '-h':
                 throw new CliError(usage());
@@ -59,12 +68,20 @@ export function parseArguments(argv: string[]): CliOptions {
         throw new CliError(`Missing required option --assembly\n${usage()}`);
     }
 
+    if (disableReport && reportFile) {
+        throw new CliError('Cannot specify --report when --no-report is provided');
+    }
+
+    const targetOutFile = outFile ?? DEFAULT_OUTPUT_FILE;
+    const resolvedReport = disableReport ? undefined : reportFile ?? `${targetOutFile}.report.json`;
+
     return {
         assemblyDir,
-        outFile: outFile ?? DEFAULT_OUTPUT_FILE,
+        outFile: targetOutFile,
         skipCustomResources,
         stackFilters,
         stage,
+        reportFile: resolvedReport,
     };
 }
 
@@ -92,6 +109,7 @@ export function runCli(argv: string[], logger: Pick<Console, 'log' | 'error'> = 
             skipCustomResources: options.skipCustomResources,
             stackFilters: options.stackFilters,
             stage: options.stage,
+            reportFile: options.reportFile ? path.resolve(options.reportFile) : undefined,
         };
         runCliWithOptions(resolved);
         logger.log(`Wrote Pulumi YAML to ${resolved.outFile}`);
@@ -137,7 +155,7 @@ function requireValue(flag: string, value: string | undefined): string {
 }
 
 function usage(): string {
-    return 'Usage: cdk-to-pulumi --assembly <cdk.out> [--stage <name>] [--out <pulumi.yaml>] [--skip-custom] [--stacks <name1,name2>]';
+    return 'Usage: cdk-to-pulumi --assembly <cdk.out> [--stage <name>] [--out <pulumi.yaml>] [--skip-custom] [--stacks <name1,name2>] [--report <path>] [--no-report]';
 }
 
 function parseList(value: string): string[] {
