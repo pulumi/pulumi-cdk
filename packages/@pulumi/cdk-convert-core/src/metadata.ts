@@ -1,9 +1,8 @@
-import * as path from 'path';
 import { toSdkName, typeToken } from './naming';
 import { PulumiProvider } from './providers';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pulumiMetadata = require(path.join(__dirname, '../schemas/aws-native-metadata.json'));
+const pulumiMetadata = require('../schemas/aws-native-metadata.json');
 
 export class UnknownCfnType extends Error {
     constructor(cfnType: string) {
