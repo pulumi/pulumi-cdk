@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "outDir": "lib",
+    "rootDir": "src",
+    "strict": true,
+    "target": "es2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    // "baseUrl": "."
+    // "paths": {
+    //   "@pulumi/cdk-convert-core": [
+    //     "packages/@pulumi/cdk-convert-core/src/index.ts"
+    //   ],
+    //   "@pulumi/cdk-convert-core/*": [
+    //     "packages/@pulumi/cdk-convert-core/src/*.ts"
+    //   ]
+    // },
+    "declaration": true,
+    "sourceMap": true,
+    "stripInternal": true,
+    "experimentalDecorators": true,
+    "pretty": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true,
+    "composite": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "references": [
+    { "path": "packages/@pulumi/cdk-convert-core" }
+  ]
+}

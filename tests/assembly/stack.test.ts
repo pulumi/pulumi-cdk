@@ -1,4 +1,4 @@
-import { StackManifest } from '../../src/assembly';
+import { StackManifest } from '@pulumi/cdk-convert-core/assembly';
 
 describe('StackManifest', () => {
     test('Throws if template has no resources', () => {

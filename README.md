@@ -989,6 +989,48 @@ Pulumi CDK does not support native cross stack references. Instead, you can
 convert a value to a Pulumi Output in order to reference the value in a separate
 stack.
 
+## CDK-to-Pulumi CLI Prototype
+
+This repo also ships an experimental CLI named `cdk-to-pulumi` that converts an already synthesized CDK assembly (a `cdk.out` folder) into a Pulumi YAML program.
+
+### Running the CLI
+
+1. Make sure you have synthesized your CDK app (for example, by running `cdk synth` so that `cdk.out/` exists).
+2. From the repo root, run either the Node-based entrypoint or the bundled binary:
+
+```bash
+# From source
+npx ts-node src/cli/cli-runner.ts --assembly ./cdk.out --out dist/Pulumi.yaml
+
+# Or using the bin script
+./bin/cdk-to-pulumi --assembly ./cdk.out --out dist/Pulumi.yaml
+```
+
+Important flags:
+
+- `--assembly <path>`: Required. Points at the CDK `cdk.out` directory (or nested stage directory when used with `--stage`).
+- `--out <file>`: Pulumi YAML destination. Defaults to `Pulumi.yaml` in the current directory.
+- `--report <file>` / `--no-report`: Controls the conversion report JSON output. By default the CLI writes `<outFile>.report.json` next to the YAML. Use `--no-report` to disable or `--report` to override the path.
+- `--stage <name>`: Restrict conversion to a single nested cloud assembly/stage.
+- `--stacks <name1,name2>`: Only emit the listed stack artifacts.
+- `--skip-custom`: Drop CloudFormation custom resources that would otherwise require the CDK bootstrap bucket emulator.
+
+The CLI writes both the Pulumi YAML and, unless disabled, a structured report describing what happened during conversion. The report captures:
+
+- Per-stack counts (original CFN resource count vs emitted Pulumi resources).
+- Each skipped resource (logical ID, type, and reason).
+- Cases where we fell back to AWS Classic providers.
+- Fan-out rewrites where a single CFN resource expands into multiple Pulumi resources (for example IAM policy attachments).
+
+### Tests
+
+The targeted Jest suites for the CLI live under `tests/cli/`. When updating the CLI or conversion report, run the focused suites:
+
+```bash
+npm test -- cli-runner
+npm test -- conversion-report
+```
+
 ## API
 
 See [API Docs](./api-docs/README.md) for more details.
@@ -1000,15 +1042,15 @@ See [API Docs](./api-docs/README.md) for more details.
 Install dependencies, build library, and link for local usage.
 
 ```sh
-$ yarn install
-$ yarn build
-$ yarn link
+$ npm install
+$ npm run build
+$ npm link
 ```
 
 Run unit test:
 
 ```sh
-$ yarn test
+$ npm test
 
   Basic tests
     ✔ Checking single resource registration (124ms)
@@ -1027,6 +1069,5 @@ $ yarn test
 Run Pulumi examples:
 
 ```
-$ yarn test-examples
+$ npm run test-examples
 ```
-

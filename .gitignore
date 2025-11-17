@@ -115,7 +115,7 @@ dist
 test-reports/
 lib/
 
-**/cdk.out
+**/cdk*.out
 **/cdk.context.json
 
 # direnv
@@ -123,3 +123,9 @@ lib/
 
 # Emacs
 .dir-locals.el
+
+.p
+import.json
+cdk-to-pulumi
+Pulumi.yaml
+Pulumi-*.yaml

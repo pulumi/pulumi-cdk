@@ -1,4 +1,3 @@
-import { normalize } from '../src/interop';
 import * as pulumi from '@pulumi/pulumi';
 
 beforeEach(() => {
@@ -9,7 +8,7 @@ describe('normalize', () => {
     test('resource not in metadata', () => {
         // GIVEN
         jest.mock(
-            '../schemas/aws-native-metadata.json',
+            '../packages/cdk-convert-core/schemas/aws-native-metadata.json',
             () => {
                 return {
                     types: {},
@@ -18,6 +17,7 @@ describe('normalize', () => {
             },
             { virtual: true },
         );
+        const { normalize } = require('../src/interop');
         // WHEN
         const normalized = normalize(
             {
@@ -39,7 +39,7 @@ describe('normalize', () => {
     test('resource in metadata with json values', () => {
         // GIVEN
         jest.mock(
-            '../schemas/aws-native-metadata.json',
+            '../packages/cdk-convert-core/schemas/aws-native-metadata.json',
             () => {
                 return {
                     types: {
@@ -81,6 +81,7 @@ describe('normalize', () => {
             { virtual: true },
         );
 
+        const { normalize } = require('../src/interop');
         // WHEN
         const normalized = normalize(
             {
@@ -106,7 +107,7 @@ describe('normalize', () => {
     test('resource in metadata with additionalProperties values', () => {
         // GIVEN
         jest.mock(
-            '../schemas/aws-native-metadata.json',
+            '../packages/cdk-convert-core/schemas/aws-native-metadata.json',
             () => {
                 return {
                     types: {
@@ -161,6 +162,7 @@ describe('normalize', () => {
             },
             { virtual: true },
         );
+        const { normalize } = require('../src/interop');
         // WHEN
         const normalized = normalize(
             {
@@ -201,7 +203,7 @@ describe('normalize', () => {
     test('resource in metadata with additionalProperties nested $ref values', () => {
         // GIVEN
         jest.mock(
-            '../schemas/aws-native-metadata.json',
+            '../packages/cdk-convert-core/schemas/aws-native-metadata.json',
             () => {
                 return {
                     types: {
@@ -251,6 +253,7 @@ describe('normalize', () => {
             },
             { virtual: true },
         );
+        const { normalize } = require('../src/interop');
         // WHEN
         const normalized = normalize(
             {
@@ -284,7 +287,7 @@ describe('normalize', () => {
     test('resource in metadata with additionalProperties nested json values', () => {
         // GIVEN
         jest.mock(
-            '../schemas/aws-native-metadata.json',
+            '../packages/cdk-convert-core/schemas/aws-native-metadata.json',
             () => {
                 return {
                     types: {
@@ -315,6 +318,7 @@ describe('normalize', () => {
             },
             { virtual: true },
         );
+        const { normalize } = require('../src/interop');
         // WHEN
         const normalized = normalize(
             {
@@ -342,6 +346,7 @@ describe('normalize', () => {
     });
 
     test('normalize changes the case of nested properties through an Output eventual type', async () => {
+        const { normalize } = require('../src/interop');
         const normalized = normalize({
             'StreamEncryption': pulumi.output({
                 EncryptionType: 'KMS',

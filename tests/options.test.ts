@@ -1,6 +1,6 @@
 import * as native from '@pulumi/aws-native';
 import * as pulumi from '@pulumi/pulumi';
-import { StackManifest } from '../src/assembly';
+import { StackManifest } from '@pulumi/cdk-convert-core/assembly';
 import { StackConverter } from '../src/converters/app-converter';
 import { MockAppComponent } from './mocks';
 import { CfnDeletionPolicy } from 'aws-cdk-lib';

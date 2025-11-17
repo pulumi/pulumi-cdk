@@ -1,5 +1,5 @@
-import { StackManifest } from '../src/assembly';
-import { CloudFormationMapping } from '../src/cfn';
+import { StackManifest } from '@pulumi/cdk-convert-core/assembly';
+import { CloudFormationMapping } from '@pulumi/cdk-convert-core/cfn';
 
 export interface CreateStackManifestProps {
     resource1Props?: any;

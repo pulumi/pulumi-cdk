@@ -6,11 +6,11 @@ import {
     PulumiProperty,
     PulumiType,
     UnknownCfnType,
-} from '../src/pulumi-metadata';
-import { PulumiProvider } from '../src/types';
+} from '@pulumi/cdk-convert-core/metadata';
+import { PulumiProvider } from '@pulumi/cdk-convert-core/providers';
 
 jest.mock(
-    '../schemas/aws-native-metadata.json',
+    '../packages/cdk-convert-core/schemas/aws-native-metadata.json',
     () => {
         return {
             types: {

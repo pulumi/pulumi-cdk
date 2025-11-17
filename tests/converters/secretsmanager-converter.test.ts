@@ -3,7 +3,7 @@ import { StackConverter } from '../../src/converters/app-converter';
 import { parseDynamicSecretReference, parseDynamicValue } from '../../src/converters/dynamic-references';
 import * as native from '@pulumi/aws-native';
 import { MockAppComponent, promiseOf, setMocks } from '../mocks';
-import { StackManifest } from '../../src/assembly';
+import { StackManifest } from '@pulumi/cdk-convert-core/assembly';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 
 let resources: MockResourceArgs[] = [];

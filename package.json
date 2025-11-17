@@ -7,6 +7,7 @@
     "url": "git+https://github.com/pulumi/pulumi-cdk.git"
   },
   "license": "Apache-2.0",
+  "packageManager": "npm@10.9.3",
   "main": "lib/index.js",
   "bugs": {
     "url": "https://github.com/pulumi/pulumi-cdk/issues"
@@ -14,6 +15,9 @@
   "homepage": "https://github.com/pulumi/pulumi-cdk#readme",
   "engines": {
     "node": ">=8.13.0 || >=10.10.0"
+  },
+  "bin": {
+    "cdk-to-pulumi": "./bin/cdk-to-pulumi"
   },
   "--": {
     "resolutions-notes": {
@@ -25,19 +29,23 @@
     "wrap-ansi": "7.0.0",
     "string-width": "4.1.0"
   },
+  "workspaces": [
+    "packages/@pulumi/cdk-convert-core"
+  ],
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
     "@pulumi/aws": "6.81.0",
-    "@pulumi/aws-native": "1.28.0",
+    "@pulumi/aws-native": "1.38.0",
     "@pulumi/docker": "4.7.0",
     "@pulumi/docker-build": "0.0.13",
     "@pulumi/pulumi": "3.172.0",
     "@types/archiver": "^6.0.2",
     "@types/fs-extra": "^11.0.4",
+    "@types/glob": "^8.1.0",
     "@types/jest": "^29.5.2",
     "@types/mock-fs": "^4.13.4",
     "@types/node": "^20.12.13",
-    "aws-cdk-lib": "2.197.0",
+    "aws-cdk-lib": "2.223.0",
     "constructs": "10.3.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
@@ -48,10 +56,10 @@
     "prettier": "^2.6.2",
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typedoc": "^0.26.11",
     "typedoc-plugin-markdown": "^4.2.10",
     "typescript": "^5.4.5",
-    "@types/glob": "^8.1.0",
     "typescript-eslint": "^7.16.1"
   },
   "peerDependencies": {
@@ -63,30 +71,35 @@
     "constructs": "^10.0.111"
   },
   "dependencies": {
-    "@aws-cdk/cli-lib-alpha": "2.1016.1-alpha.0",
+    "@aws-cdk/toolkit-lib": "1.10.0",
+    "@pulumi/cdk-convert-core": "0.0.0",
     "archiver": "^7.0.1",
     "cdk-assets": "^2.154.8",
     "fast-deep-equal": "^3.1.3",
-    "fs-extra": "^11.2.0"
+    "fs-extra": "^11.2.0",
+    "yaml": "^2.8.1"
   },
   "scripts": {
     "set-version": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",
-    "build": "tsc --build && yarn docs && yarn format && yarn lint",
+    "build": "tsc && npm run docs && npm run format && npm run lint",
     "watch": "tsc --build --watch",
+    "package:prepare": "mkdir -p dist/bin",
+    "package:build:linux:x64": "bun build --compile --minify --sourcemap --target bun-linux-x64 --outfile dist/bin/linux-x64/cdk-to-pulumi src/cli/cli-runner.ts packages/@pulumi/cdk-convert-core/schemas/aws-native-metadata.json",
+    "package:build:linux:arm": "bun build --compile --minify --sourcemap --target bun-linux-arm64 --outfile dist/bin/linux-arm64/cdk-to-pulumi src/cli/cli-runner.ts packages/@pulumi/cdk-convert-core/schemas/aws-native-metadata.json",
+    "build:bun-cli": "node -e \"require('fs').mkdirSync('dist/bin', { recursive: true })\" && bun build --compile --minify --sourcemap --outfile dist/bin/macos/cdk-to-pulumi src/cli/cli-runner.ts packages/@pulumi/cdk-convert-core/schemas/aws-native-metadata.json",
     "docs": "npx typedoc",
     "lint": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --fix --no-error-on-unmatched-pattern src",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\" \"examples/**/*.ts\"",
     "test": "jest --passWithNoTests --updateSnapshot",
     "test:watch": "jest --watch",
-    "test-examples": "yarn link && cd examples && go test -timeout 2h -v ."
+    "test-examples": "npm link && cd examples && go test -timeout 2h -v ."
   },
   "jest": {
     "transform": {
       "^.+\\.ts$": [
         "ts-jest",
         {
-          "isolatedModules": true,
-          "tsconfig": "tsconfig.json"
+          "tsconfig": "tsconfig.dev.json"
         }
       ]
     },

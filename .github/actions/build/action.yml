@@ -11,7 +11,7 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
-        node-version: 18.x
+        node-version: 22.x
         registry-url: https://registry.npmjs.org
     - name: Install Yarn
       shell: bash

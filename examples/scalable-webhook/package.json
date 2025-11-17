@@ -7,7 +7,7 @@
         "@aws-sdk/client-dynamodb": "^3.679.0",
         "@aws-sdk/client-eventbridge": "^3.678.0",
         "@aws-sdk/client-sqs": "^3.679.0",
-        "@pulumi/aws-native": "1.28.0",
+        "@pulumi/aws-native": "1.38.0",
         "@pulumi/cdk": "1.10.0",
         "@pulumi/pulumi": "3.172.0",
         "@types/aws-lambda": "^8.10.145",

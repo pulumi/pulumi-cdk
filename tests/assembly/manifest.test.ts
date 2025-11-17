@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as mockfs from 'mock-fs';
-import { AssemblyManifestReader } from '../../src/assembly';
+import { AssemblyManifestReader } from '@pulumi/cdk-convert-core/assembly';
 
 describe('cloud assembly manifest reader', () => {
     describe('single stack', () => {
@@ -161,6 +161,27 @@ describe('cloud assembly manifest reader', () => {
                 },
                 templatePath: 'test-stack.template.json',
             });
+        });
+    });
+
+    describe('stage assemblies', () => {
+        const fixtureDir = path.join(__dirname, '../test-data/staged-assembly');
+
+        test('loads nested assembly via display name', () => {
+            const manifest = AssemblyManifestReader.fromDirectory(fixtureDir);
+            const stage = manifest.loadNestedAssembly('DevStage');
+
+            expect(stage.stackManifests).toHaveLength(1);
+            const stack = stage.stackManifests[0];
+            expect(stack.id).toEqual('DevStageAppStackABC123');
+            expect(stack.constructTree.path).toEqual('DevStage/AppStack');
+        });
+
+        test('loads nested assembly via artifact id', () => {
+            const manifest = AssemblyManifestReader.fromDirectory(fixtureDir);
+            const stage = manifest.loadNestedAssembly('assembly-DevStage');
+
+            expect(stage.stackManifests).toHaveLength(1);
         });
     });
 

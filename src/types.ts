@@ -1,7 +1,9 @@
 import * as pulumi from '@pulumi/pulumi';
 import { Stack, AppProps } from 'aws-cdk-lib/core';
+import type { Mapping as CoreMapping } from '@pulumi/cdk-convert-core';
 import { ResourceMapping } from './interop';
 import { CdkConstruct } from './internal/interop';
+import { PulumiProvider } from '@pulumi/cdk-convert-core/providers';
 
 /**
  * Options for creating a Pulumi CDK App Component
@@ -55,13 +57,7 @@ export interface AppResourceOptions extends pulumi.ComponentResourceOptions {
     appOptions?: AppOptions;
 }
 
-/**
- * The Pulumi provider to read the schema from
- */
-export enum PulumiProvider {
-    // We currently only support aws-native provider resources
-    AWS_NATIVE = 'aws-native',
-}
+export { PulumiProvider };
 
 /**
  * AppComponent is the interface representing the Pulumi CDK App Component Resource
@@ -114,36 +110,7 @@ export interface AppComponent {
 /**
  * Represents a mapping from a CloudFormation resource to a Pulumi resource
  */
-export type Mapping<T extends pulumi.Resource> = {
-    /**
-     * The main resource that is being mapped.
-     * This Pulumi resource will have a `name` that matches the `logicalId`
-     * of the CloudFormation resource
-     */
-    resource: T;
-
-    /**
-     * The CFN Resource type that is being mapped
-     */
-    resourceType: string;
-
-    /**
-     * Other resources that are created as part of the mapping.
-     * For example, the AWS::IAM::Policy resource will also create
-     * aws.RolePolicyAttachment, aws.GroupPolicyAttachment, and aws.UserPolicyAttachment
-     * resources
-     */
-    otherResources?: T[];
-
-    /**
-     * Override the attributes that are available on the mapped resource.
-     * This is useful for when the attributes of the CFN resource do not match
-     * the attributes of the Pulumi resource, e.g. the CFN resource has an attribute
-     * called `resourceArn` and the Pulumi resource has an attribute called `arn`
-     * you would provide { attributes: { resourceArn: mappedResource.arn } }
-     */
-    attributes?: { [name: string]: pulumi.Input<any> };
-};
+export type Mapping<T extends pulumi.Resource> = CoreMapping<T, pulumi.Input<any>>;
 
 export function containsEventuals(v: any): boolean {
     if (typeof v !== 'object') {
@@ -186,8 +153,4 @@ export function getAttributesFromResource(resource: pulumi.Resource): { [key: st
  *
  * @internal
  */
-export class CdkAdapterError extends Error {
-    constructor(message: string) {
-        super(`[CDK Adapter] ${message}`);
-    }
-}
+export { CdkAdapterError } from '@pulumi/cdk-convert-core/errors';

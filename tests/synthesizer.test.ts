@@ -7,6 +7,8 @@ import { asNetworkMode, asPlatforms } from '../src/synthesizer';
 import { NetworkMode, Platform as DockerPlatform } from '@pulumi/docker-build';
 import { DockerImageAsset, Platform, NetworkMode as Network } from 'aws-cdk-lib/aws-ecr-assets';
 
+const flushAsync = () => new Promise((resolve) => setImmediate(resolve));
+
 beforeAll(() => {
     process.env.AWS_REGION = 'us-east-2';
 });
@@ -57,6 +59,7 @@ describe('Synthesizer File Assets', () => {
                 path: path.join(__dirname, 'synthesizer.test.ts'),
             });
         });
+        await flushAsync();
         expect(resources).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
@@ -104,6 +107,7 @@ describe('Synthesizer File Assets', () => {
                 path: path.join(__dirname, 'synthesizer.test.ts'),
             });
         });
+        await flushAsync();
         expect(resources).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
@@ -149,6 +153,7 @@ describe('Synthesizer Docker Assets', () => {
                 assetName: 'test-asset',
             });
         });
+        await flushAsync();
 
         expect(resources).toEqual(
             expect.arrayContaining([
@@ -230,6 +235,7 @@ describe('Synthesizer Docker Assets', () => {
                 },
             });
         });
+        await flushAsync();
 
         expect(resources).toEqual(
             expect.arrayContaining([
@@ -317,6 +323,7 @@ describe('Synthesizer Docker Assets', () => {
                 assetName: 'test-asset',
             });
         });
+        await flushAsync();
         const images = resources.filter((r) => r.type === 'docker-build:index:Image');
         expect(images.length).toEqual(1);
     });
@@ -336,6 +343,7 @@ describe('Synthesizer Docker Assets', () => {
                 assetName: 'test-asset-2',
             });
         });
+        await flushAsync();
         const images = resources.filter((r) => r.type === 'docker-build:index:Image');
         expect(images.length).toEqual(2);
     });

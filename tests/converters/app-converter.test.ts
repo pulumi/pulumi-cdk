@@ -8,7 +8,7 @@ import { BucketPolicy } from '@pulumi/aws-native/s3';
 import { Policy } from '@pulumi/aws/iam';
 import { createStackManifest } from '../utils';
 import { promiseOf, setMocks, MockAppComponent, MockSynth } from '../mocks';
-import { StackManifest, StackManifestProps } from '../../src/assembly';
+import { StackManifest, StackManifestProps } from '@pulumi/cdk-convert-core/assembly';
 import { MockResourceArgs } from '@pulumi/pulumi/runtime';
 import { Stack as CdkStack } from 'aws-cdk-lib/core';
 import { NestedStackConstruct } from '../../src/internal/interop';

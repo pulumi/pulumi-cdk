@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "artifacts": {
+    "DevStageAppStackABC123": {
+      "type": "aws:cloudformation:stack",
+      "environment": "aws://unknown-account/us-east-1",
+      "properties": {
+        "templateFile": "DevStageAppStackABC123.template.json",
+        "validateOnSynth": false
+      },
+      "metadata": {
+        "/DevStage/AppStack/MyBucket/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MyBucket"
+          }
+        ]
+      },
+      "displayName": "DevStage/AppStack"
+    }
+  }
+}

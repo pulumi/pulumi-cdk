@@ -1,5 +1,5 @@
-import { StackMap } from '../src/stack-map';
-import { StackAddress } from '../src/assembly';
+import { StackMap } from '@pulumi/cdk-convert-core/stack-map';
+import { StackAddress } from '@pulumi/cdk-convert-core/assembly';
 
 describe('StackMap', () => {
     let stackMap: StackMap<number>;
