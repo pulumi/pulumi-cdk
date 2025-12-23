@@ -15,6 +15,7 @@ runs:
         cache_save: false
         install: false
     - run: mise plugin install https://github.com/pulumi/vfox-pulumi
+      shell: bash
     - env:
         ESC_ACTION_ENVIRONMENT: github-secrets/${{ github.repository_owner }}-${{ github.event.repository.name }}
         ESC_ACTION_EXPORT_ENVIRONMENT_VARIABLES: "false"
