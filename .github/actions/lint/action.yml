@@ -4,6 +4,14 @@ description: Runs lint
 runs:
   using: "composite"
   steps:
+    # Automatic backend plugin installation isn't working
+    # see https://github.com/jdx/mise/discussions/6678
+    - run: |
+        curl https://mise.run | MISE_VERSION=v2025.12.12 sh
+        echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
+        echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
+        mise plugin install https://github.com/pulumi/vfox-pulumi
+      shell: bash
     - env:
         ESC_ACTION_ENVIRONMENT: github-secrets/${{ github.repository_owner }}-${{ github.event.repository.name }}
         ESC_ACTION_EXPORT_ENVIRONMENT_VARIABLES: "false"

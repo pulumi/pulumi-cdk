@@ -4,6 +4,8 @@ description: Runs build
 runs:
   using: "composite"
   steps:
+    # Automatic backend plugin installation isn't working
+    # see https://github.com/jdx/mise/discussions/6678
     - run: |
         curl https://mise.run | MISE_VERSION=v2025.12.12 sh
         echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
