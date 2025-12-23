@@ -4,18 +4,11 @@ description: Runs build
 runs:
   using: "composite"
   steps:
-    - name: Install mise
-      uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3
-      env:
-        MISE_FETCH_REMOTE_VERSIONS_TIMEOUT: 30s
-      with:
-        version: 2025.12.12
-        github_token: ${{ steps.app-auth.outputs.token }}
-        # only saving the cache in the prerequisites job
-        cache_save: false
-        install: false
-    - run: mise plugin install https://github.com/pulumi/vfox-pulumi
-      shell: bash
+    - run: |
+        curl https://mise.run | MISE_VERSION=v2025.12.12 sh
+        echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
+        echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
+        mise plugin install https://github.com/pulumi/vfox-pulumi
     - env:
         ESC_ACTION_ENVIRONMENT: github-secrets/${{ github.repository_owner }}-${{ github.event.repository.name }}
         ESC_ACTION_EXPORT_ENVIRONMENT_VARIABLES: "false"
