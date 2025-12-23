@@ -1,40 +1,12 @@
 permissions: write-all # Equivalent to default permissions plus id-token: write
 env:
   AWS_REGION: us-east-2
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   PULUMI_API: https://api.pulumi-staging.io
-  ESC_ACTION_OIDC_AUTH: true
-  ESC_ACTION_OIDC_ORGANIZATION: pulumi
-  ESC_ACTION_OIDC_REQUESTED_TOKEN_TYPE: urn:pulumi:token-type:access_token:organization
-  ESC_ACTION_ENVIRONMENT: github-secrets/pulumi-pulumi-cdk
-  ESC_ACTION_EXPORT_ENVIRONMENT_VARIABLES: NODE_AUTH_TOKEN=NPM_TOKEN,NPM_TOKEN,PULUMI_ACCESS_TOKEN,SLACK_WEBHOOK_URL
 jobs:
-  comment-notification:
-    # We only care about adding the result to the PR if it's a repository_dispatch event
-    if: github.event_name == 'repository_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fetch secrets from ESC
-        id: esc-secrets
-        uses: pulumi/esc-action@cf5b30703ffd5ad60cc3a880c09b3a9592b9372d # v1
-      - name: Create URL to the run output
-        id: vars
-        run: echo run-url=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID >> "$GITHUB_OUTPUT"
-      - name: Update with Result
-        uses: peter-evans/create-or-update-comment@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
-          issue-number: ${{ github.event.client_payload.github.payload.issue.number }}
-          body: |
-            Please view the PR build - ${{ steps.vars.outputs.run-url }}
   lint:
     name: Run lint
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch secrets from ESC
-        id: esc-secrets
-        uses: pulumi/esc-action@cf5b30703ffd5ad60cc3a880c09b3a9592b9372d # v1
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: lint
@@ -44,9 +16,6 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch secrets from ESC
-        id: esc-secrets
-        uses: pulumi/esc-action@cf5b30703ffd5ad60cc3a880c09b3a9592b9372d # v1
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: build
@@ -74,13 +43,25 @@ jobs:
     runs-on: ubuntu-latest
     name: sentinel
     steps:
-    - name: Fetch secrets from ESC
+    - env:
+        ESC_ACTION_ENVIRONMENT: github-secrets/${{ github.repository_owner }}-${{ github.event.repository.name }}
+        ESC_ACTION_EXPORT_ENVIRONMENT_VARIABLES: "false"
+        ESC_ACTION_OIDC_AUTH: "true"
+        ESC_ACTION_OIDC_ORGANIZATION: pulumi
+        ESC_ACTION_OIDC_REQUESTED_TOKEN_TYPE: urn:pulumi:token-type:access_token:organization
       id: esc-secrets
-      uses: pulumi/esc-action@cf5b30703ffd5ad60cc3a880c09b3a9592b9372d # v1
+      name: Fetch secrets from ESC
+      uses: pulumi/esc-action@9eb774255b1a4afb7855678ae8d4a77359da0d9b
+    - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+      id: app-auth
+      with:
+        app-id: ${{ steps.esc-secrets.outputs.PULUMI_PROVIDER_AUTOMATION_APP_ID }}
+        private-key: ${{ steps.esc-secrets.outputs.PULUMI_PROVIDER_AUTOMATION_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
     - name: Mark workflow as successful
       uses: guibranco/github-status-action-v2@0849440ec82c5fa69b2377725b9b7852a3977e76
       with:
-        authToken: ${{ secrets.GITHUB_TOKEN }}
+        authToken: ${{ steps.app-auth.outputs.token }}
         context: Sentinel
         state: success
         description: Sentinel checks passed
