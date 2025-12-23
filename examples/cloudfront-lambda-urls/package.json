@@ -7,7 +7,7 @@
         "@pulumi/aws": "6.81.0",
         "@pulumi/aws-native": "1.28.0",
         "@pulumi/cdk": "1.10.0",
-        "@pulumi/pulumi": "3.172.0",
+        "@pulumi/pulumi": "3.213.0",
         "@types/aws-lambda": "^8.10.145",
         "aws-cdk-lib": "2.197.0",
         "aws-lambda": "^1.0.7",

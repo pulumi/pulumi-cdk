@@ -9,22 +9,20 @@ if [ -z "$DEP" ]; then
 fi
 
 # Update references in examples/
-for e in $(find examples -name package.json | grep -v node_modules);
-do
+for e in $(find examples -name package.json | grep -v node_modules); do
     echo "Updating $e"
     dir=$(dirname $e)
     pushd $dir
-    npx ncu --filter "$DEP" --upgrade
+    npx npm-check-updates --filter "$DEP" --upgrade
     yarn install
     popd
 done
 
-for e in $(find integration -name package.json | grep -v node_modules);
-do
+for e in $(find integration -name package.json | grep -v node_modules); do
     echo "Updating $e"
     dir=$(dirname $e)
     pushd $dir
-    npx ncu --filter "$DEP" --upgrade
+    npx npm-check-updates --filter "$DEP" --upgrade
     yarn install
     popd
 done
