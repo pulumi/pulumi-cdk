@@ -399,6 +399,10 @@ func TestLookupAzs(t *testing.T) {
 func getJSBaseOptions(t *testing.T) integration.ProgramTestOptions {
 	base := getBaseOptions(t)
 	baseJS := base.With(integration.ProgramTestOptions{
+		Env: []string{
+			"CDK_DISABLE_CLI_TELEMETRY=true",
+			"CDK_NOTICES=false",
+		},
 		Dependencies: []string{
 			"@pulumi/cdk",
 		},

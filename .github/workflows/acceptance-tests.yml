@@ -23,30 +23,33 @@ jobs:
       # Needed for pulumictl to calculate version
       - name: Unshallow clone for tags
         run: git fetch --prune --unshallow --tags
-      - name: Install pulumictl
-        uses: jaxxstorm/action-install-gh-release@v1.11.0
+      - env:
+          ESC_ACTION_ENVIRONMENT: github-secrets/${{ github.repository_owner }}-${{ github.event.repository.name }}
+          ESC_ACTION_EXPORT_ENVIRONMENT_VARIABLES: "false"
+          ESC_ACTION_OIDC_AUTH: "true"
+          ESC_ACTION_OIDC_ORGANIZATION: pulumi
+          ESC_ACTION_OIDC_REQUESTED_TOKEN_TYPE: urn:pulumi:token-type:access_token:organization
+        id: esc-secrets
+        name: Fetch secrets from ESC
+        uses: pulumi/esc-action@9eb774255b1a4afb7855678ae8d4a77359da0d9b
+      - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-auth
         with:
-          repo: pulumi/pulumictl
-      - name: Generate Pulumi Access Token
-        uses: pulumi/auth-actions@1c89817aab0c66407723cdef72b05266e7376640 # v1
+          app-id: ${{ steps.esc-secrets.outputs.PULUMI_PROVIDER_AUTOMATION_APP_ID }}
+          private-key: ${{ steps.esc-secrets.outputs.PULUMI_PROVIDER_AUTOMATION_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+      - name: Setup mise
+        uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3
+        env:
+          MISE_FETCH_REMOTE_VERSIONS_TIMEOUT: 30s
         with:
-          organization: pulumi
-          requested-token-type: urn:pulumi:token-type:access_token:organization
+          version: 2025.12.12
+          github_token: ${{ steps.app-auth.outputs.token }}
+          # only saving the cache in the prerequisites job
+          cache_save: false
       - uses: pulumi/esc-action@cf5b30703ffd5ad60cc3a880c09b3a9592b9372d # v1
         with:
           environment: logins/pulumi-ci
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18.x
-          registry-url: https://registry.npmjs.org
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.22.x
-          cache-dependency-path: ./*.sum
-      - name: Install Yarn
-        run: curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.13.0
       - name: Install packages
         run: yarn install --frozen-lockfile
       - name: Run build
@@ -55,8 +58,6 @@ jobs:
         run: yarn link
       - name: set script-shell
         run: yarn config set script-shell /bin/bash
-      - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@latest
       - name: Generate go test Slice
         id: test_split
         uses: hashicorp-forge/go-test-split-action@v2.0.0
