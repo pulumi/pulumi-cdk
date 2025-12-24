@@ -13,7 +13,7 @@ for e in $(find examples -name package.json | grep -v node_modules); do
     echo "Updating $e"
     dir=$(dirname $e)
     pushd $dir
-    npx npm-check-updates --filter "$DEP" --upgrade
+    npx npm-check-updates --filter "$DEP" --upgrade --target minor
     yarn install
     popd
 done
@@ -22,7 +22,7 @@ for e in $(find integration -name package.json | grep -v node_modules); do
     echo "Updating $e"
     dir=$(dirname $e)
     pushd $dir
-    npx npm-check-updates --filter "$DEP" --upgrade
+    npx npm-check-updates --filter "$DEP" --upgrade --target minor
     yarn install
     popd
 done
