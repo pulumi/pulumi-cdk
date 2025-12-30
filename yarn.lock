@@ -53,6 +53,26 @@
     mime "^2"
     minimatch "10.0.1"
 
+"@aws-cdk/cdk-assets-lib@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@aws-cdk/cdk-assets-lib/-/cdk-assets-lib-1.1.0.tgz#bb1d88e3cc42a31b2b80946b1b94813bb9903331"
+  integrity sha512-8s2uNd8eoX3MrAgD0hc0mSmBGlKxfIVGxxh1sn3C5rDc3fNBCT6OyDmVvW8+5B/T6mtXYP4bxFFekNJCzRxZXQ==
+  dependencies:
+    "@aws-cdk/cloud-assembly-schema" ">=49.0.0"
+    "@aws-cdk/cx-api" "^2"
+    "@aws-sdk/client-ecr" "^3"
+    "@aws-sdk/client-s3" "^3"
+    "@aws-sdk/client-secrets-manager" "^3"
+    "@aws-sdk/client-sts" "^3"
+    "@aws-sdk/credential-providers" "^3"
+    "@aws-sdk/lib-storage" "^3"
+    "@smithy/config-resolver" "^4"
+    "@smithy/node-config-provider" "^4"
+    archiver "^7.0.1"
+    glob "^11.1.0"
+    mime "^2"
+    minimatch "10.0.1"
+
 "@aws-cdk/cli-plugin-contract@^2.182.0":
   version "2.182.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/cli-plugin-contract/-/cli-plugin-contract-2.182.0.tgz#5cf3dbde08640955765b75a81ecdfeb68a6330b4"
@@ -66,7 +86,7 @@
     jsonschema "~1.4.1"
     semver "^7.7.2"
 
-"@aws-cdk/cloud-assembly-schema@>=49.2.0":
+"@aws-cdk/cloud-assembly-schema@>=49.0.0", "@aws-cdk/cloud-assembly-schema@>=49.2.0":
   version "49.2.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/cloud-assembly-schema/-/cloud-assembly-schema-49.2.0.tgz#1edcc3e24779b7209badedbde99458c993b6d8f2"
   integrity sha512-+W4pgBKMTbrN1Qlq/nt5NlbnoJiMzNxTbyrke/jsCt2BKy06zKSvQ2vv71eW+fzjrYBohnEDxN7bn/dALtGpNg==
@@ -4122,11 +4142,6 @@ ccount@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/ccount/-/ccount-2.0.1.tgz#17a3bf82302e0870d6da43a01311a8bc02a3ecf5"
   integrity sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==
-
-cdk-assets@^4.3.0:
-  version "4.3.0"
-  resolved "https://registry.yarnpkg.com/cdk-assets/-/cdk-assets-4.3.0.tgz#20a05d54fc1eaed6d66158c887c1e7cca09caebb"
-  integrity sha512-t5nkB19Dq30pzsNPkPqnJNROegaA1KUmNOlDBkJq8fvU811n9Y43EnUFGbT2GGFfsK5IX22JWFY2WruagViWyg==
 
 cdk-from-cfn@^0.248.0:
   version "0.248.0"

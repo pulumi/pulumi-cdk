@@ -1,4 +1,4 @@
-import { DockerImageManifestEntry, FileManifestEntry } from 'cdk-assets';
+import { DockerImageManifestEntry, FileManifestEntry } from '@aws-cdk/cdk-assets-lib';
 import { ConstructInfo as CoreConstructInfo } from 'aws-cdk-lib/core/lib/private/runtime-info';
 
 // Taken from https://github.com/aws/aws-cdk/blob/295a547149795cf224cf2fade9f36b6a7654c8ab/packages/aws-cdk-lib/core/lib/private/tree-metadata.ts#L90
