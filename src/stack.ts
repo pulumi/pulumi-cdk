@@ -23,6 +23,10 @@ import { makeUniqueId } from './cdk-logical-id';
 import * as native from '@pulumi/aws-native';
 import { warn } from '@pulumi/pulumi/log';
 
+function isError(value: unknown): value is Error {
+    return value instanceof Error;
+}
+
 export type AppOutputs = { [outputId: string]: pulumi.Output<any> };
 
 const STACK_SYMBOL = Symbol.for('@pulumi/cdk.Stack');
@@ -200,26 +204,29 @@ export class App extends pulumi.ComponentResource<AppResource> implements AppCom
             // TODO: support lookups https://github.com/pulumi/pulumi-cdk/issues/184
             cachedAssembly = await toolkit.synth(source);
         } catch (e: any) {
-            const message = typeof e.message === 'string' ? e.message : undefined;
-            const missingMatches = message?.match(/Missing context keys:\s*'([^']+)'/);
-            if (ToolkitError.isAssemblyError(e) && missingMatches) {
-                throw new CdkAdapterError(
-                    'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". ' +
-                        'Or set "PULUMI_CDK_EXPERIMENTAL_LOOKUPS" to true. \n' +
-                        'Missing context keys: ' +
-                        missingMatches[1],
-                );
+            // everything that it throws is an instance of `ToolkitError`
+            if (ToolkitError.isToolkitError(e)) {
+                if (e.source === 'toolkit') {
+                    const message = typeof e.message === 'string' ? e.message : undefined;
+                    const missingMatches = message?.match(/Missing context keys:\s*'([^']+)'/);
+                    if (message && message.includes('Context lookups have been disabled')) {
+                        const messageParts = message.split('Context lookups have been disabled. ');
+                        const missingParts = messageParts[1].split('Missing context keys: ');
+                        throw new CdkAdapterError(
+                            'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". ' +
+                                'Or set "PULUMI_CDK_EXPERIMENTAL_LOOKUPS" to true. \n' +
+                                'Missing context keys: ' +
+                                missingParts[1],
+                        );
+                    }
+                }
+                // Sometimes toolkit-lib wraps errors using ToolkitError.withCause which puts the original error
+                // in the `cause` field. If `cause` has an error then we should throw that
+                if (isError(e.cause)) {
+                    throw e.cause;
+                }
             }
-            if (message && message.includes('Context lookups have been disabled')) {
-                const messageParts = message.split('Context lookups have been disabled. ');
-                const missingParts = messageParts[1].split('Missing context keys: ');
-                throw new CdkAdapterError(
-                    'Context lookups have been disabled. Make sure all necessary context is already in "cdk.context.json". ' +
-                        'Or set "PULUMI_CDK_EXPERIMENTAL_LOOKUPS" to true. \n' +
-                        'Missing context keys: ' +
-                        missingParts[1],
-                );
-            }
+            // fallback to just throw the error
             throw e;
         }
 

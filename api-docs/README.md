@@ -73,14 +73,14 @@ export const bucket = app.outputs['bucket'];
 
 ###### Defined in
 
-[stack.ts:102](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L102)
+[stack.ts:106](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L106)
 
 #### Properties
 
 | Property | Modifier | Type | Default value | Description | Defined in |
 | ------ | ------ | ------ | ------ | ------ | ------ |
-| `name` | `readonly` | `string` | `undefined` | The name of the component | [stack.ts:54](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L54) |
-| `outputs` | `public` | `object` | `{}` | The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs. | [stack.ts:60](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L60) |
+| `name` | `readonly` | `string` | `undefined` | The name of the component | [stack.ts:58](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L58) |
+| `outputs` | `public` | `object` | `{}` | The collection of outputs from the AWS CDK Stack represented as Pulumi Outputs. Each CfnOutput defined in the AWS CDK Stack will populate a value in the outputs. | [stack.ts:64](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L64) |
 
 #### Accessors
 
@@ -111,7 +111,7 @@ the CDK Environment configured for the App
 
 ###### Defined in
 
-[stack.ts:152](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L152)
+[stack.ts:156](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L156)
 
 ***
 
@@ -151,7 +151,7 @@ Create and register an AWS CDK stack deployed with Pulumi.
 
 ###### Defined in
 
-[stack.ts:360](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L360)
+[stack.ts:367](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L367)
 
 #### Methods
 
@@ -181,7 +181,7 @@ A Pulumi Output value.
 
 ###### Defined in
 
-[stack.ts:442](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L442)
+[stack.ts:449](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L449)
 
 ## Interfaces
 
@@ -296,7 +296,7 @@ new App('testapp', (scope: App) => {
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| `props?` | `StackProps` | The CDK Stack props | [stack.ts:321](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L321) |
+| `props?` | `StackProps` | The CDK Stack props | [stack.ts:328](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L328) |
 
 ## Type Aliases
 
@@ -310,7 +310,7 @@ new App('testapp', (scope: App) => {
 
 #### Defined in
 
-[stack.ts:26](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L26)
+[stack.ts:30](https://github.com/pulumi/pulumi-cdk/blob/main/src/stack.ts#L30)
 
 ## Functions
 
