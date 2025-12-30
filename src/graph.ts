@@ -17,7 +17,7 @@ import { parseSub } from './sub';
 import { ConstructTree, StackAddress, StackManifest } from './assembly';
 import { CdkAdapterError } from './types';
 import { StackMap } from './stack-map';
-import { Node } from 'aws-cdk-lib/core/lib/private/tree-metadata';
+import { Node } from './assembly/types';
 
 // Represents a value that will be used as the (or part of the) pulumi resource
 // type token
