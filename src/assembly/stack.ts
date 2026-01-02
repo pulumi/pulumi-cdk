@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { DestinationIdentifier, FileManifestEntry } from 'cdk-assets';
+import { DestinationIdentifier, FileManifestEntry } from '@aws-cdk/cdk-assets-lib';
 import { CloudFormationResource, CloudFormationTemplate, NestedStackTemplate } from '../cfn';
 import { ConstructTree, StackAddress, StackMetadata } from './types';
 import { FileAssetPackaging, FileDestination } from 'aws-cdk-lib/cloud-assembly-schema';

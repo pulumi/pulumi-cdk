@@ -1,8 +1,13 @@
 import * as path from 'path';
-import { AssemblyManifest, Manifest, ArtifactType, ArtifactMetadataEntryType } from '@aws-cdk/cloud-assembly-schema';
+import {
+    AssemblyManifest,
+    Manifest,
+    ArtifactType,
+    ArtifactMetadataEntryType,
+    ArtifactManifest,
+} from '@aws-cdk/cloud-assembly-schema';
 import * as fs from 'fs-extra';
 import { CloudFormationResource, CloudFormationTemplate, NestedStackTemplate } from '../cfn';
-import { ArtifactManifest, LogicalIdMetadataEntry } from 'aws-cdk-lib/cloud-assembly-schema';
 import { StackManifest } from './stack';
 import { ConstructTree, StackMetadata } from './types';
 
@@ -194,8 +199,14 @@ export class AssemblyManifestReader {
                         throw new Error(`Failed to determine the stack path for resource at path ${path}`);
                     }
 
+                    const logicalId =
+                        typeof meta.data === 'string' ? meta.data : (meta.data as { logicalId?: string })?.logicalId;
+                    if (!logicalId) {
+                        throw new Error(`Failed to determine logical id for resource at path ${path}`);
+                    }
+
                     metadata[path] = {
-                        id: meta.data as LogicalIdMetadataEntry,
+                        id: logicalId,
                         // Remove the trailing '/' from the stack path again
                         stackPath: stackPath.slice(0, -1),
                     };

@@ -192,8 +192,9 @@ func TestLookupsEnabled(t *testing.T) {
 	err = tester.TestLifeCyclePrepare()
 	assert.NoError(t, err)
 	err = tester.TestLifeCycleInitialize()
-	assert.NoError(t, err)
-	tester.RunPulumiCommand("preview")
+	assert.NoErrorf(t, err, "error initializing")
+	err = tester.RunPulumiCommand("preview")
+	assert.Errorf(t, err, "expected error when running initial preview")
 	assert.Contains(t, output.String(), "Duplicate resource URN")
 
 	err = tester.TestPreviewUpdateAndEdits()

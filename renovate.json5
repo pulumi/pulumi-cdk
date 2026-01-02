@@ -18,24 +18,18 @@
       matchDepTypes: ["peerDependencies"],
     },
     {
-      // Always keep @aws-cdk/cli-lib-alpha up to date
+      // Always keep @aws-cdk/toolkit-lib up to date
       //due to https://github.com/aws/aws-cdk/issues/33338
       matchDatasources: ["npm"],
-      matchPackageNames: ["@aws-cdk/cli-lib-alpha"],
+      matchPackageNames: ["@aws-cdk/toolkit-lib"],
       matchDepTypes: ["dependencies"],
       groupName: "upstream AWS CDK dependencies",
       groupSlug: "cdk",
       // automatically bump these, don't require manual trigger
       dependencyDashboardApproval: false,
-      // renovate can't handle the alpha versioning scheme (it expects major.minor.patch to always be the same)
-      // In this case it is the `-alpha.0` that always stays the same
-      // Here we tell renovate how to read the versioning. The important part
-      // is that we switch the `-alpha.0` to be the `compatibility` part instead of `prerelease`
-      // see https://docs.renovatebot.com/modules/versioning/regex/
-      versioning: "regex:^\\^?(?<major>\\d+)\\.((?<minor>\\d+))\\.((?<patch>\\d+))-(?<compatibility>.*)$",
     },
     {
-      // bump this with cli-lib-alpha so we are testing on the latest cdk version
+      // bump this with toolkit-lib so we are testing on the latest cdk version
       matchDatasources: ["npm"],
       matchPackageNames: ["aws-cdk-lib"],
       matchDepTypes: ["dependencies", "devDependencies"],
