@@ -197,7 +197,13 @@ export class App extends pulumi.ComponentResource<AppResource> implements AppCom
         };
         const source = await toolkit.fromAssemblyBuilder(
             async (builderProps) => this.createAssembly(builderProps.context ?? {}, builderProps.outdir),
-            { lookups },
+            {
+                lookups,
+                outdir: this.appProps?.outdir,
+                loadAssemblyOptions: {
+                    checkVersion: false,
+                },
+            },
         );
         let cachedAssembly: Awaited<ReturnType<typeof toolkit.synth>> | undefined;
         try {
