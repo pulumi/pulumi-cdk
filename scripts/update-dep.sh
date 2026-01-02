@@ -2,10 +2,15 @@
 
 set -euo pipefail
 DEP=$1
+TARGET=$2
 
 if [ -z "$DEP" ]; then
     echo "Usage: ./scripts/update-dep.sh <dependency>"
     exit 1
+fi
+
+if [ -z "$TARGET" ]; then
+    TARGET="minor"
 fi
 
 # Update references in examples/
@@ -13,7 +18,7 @@ for e in $(find examples -name package.json | grep -v node_modules); do
     echo "Updating $e"
     dir=$(dirname $e)
     pushd $dir
-    npx npm-check-updates --filter "$DEP" --upgrade --target minor
+    npx npm-check-updates --filter "$DEP" --upgrade --target $TARGET
     yarn install
     popd
 done
@@ -22,7 +27,7 @@ for e in $(find integration -name package.json | grep -v node_modules); do
     echo "Updating $e"
     dir=$(dirname $e)
     pushd $dir
-    npx npm-check-updates --filter "$DEP" --upgrade --target minor
+    npx npm-check-updates --filter "$DEP" --upgrade --target $TARGET
     yarn install
     popd
 done

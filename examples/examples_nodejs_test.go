@@ -74,7 +74,13 @@ func TestALB(t *testing.T) {
 func TestFargate(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
-			Dir:                    filepath.Join(getCwd(t), "fargate"),
+			Dir:           filepath.Join(getCwd(t), "fargate"),
+			RunUpdateTest: true,
+			// required to run the update test
+			Overrides: map[string]string{
+				"@pulumi/aws": "6.83.2",
+				"@pulumi/cdk": "1.10.0",
+			},
 			RetryFailedSteps:       true, // Workaround for https://github.com/pulumi/pulumi-aws-native/issues/1186
 			Quick:                  false,
 			SkipEmptyPreviewUpdate: false,
@@ -361,6 +367,12 @@ func TestTheBigFan(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "the-big-fan"),
+			// required to run the update test
+			Overrides: map[string]string{
+				"@pulumi/aws": "6.83.2",
+				"@pulumi/cdk": "1.10.0",
+			},
+			RunUpdateTest: true,
 		})
 
 	integration.ProgramTest(t, &test)
