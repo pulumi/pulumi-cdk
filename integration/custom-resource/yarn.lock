@@ -1097,10 +1097,10 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/aws@6.83.2":
-  version "6.83.2"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-6.83.2.tgz#04fefff290083e5e6b787954f63889658119558a"
-  integrity sha512-FggAx+LxANUwD9KPlKy4U8uvVjhR8B6vw+doDq7zP3bRWz7CCCd4sXZT2k/ou0erZN78MTzOXYa1nsN0TBEDJg==
+"@pulumi/aws@7.15.0":
+  version "7.15.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-7.15.0.tgz#f0781ccb888d9056fa8e6f230a7a24dcb6fe1331"
+  integrity sha512-teHcWfllICarutAQq7ix2X5PFaNCXBe+vQmnR6Efnq/PkZcXbVq+6eLmSFkjuYboa3nIb2YUzG9ic34hUmf79Q==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
     mime "^2.0.0"
