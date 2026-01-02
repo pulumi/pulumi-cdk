@@ -65,15 +65,15 @@ describe('Synthesizer File Assets', () => {
                 }),
                 expect.objectContaining({
                     name: 'pulumi-cdk-project-stack-staging',
-                    type: 'aws:s3/bucketV2:BucketV2',
+                    type: 'aws:s3/bucket:Bucket',
                 }),
                 expect.objectContaining({
                     name: 'pulumi-cdk-project-stack-staging-versioning',
-                    type: 'aws:s3/bucketVersioningV2:BucketVersioningV2',
+                    type: 'aws:s3/bucketVersioning:BucketVersioning',
                 }),
                 expect.objectContaining({
                     name: 'pulumi-cdk-project-stack-staging-encryption',
-                    type: 'aws:s3/bucketServerSideEncryptionConfigurationV2:BucketServerSideEncryptionConfigurationV2',
+                    type: 'aws:s3/bucketServerSideEncryptionConfiguration:BucketServerSideEncryptionConfiguration',
                 }),
                 expect.objectContaining({
                     name: 'pulumi-cdk-project-stack-staging-policy',
@@ -81,7 +81,7 @@ describe('Synthesizer File Assets', () => {
                 }),
                 expect.objectContaining({
                     name: 'pulumi-cdk-project-stack-staging-lifecycle',
-                    type: 'aws:s3/bucketLifecycleConfigurationV2:BucketLifecycleConfigurationV2',
+                    type: 'aws:s3/bucketLifecycleConfiguration:BucketLifecycleConfiguration',
                 }),
                 expect.objectContaining({
                     type: 'aws:s3/bucketObjectv2:BucketObjectv2',

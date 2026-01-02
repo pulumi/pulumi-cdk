@@ -75,6 +75,7 @@ func TestFargate(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir:                    filepath.Join(getCwd(t), "fargate"),
+			RunUpdateTest:          true,
 			RetryFailedSteps:       true, // Workaround for https://github.com/pulumi/pulumi-aws-native/issues/1186
 			Quick:                  false,
 			SkipEmptyPreviewUpdate: false,
@@ -360,7 +361,8 @@ func TestStackProvider(t *testing.T) {
 func TestTheBigFan(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
-			Dir: filepath.Join(getCwd(t), "the-big-fan"),
+			Dir:           filepath.Join(getCwd(t), "the-big-fan"),
+			RunUpdateTest: true,
 		})
 
 	integration.ProgramTest(t, &test)

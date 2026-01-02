@@ -157,7 +157,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
     /**
      * The app-scoped, environment-keyed staging bucket.
      */
-    public stagingBucket?: aws.s3.BucketV2;
+    public stagingBucket?: aws.s3.Bucket;
 
     /**
      * The app-scoped, environment-keyed ecr repositories associated with this app.
@@ -315,9 +315,9 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      * Create a S3 Bucket which will be used to store any file assets that are created in the
      * CDK application.
      */
-    private getCreateBucket(): aws.s3.BucketV2 {
+    private getCreateBucket(): aws.s3.Bucket {
         if (!this.stagingBucket) {
-            this.stagingBucket = new aws.s3.BucketV2(
+            this.stagingBucket = new aws.s3.Bucket(
                 this.pulumiBucketLogicalId,
                 {
                     forceDestroy: this.autoDeleteStagingAssets,
@@ -325,10 +325,11 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
                 {
                     retainOnDelete: !this.autoDeleteStagingAssets,
                     parent: this.stagingStack,
+                    aliases: [{ type: 'aws:s3/bucketV2:BucketV2' }],
                 },
             );
 
-            const encryption = new aws.s3.BucketServerSideEncryptionConfigurationV2(
+            const encryption = new aws.s3.BucketServerSideEncryptionConfiguration(
                 `${this.pulumiBucketLogicalId}-encryption`,
                 {
                     bucket: this.stagingBucket.bucket,
@@ -340,11 +341,18 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
                         },
                     ],
                 },
-                { parent: this.stagingStack },
+                {
+                    parent: this.stagingStack,
+                    aliases: [
+                        {
+                            type: 'aws:s3/bucketServerSideEncryptionConfigurationV2:BucketServerSideEncryptionConfigurationV2',
+                        },
+                    ],
+                },
             );
 
             // Many AWS account safety checkers will complain when buckets aren't versioned
-            const versioning = new aws.s3.BucketVersioningV2(
+            const versioning = new aws.s3.BucketVersioning(
                 `${this.pulumiBucketLogicalId}-versioning`,
                 {
                     bucket: this.stagingBucket.bucket,
@@ -352,10 +360,13 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
                         status: 'Enabled',
                     },
                 },
-                { parent: this.stagingStack },
+                {
+                    parent: this.stagingStack,
+                    aliases: [{ type: 'aws:s3/bucketVersioningV2:BucketVersioningV2' }],
+                },
             );
 
-            const lifecycle = new aws.s3.BucketLifecycleConfigurationV2(
+            const lifecycle = new aws.s3.BucketLifecycleConfiguration(
                 `${this.pulumiBucketLogicalId}-lifecycle`,
                 {
                     bucket: this.stagingBucket.bucket,
@@ -379,7 +390,11 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
                         },
                     ],
                 },
-                { parent: this.stagingStack, dependsOn: [versioning] },
+                {
+                    parent: this.stagingStack,
+                    dependsOn: [versioning],
+                    aliases: [{ type: 'aws:s3/bucketLifecycleConfigurationV2:BucketLifecycleConfigurationV2' }],
+                },
             );
 
             // Many AWS account safety checkers will complain when SSL isn't enforced
