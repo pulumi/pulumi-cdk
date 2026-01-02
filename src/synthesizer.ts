@@ -234,7 +234,7 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
     }
 
     private validateAppId(id: string) {
-        const errors = [];
+        const errors: string[] = [];
         if (id.length > 17) {
             errors.push(`appId expected no more than 17 characters but got ${id.length} characters.`);
         }
@@ -547,24 +547,17 @@ export class PulumiSynthesizer extends PulumiSynthesizerBase implements cdk.IReu
      * @returns The registry credentials for the ECR repository
      */
     private getEcrCredentialsOutput(repo: aws.ecr.Repository): docker.types.input.RegistryArgs {
-        const ecrCredentials = aws.ecr.getCredentialsOutput(
+        const authToken = aws.ecr.getAuthorizationTokenOutput(
             {
                 registryId: repo.registryId,
             },
             { parent: this.stagingStack },
         );
-        return ecrCredentials.authorizationToken.apply((token) => {
-            const decodedCredentials = Buffer.from(token, 'base64').toString();
-            const [username, password] = decodedCredentials.split(':');
-            if (!password || !username) {
-                throw new Error('Invalid credentials');
-            }
-            return {
-                address: ecrCredentials.proxyEndpoint,
-                username: username,
-                password: password,
-            };
-        });
+        return {
+            address: authToken.proxyEndpoint,
+            password: authToken.password,
+            username: authToken.userName,
+        };
     }
 
     /**
