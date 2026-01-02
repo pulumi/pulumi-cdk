@@ -131,9 +131,10 @@ export function setMocks(resources?: MockResourceArgs[], overrides?: { [pulumiTy
                               })
                             : 'abcd',
                     };
-                case 'aws:ecr/getCredentials:getCredentials':
+                case 'aws:ecr/getAuthorizationToken:getAuthorizationToken':
                     return {
-                        authorizationToken: btoa('user:password'),
+                        userName: 'user',
+                        password: 'password',
                         proxyEndpoint: 'https://12345678910.dkr.ecr.us-east-1.amazonaws.com',
                     };
                 default:
