@@ -60,7 +60,7 @@ resources and deploy the assets themselves.
 
 | Property | Modifier | Type | Default value | Description | Overrides | Defined in |
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-| `stagingBucket?` | `public` | `BucketV2` | `undefined` | The app-scoped, environment-keyed staging bucket. | - | [synthesizer.ts:160](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L160) |
+| `stagingBucket?` | `public` | `Bucket` | `undefined` | The app-scoped, environment-keyed staging bucket. | - | [synthesizer.ts:160](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L160) |
 | `stagingRepos` | `readonly` | `Record`\<`string`, `Repository`\> | `{}` | The app-scoped, environment-keyed ecr repositories associated with this app. | - | [synthesizer.ts:165](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L165) |
 | `stagingStack` | `readonly` | `CdkConstruct` | `undefined` | The Pulumi ComponentResource wrapper which contains all of the staging resources. This can be added to the `dependsOn` of the main stack to ensure the staging assets are created first | [`PulumiSynthesizerBase`](Namespace.synthesizer.md#pulumisynthesizerbase).`stagingStack` | [synthesizer.ts:155](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L155) |
 
@@ -101,7 +101,7 @@ and custom resource responses.
 
 ###### Defined in
 
-[synthesizer.ts:417](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L417)
+[synthesizer.ts:432](https://github.com/pulumi/pulumi-cdk/blob/main/src/synthesizer.ts#L432)
 
 ***
 
