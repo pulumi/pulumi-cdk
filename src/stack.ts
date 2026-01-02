@@ -214,7 +214,6 @@ export class App extends pulumi.ComponentResource<AppResource> implements AppCom
             if (ToolkitError.isToolkitError(e)) {
                 if (e.source === 'toolkit') {
                     const message = typeof e.message === 'string' ? e.message : undefined;
-                    const missingMatches = message?.match(/Missing context keys:\s*'([^']+)'/);
                     if (message && message.includes('Context lookups have been disabled')) {
                         const messageParts = message.split('Context lookups have been disabled. ');
                         const missingParts = messageParts[1].split('Missing context keys: ');
