@@ -17,7 +17,7 @@ import * as aws from '@pulumi/aws';
 import { AppComponent, AppOptions, AppResourceOptions, CdkAdapterError } from './types';
 import { AppConverter, StackConverter } from './converters/app-converter';
 import { PulumiSynthesizer, PulumiSynthesizerBase } from './synthesizer';
-import { NonInteractiveIoHost, Toolkit, ToolkitError } from '@aws-cdk/toolkit-lib';
+import { CdkAppMultiContext, NonInteractiveIoHost, Toolkit, ToolkitError } from '@aws-cdk/toolkit-lib';
 import { CdkConstruct } from './internal/interop';
 import { makeUniqueId } from './cdk-logical-id';
 import * as native from '@pulumi/aws-native';
@@ -195,9 +195,11 @@ export class App extends pulumi.ComponentResource<AppResource> implements AppCom
             account,
             region,
         };
+        const rootDir = pulumi.runtime.getRootDirectory();
         const source = await toolkit.fromAssemblyBuilder(
             async (builderProps) => this.createAssembly(builderProps.context ?? {}, builderProps.outdir),
             {
+                contextStore: new CdkAppMultiContext(rootDir),
                 lookups,
                 outdir: this.appProps?.outdir,
                 loadAssemblyOptions: {
