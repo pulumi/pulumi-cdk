@@ -1,6 +1,6 @@
 # CDK CLI Library
 
-> NOTE: we have now migrated to the new `toolkit-lib` library, but it is essentially the same as the old `cli-lib-alpha` library
+> NOTE: we have now migrated to the new [toolkit-lib](https://github.com/aws/aws-cdk-cli/blob/main/packages/%40aws-cdk/toolkit-lib/README.md) library, but it is essentially the same as the old `cli-lib-alpha` library
 
 Updating to use the
 [cdk-cli-lib](https://docs.aws.amazon.com/cdk/api/v2/docs/cli-lib-alpha-readme.html#cloud-assembly-directory-producer)
