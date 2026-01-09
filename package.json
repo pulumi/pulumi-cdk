@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
-    "@pulumi/aws": "6.83.2",
+    "@pulumi/aws": "7.15.0",
     "@pulumi/aws-native": "1.46.0",
     "@pulumi/docker": "4.11.0",
     "@pulumi/docker-build": "0.0.15",
@@ -55,7 +55,7 @@
     "typescript-eslint": "^7.16.1"
   },
   "peerDependencies": {
-    "@pulumi/aws": "^6.56.0",
+    "@pulumi/aws": "^7.15.0",
     "@pulumi/aws-native": "^1.7.0",
     "@pulumi/docker": "^4.5.0",
     "@pulumi/pulumi": "^3.136.0",
