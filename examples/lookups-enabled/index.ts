@@ -63,6 +63,7 @@ export class Ec2CdkStack extends pulumicdk.Stack {
 
         new aws_route53.AaaaRecord(this, 'record', {
             zone: hostedZone,
+            recordName: prefix,
             target: aws_route53.RecordTarget.fromAlias(new aws_route53_targets.LoadBalancerTarget(lb)),
         });
 

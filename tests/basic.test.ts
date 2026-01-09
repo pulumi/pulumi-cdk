@@ -25,6 +25,7 @@ import { Construct } from 'constructs';
 
 beforeAll(() => {
     process.env.AWS_REGION = 'us-east-2';
+    process.env.CDK_NOTICES = 'false';
 });
 afterAll(() => {
     process.env.AWS_REGION = undefined;
