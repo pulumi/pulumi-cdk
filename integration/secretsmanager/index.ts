@@ -27,7 +27,7 @@ class SecretsManagerStack extends pulumicdk.Stack {
         new rds.DatabaseInstance(this, 'Instance', {
             vpc,
             engine: rds.DatabaseInstanceEngine.mysql({
-                version: rds.MysqlEngineVersion.VER_8_0_37,
+                version: rds.MysqlEngineVersion.VER_8_0_42,
             }),
             vpcSubnets: vpc.selectSubnets({ subnetType: ec2.SubnetType.PRIVATE_ISOLATED }),
             credentials: rds.Credentials.fromGeneratedSecret('admin'),
