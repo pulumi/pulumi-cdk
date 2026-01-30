@@ -40,7 +40,7 @@
     "@types/node": "^20.12.13",
     "aws-cdk-lib": "2.233.0",
     "constructs": "10.3.0",
-    "eslint": "^8.57.0",
+    "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "jest": "^29.5.0",
     "jest-junit": "^15",
