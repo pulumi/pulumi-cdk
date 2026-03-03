@@ -87,7 +87,7 @@
     "test:update-snapshots": "jest --passWithNoTests --updateSnapshot",
     "test:watch": "jest --watch",
     "test-examples": "yarn link && cd examples && go test -timeout 2h -v .",
-    "verify": "yarn run format:check && yarn run lint:check && yarn run test"
+    "verify": "yarn run build && yarn run format:check && yarn run lint:check && yarn run test"
   },
   "jest": {
     "transform": {
