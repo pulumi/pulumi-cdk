@@ -81,7 +81,10 @@ describe('StackManifest', () => {
     });
 
     test('getNestedStackPath returns correct nested stack path', () => {
-        const nestedStackPath = StackManifest.getNestedStackPath('parent/child.NestedStack/child.NestedStackResource', 'logicalId');
+        const nestedStackPath = StackManifest.getNestedStackPath(
+            'parent/child.NestedStack/child.NestedStackResource',
+            'logicalId',
+        );
         expect(nestedStackPath).toBe('parent/child');
     });
 });

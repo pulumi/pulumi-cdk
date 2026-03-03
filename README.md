@@ -1000,8 +1000,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow.
 Quick local validation:
 
 ```sh
-$ yarn install --frozen-lockfile
-$ yarn run verify
+$ make install
+$ make verify
 ```
 
 Long-running acceptance validation:

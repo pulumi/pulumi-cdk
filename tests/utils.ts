@@ -76,7 +76,10 @@ export function createNestedStackManifest(props: NestedStackManifestProps): Stac
         metadata: {
             'stack/example-bucket/Resource': { stackPath: 'stack', id: 'parent' },
             'stack/example-bucket/Policy/Resource': { stackPath: 'stack', id: 'parentPolicy' },
-            'stack/nested.NestedStack/nested.NestedStackResource': { stackPath: 'stack', id: 'nested.NestedStackResource' },
+            'stack/nested.NestedStack/nested.NestedStackResource': {
+                stackPath: 'stack',
+                id: 'nested.NestedStackResource',
+            },
             'stack/nested/example-bucket/Resource': { stackPath: 'stack/nested', id: 'child' },
             'stack/nested/example-bucket/Policy/Resource': { stackPath: 'stack/nested', id: 'childPolicy' },
             'stack/output-bucket/Resource': { stackPath: 'stack', id: 'output' },
@@ -201,7 +204,7 @@ export function createNestedStackManifest(props: NestedStackManifestProps): Stac
                         version: '2.149.0',
                     },
                 },
-                "nested.NestedStack": {
+                'nested.NestedStack': {
                     id: 'nested.NestedStack',
                     path: 'stack/nested.NestedStack',
                     children: {
@@ -216,7 +219,7 @@ export function createNestedStackManifest(props: NestedStackManifestProps): Stac
                                 version: '2.149.0',
                             },
                         },
-                    }
+                    },
                 },
                 'output-bucket': {
                     id: 'output-bucket',
@@ -280,13 +283,13 @@ export function createNestedStackManifest(props: NestedStackManifestProps): Stac
                         },
                     },
                 },
-                "nested.NestedStackResource": {
+                'nested.NestedStackResource': {
                     Type: 'AWS::CloudFormation::Stack',
                     Properties: props.nestedStackResourceProps,
                 },
                 output: {
                     Type: 'AWS::S3::Bucket',
-                    Properties: props.outputResourceProps
+                    Properties: props.outputResourceProps,
                 },
                 outputPolicy: {
                     Type: 'AWS::S3::BucketPolicy',

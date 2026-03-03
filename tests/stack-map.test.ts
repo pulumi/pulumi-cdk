@@ -54,7 +54,7 @@ describe('StackMap', () => {
         const entries = Array.from(stackMap.entries());
         expect(entries).toEqual([
             [stackAddress1, 1],
-            [stackAddress2, 2]
+            [stackAddress2, 2],
         ]);
     });
 

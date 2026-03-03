@@ -23,38 +23,40 @@ beforeEach(() => {
 });
 
 describe('Custom Resource Mapping', () => {
-    test.each([['Custom::MyCustomResource'], ['AWS::CloudFormation::CustomResource']])('%s',
-        (cfnType) => {
-            // GIVEN
-            const logicalId = 'My-resource';
-            const serviceToken = 'arn:aws:lambda:us-west-2:123456789012:function:my-function';
-            const cfnProps = {
-                ServiceToken: serviceToken,
-                MyProperty: 'my-value',
-            };
-            const bucketName = 'my-bucket';
-            const prefix = 'my-prefix';
+    test.each([['Custom::MyCustomResource'], ['AWS::CloudFormation::CustomResource']])('%s', (cfnType) => {
+        // GIVEN
+        const logicalId = 'My-resource';
+        const serviceToken = 'arn:aws:lambda:us-west-2:123456789012:function:my-function';
+        const cfnProps = {
+            ServiceToken: serviceToken,
+            MyProperty: 'my-value',
+        };
+        const bucketName = 'my-bucket';
+        const prefix = 'my-prefix';
 
-            const stack = {
-                synthesizer: new MockSynth(bucketName, prefix),
-                node: {
-                    id: 'my-stack',
-                }
-            } as unknown as Stack;
+        const stack = {
+            synthesizer: new MockSynth(bucketName, prefix),
+            node: {
+                id: 'my-stack',
+            },
+        } as unknown as Stack;
 
-            // WHEN
-            mapToCustomResource(logicalId, cfnType, cfnProps, {}, stack);
-            // THEN
-            expect(aws.cloudformation.CustomResourceEmulator).toHaveBeenCalledWith(logicalId, {
+        // WHEN
+        mapToCustomResource(logicalId, cfnType, cfnProps, {}, stack);
+        // THEN
+        expect(aws.cloudformation.CustomResourceEmulator).toHaveBeenCalledWith(
+            logicalId,
+            {
                 stackId: stack.node.id,
                 bucketName,
                 bucketKeyPrefix: `${prefix}pulumi/custom-resources/${stack.node.id}/${logicalId}`,
                 serviceToken,
                 resourceType: cfnType,
                 customResourceProperties: cfnProps,
-            }, {});
-        },
-    );
+            },
+            {},
+        );
+    });
 
     test('with timeout', () => {
         // GIVEN
@@ -73,26 +75,30 @@ describe('Custom Resource Mapping', () => {
             synthesizer: new MockSynth(bucketName, prefix),
             node: {
                 id: 'my-stack',
-            }
+            },
         } as unknown as Stack;
 
         // WHEN
         mapToCustomResource(logicalId, cfnType, cfnProps, {}, stack);
         // THEN
-        expect(aws.cloudformation.CustomResourceEmulator).toHaveBeenCalledWith(logicalId, {
-            stackId: stack.node.id,
-            bucketName,
-            bucketKeyPrefix: `${prefix}pulumi/custom-resources/${stack.node.id}/${logicalId}`,
-            serviceToken,
-            resourceType: cfnType,
-            customResourceProperties: cfnProps,
-        }, {
-            customTimeouts: {
-                create: '60s',
-                update: '60s',
-                delete: '60s',
-            }
-        });
+        expect(aws.cloudformation.CustomResourceEmulator).toHaveBeenCalledWith(
+            logicalId,
+            {
+                stackId: stack.node.id,
+                bucketName,
+                bucketKeyPrefix: `${prefix}pulumi/custom-resources/${stack.node.id}/${logicalId}`,
+                serviceToken,
+                resourceType: cfnType,
+                customResourceProperties: cfnProps,
+            },
+            {
+                customTimeouts: {
+                    create: '60s',
+                    update: '60s',
+                    delete: '60s',
+                },
+            },
+        );
     });
 
     test('Wrong Synthesizer', () => {
@@ -109,13 +115,15 @@ describe('Custom Resource Mapping', () => {
             synthesizer: {},
             node: {
                 id: 'my-stack',
-            }
+            },
         } as unknown as Stack;
 
         // WHEN/THEN
         expect(() => {
             mapToCustomResource(logicalId, cfnType, cfnProps, {}, stack);
-        }).toThrow('Synthesizer of stack my-stack does not support custom resources. It must inherit from PulumiSynthesizerBase.');
+        }).toThrow(
+            'Synthesizer of stack my-stack does not support custom resources. It must inherit from PulumiSynthesizerBase.',
+        );
     });
 
     test('Not a CustomResource', () => {
@@ -123,12 +131,11 @@ describe('Custom Resource Mapping', () => {
         const cfnType = 'AWS::S3::Bucket';
         const logicalId = 'My-resource';
 
-
         const stack = {
-            synthesizer: new MockSynth("bucket", "prefix/"),
+            synthesizer: new MockSynth('bucket', 'prefix/'),
             node: {
                 id: 'my-stack',
-            }
+            },
         } as unknown as Stack;
 
         // WHEN
