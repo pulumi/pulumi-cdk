@@ -41,4 +41,4 @@ runs:
       run: yarn install --frozen-lockfile
     - name: Run lint
       shell: bash
-      run: yarn run lint
+      run: yarn run lint:check

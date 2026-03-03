@@ -995,38 +995,17 @@ See [API Docs](./api-docs/README.md) for more details.
 
 ## Contributing
 
-### Building locally
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow.
 
-Install dependencies, build library, and link for local usage.
-
-```sh
-$ yarn install
-$ yarn build
-$ yarn link
-```
-
-Run unit test:
+Quick local validation:
 
 ```sh
-$ yarn test
-
-  Basic tests
-    ✔ Checking single resource registration (124ms)
-    ✔ Supports Output<T> (58ms)
-
-  Graph tests
-    ✔ Test sort for single resource
-    ✔ Test sort for ASG example (56ms)
-    ✔ Test sort for appsvc example
-    ✔ Test sort for apprunner example
-
-
-  6 passing (278ms)
+$ yarn install --frozen-lockfile
+$ yarn run verify
 ```
 
-Run Pulumi examples:
+Long-running acceptance validation:
 
+```sh
+$ yarn run test-examples
 ```
-$ yarn test-examples
-```
-

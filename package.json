@@ -72,14 +72,20 @@
   },
   "scripts": {
     "set-version": "sed -i.bak -e \"s/\\${VERSION}/$(pulumictl get version --language javascript)/g\" package.json && rm package.json.bak",
-    "build": "tsc --build && yarn docs && yarn format && yarn lint",
+    "build": "tsc --build && yarn docs && yarn format && yarn lint:fix",
+    "build:ci": "tsc --build && yarn docs && yarn format:check && yarn lint:check",
     "watch": "tsc --build --watch",
     "docs": "npx typedoc",
-    "lint": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --fix --no-error-on-unmatched-pattern src",
+    "lint": "yarn run lint:check",
+    "lint:check": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --max-warnings=0 --no-error-on-unmatched-pattern src",
+    "lint:fix": "./node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx --fix --no-error-on-unmatched-pattern src",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\" \"examples/**/*.ts\"",
-    "test": "jest --passWithNoTests --updateSnapshot",
+    "format:check": "./node_modules/.bin/prettier --check \"src/**/*.ts\" \"examples/**/*.ts\"",
+    "test": "jest --passWithNoTests",
+    "test:update-snapshots": "jest --passWithNoTests --updateSnapshot",
     "test:watch": "jest --watch",
-    "test-examples": "yarn link && cd examples && go test -timeout 2h -v ."
+    "test-examples": "yarn link && cd examples && go test -timeout 2h -v .",
+    "verify": "yarn run format:check && yarn run lint:check && yarn run test"
   },
   "jest": {
     "transform": {
