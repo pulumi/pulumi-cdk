@@ -3,7 +3,7 @@
 
 ## Validation
 - [ ] `yarn run format:check`
-- [ ] `yarn run lint`
+- [ ] `yarn run lint:check`
 - [ ] `yarn run test`
 - [ ] `yarn run test:fast` (if targeted validation is sufficient for scoped changes)
 - [ ] `yarn run verify`

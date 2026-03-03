@@ -43,8 +43,8 @@ test-update-snapshots: ## Run unit tests and update snapshots
 test-examples: ## Run example/integration acceptance tests
 	yarn run test-examples
 
-verify: format-check lint test ## Fast local verification
-	@echo "verify passed"
+verify: ## Fast local verification
+	yarn run verify
 
 renovate: ## Refresh aws-native metadata using pinned dependency version
 	VERSION=$(shell cat package.json | jq -r '.devDependencies["@pulumi/aws-native"]'); \
