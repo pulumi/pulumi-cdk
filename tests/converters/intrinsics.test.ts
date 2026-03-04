@@ -2,10 +2,7 @@ import * as ccapi from '@pulumi/aws-native';
 import * as aws from '@pulumi/aws';
 import * as pulumi from '@pulumi/pulumi';
 import * as intrinsics from '../../src/converters/intrinsics';
-import {
-    CloudFormationParameter,
-    CloudFormationParameterWithId,
-} from '../../src/cfn';
+import { CloudFormationParameter, CloudFormationParameterWithId } from '../../src/cfn';
 import { Mapping } from '../../src/types';
 import { PulumiResource } from '../../src/pulumi-metadata';
 import { OutputRepr } from '../../src/output-map';
@@ -13,7 +10,7 @@ import { StackAddress } from '../../src/assembly';
 
 describe('Fn::If', () => {
     test('picks true', async () => {
-        const tc = new TestContext({ conditions: { 'test-stack': { MyCondition: true }} });
+        const tc = new TestContext({ conditions: { 'test-stack': { MyCondition: true } } });
         const result = runIntrinsic(intrinsics.fnIf, tc, ['MyCondition', 'yes', 'no'], 'test-stack');
         expect(result).toEqual(ok('yes'));
     });
@@ -37,10 +34,12 @@ describe('Fn::If', () => {
     });
 
     test('picks condition from correct stack', async () => {
-        const tc = new TestContext({ conditions: {
-            'test-stack': { MyCondition: false } ,
-            'nested-stack': { MyCondition: true }
-        }});
+        const tc = new TestContext({
+            conditions: {
+                'test-stack': { MyCondition: false },
+                'nested-stack': { MyCondition: true },
+            },
+        });
         const result = runIntrinsic(intrinsics.fnIf, tc, ['MyCondition', 'yes', 'no'], 'nested-stack');
         expect(result).toEqual(ok('yes'));
     });
@@ -84,10 +83,12 @@ describe('Fn::Or', () => {
     });
 
     test('picks condition from correct stack', async () => {
-        const tc = new TestContext({ conditions: {
-            'test-stack': { MyCondition: false } ,
-            'nested-stack': { MyCondition: true }
-        }});
+        const tc = new TestContext({
+            conditions: {
+                'test-stack': { MyCondition: false },
+                'nested-stack': { MyCondition: true },
+            },
+        });
         const result = runIntrinsic(intrinsics.fnOr, tc, [false, { Condition: 'MyCondition' }], 'nested-stack');
         expect(result).toEqual(ok(true));
     });
@@ -131,10 +132,12 @@ describe('Fn::And', () => {
     });
 
     test('picks condition from correct stack', async () => {
-        const tc = new TestContext({ conditions: {
-            'test-stack': { MyCondition: false } ,
-            'nested-stack': { MyCondition: true }
-        }});
+        const tc = new TestContext({
+            conditions: {
+                'test-stack': { MyCondition: false },
+                'nested-stack': { MyCondition: true },
+            },
+        });
         let result = runIntrinsic(intrinsics.fnAnd, tc, [false, { Condition: 'MyCondition' }], 'nested-stack');
         expect(result).toEqual(ok(false));
         result = runIntrinsic(intrinsics.fnAnd, tc, [true, { Condition: 'MyCondition' }], 'nested-stack');
@@ -174,10 +177,12 @@ describe('Fn::Not', () => {
     });
 
     test('picks condition from correct stack', async () => {
-        const tc = new TestContext({ conditions: {
-            'test-stack': { MyCondition: false } ,
-            'nested-stack': { MyCondition: true }
-        }});
+        const tc = new TestContext({
+            conditions: {
+                'test-stack': { MyCondition: false },
+                'nested-stack': { MyCondition: true },
+            },
+        });
         const result = runIntrinsic(intrinsics.fnNot, tc, [{ Condition: 'MyCondition' }], 'nested-stack');
         expect(result).toEqual(ok(false));
     });
@@ -215,11 +220,18 @@ describe('Fn::Equals', () => {
     });
 
     test('preserves stack path', async () => {
-        const tc = new TestContext({ conditions: {
-            'test-stack': { MyCondition: false } ,
-            'nested-stack': { MyCondition: true }
-        }});
-        const result = runIntrinsic(intrinsics.fnEquals, tc, ['yes', { 'Fn::If': ['MyCondition', 'yes', 'no'] }], 'nested-stack');
+        const tc = new TestContext({
+            conditions: {
+                'test-stack': { MyCondition: false },
+                'nested-stack': { MyCondition: true },
+            },
+        });
+        const result = runIntrinsic(
+            intrinsics.fnEquals,
+            tc,
+            ['yes', { 'Fn::If': ['MyCondition', 'yes', 'no'] }],
+            'nested-stack',
+        );
         expect(result).toEqual(ok(true));
     });
 });
@@ -384,7 +396,9 @@ describe('Ref', () => {
         const tc = new TestContext({});
         const result = runIntrinsic(intrinsics.ref, tc, ['MyParam'], 'test-stack');
         expect(result).toEqual(
-            failed('Ref intrinsic unable to resolve MyParam in stack test-stack: not a known logical resource or parameter reference'),
+            failed(
+                'Ref intrinsic unable to resolve MyParam in stack test-stack: not a known logical resource or parameter reference',
+            ),
         );
     });
 
@@ -397,7 +411,12 @@ describe('Ref', () => {
                 'test-stack': { MyCondition: true },
             },
         });
-        const result = runIntrinsic(intrinsics.ref, tc, [{ 'Fn::If': ['MyCondition', 'MyParam', 'MyParam2'] }], 'test-stack');
+        const result = runIntrinsic(
+            intrinsics.ref,
+            tc,
+            [{ 'Fn::If': ['MyCondition', 'MyParam', 'MyParam2'] }],
+            'test-stack',
+        );
         expect(result).toEqual(ok('MyParamValue'));
     });
 
@@ -438,7 +457,7 @@ describe('Ref', () => {
                 'test-stack': {
                     MyRes: {
                         resource: <any>{
-                            bucketName: "parent-bucket",
+                            bucketName: 'parent-bucket',
                             __pulumiType: (<any>ccapi.s3.Bucket).__pulumiType,
                         },
                         resourceType: 'AWS::S3::Bucket',
@@ -447,7 +466,7 @@ describe('Ref', () => {
                 'nested-stack': {
                     MyRes: {
                         resource: <any>{
-                            bucketName: "nested-bucket",
+                            bucketName: 'nested-bucket',
                             __pulumiType: (<any>ccapi.s3.Bucket).__pulumiType,
                         },
                         resourceType: 'AWS::S3::Bucket',
@@ -469,7 +488,12 @@ describe('Ref', () => {
     });
 });
 
-function runIntrinsic(fn: intrinsics.Intrinsic, tc: TestContext, args: intrinsics.Expression[], stackPath: string): TestResult<any> {
+function runIntrinsic(
+    fn: intrinsics.Intrinsic,
+    tc: TestContext,
+    args: intrinsics.Expression[],
+    stackPath: string,
+): TestResult<any> {
     const result: TestResult<any> = <any>fn.evaluate(tc, args, stackPath);
     return result;
 }

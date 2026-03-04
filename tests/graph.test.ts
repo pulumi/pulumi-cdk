@@ -26,9 +26,15 @@ describe('GraphBuilder', () => {
             metadata: {
                 'stack/example-bucket/Resource': { stackPath: 'stack', id: 'examplebucketC9DFA43E' },
                 'stack/example-bucket/Policy/Resource': { stackPath: 'stack', id: 'examplebucketPolicyE09B485E' },
-                'stack/nested.NestedStack/nested.NestedStackResource': { stackPath: 'stack', id: 'nested.NestedStackResource' },
+                'stack/nested.NestedStack/nested.NestedStackResource': {
+                    stackPath: 'stack',
+                    id: 'nested.NestedStackResource',
+                },
                 'stack/nested/example-bucket/Resource': { stackPath: 'stack/nested', id: 'examplebucketdDE4DBE4F' },
-                'stack/nested/example-bucket/Policy/Resource': { stackPath: 'stack/nested', id: 'examplebucketPolicyC4E3BBE2F' },
+                'stack/nested/example-bucket/Policy/Resource': {
+                    stackPath: 'stack/nested',
+                    id: 'examplebucketPolicyC4E3BBE2F',
+                },
                 'stack/output-bucket/Resource': { stackPath: 'stack', id: 'outputbucketC9DFA43E' },
                 'stack/output-bucket/Policy/Resource': { stackPath: 'stack', id: 'outputbucketPolicyE09B485E' },
             },
@@ -40,16 +46,16 @@ describe('GraphBuilder', () => {
                             Type: 'AWS::S3::Bucket',
                             Properties: {
                                 BucketName: {
-                                    "Fn::Join": [
-                                        "",
+                                    'Fn::Join': [
+                                        '',
                                         [
                                             {
-                                                "Ref": "referencetostackexamplebucketC9DFA43ERef"
+                                                Ref: 'referencetostackexamplebucketC9DFA43ERef',
                                             },
-                                            "-nested"
-                                        ]
-                                    ]
-                                }
+                                            '-nested',
+                                        ],
+                                    ],
+                                },
                             },
                         },
                         examplebucketPolicyC4E3BBE2F: {
@@ -173,7 +179,7 @@ describe('GraphBuilder', () => {
                             version: '2.149.0',
                         },
                     },
-                    "nested.NestedStack": {
+                    'nested.NestedStack': {
                         id: 'nested.NestedStack',
                         path: 'stack/nested.NestedStack',
                         children: {
@@ -188,7 +194,7 @@ describe('GraphBuilder', () => {
                                     version: '2.149.0',
                                 },
                             },
-                        }
+                        },
                     },
                     'output-bucket': {
                         id: 'output-bucket',
@@ -252,33 +258,33 @@ describe('GraphBuilder', () => {
                             },
                         },
                     },
-                    "nested.NestedStackResource": {
+                    'nested.NestedStackResource': {
                         Type: 'AWS::CloudFormation::Stack',
                         Properties: {
                             Parameters: {
                                 referencetostackexamplebucketC9DFA43ERef: {
                                     Ref: 'examplebucketC9DFA43E',
-                                }
-                            }
+                                },
+                            },
                         },
                     },
                     outputbucketC9DFA43E: {
                         Type: 'AWS::S3::Bucket',
                         Properties: {
                             BucketName: {
-                                "Fn::Join": [
-                                    "",
+                                'Fn::Join': [
+                                    '',
                                     [
                                         {
-                                            "Fn::GetAtt": [
-                                                "nested.NestedStackResource",
-                                                "Outputs.stacknestedexamplebucketdDE4DBE4FRef"
-                                            ]
+                                            'Fn::GetAtt': [
+                                                'nested.NestedStackResource',
+                                                'Outputs.stacknestedexamplebucketdDE4DBE4FRef',
+                                            ],
                                         },
-                                        "-output"
-                                    ]
-                                ]
-                            }
+                                        '-output',
+                                    ],
+                                ],
+                            },
                         },
                     },
                     outputbucketPolicyE09B485E: {
@@ -396,8 +402,8 @@ describe('GraphBuilder', () => {
                         Parameters: {
                             referencetostackexamplebucketC9DFA43ERef: {
                                 Ref: 'examplebucketC9DFA43E',
-                            }
-                        }
+                            },
+                        },
                     },
                 },
                 incomingEdges: ['stack/nested/example-bucket', 'stack/output-bucket/Resource'],
@@ -433,16 +439,16 @@ describe('GraphBuilder', () => {
                     Type: 'AWS::S3::Bucket',
                     Properties: {
                         BucketName: {
-                            "Fn::Join": [
-                                "",
+                            'Fn::Join': [
+                                '',
                                 [
                                     {
-                                        "Ref": "referencetostackexamplebucketC9DFA43ERef"
+                                        Ref: 'referencetostackexamplebucketC9DFA43ERef',
                                     },
-                                    "-nested"
-                                ]
-                            ]
-                        }
+                                    '-nested',
+                                ],
+                            ],
+                        },
                     },
                 },
                 incomingEdges: ['stack/nested/example-bucket/Policy/Resource', 'stack/output-bucket/Resource'], // the incoming edge for 'stack/output-bucket/Resource' is the stack output
@@ -500,19 +506,19 @@ describe('GraphBuilder', () => {
                     Type: 'AWS::S3::Bucket',
                     Properties: {
                         BucketName: {
-                            "Fn::Join": [
-                                "",
+                            'Fn::Join': [
+                                '',
                                 [
                                     {
-                                        "Fn::GetAtt": [
-                                            "nested.NestedStackResource",
-                                            "Outputs.stacknestedexamplebucketdDE4DBE4FRef"
-                                        ]
+                                        'Fn::GetAtt': [
+                                            'nested.NestedStackResource',
+                                            'Outputs.stacknestedexamplebucketdDE4DBE4FRef',
+                                        ],
                                     },
-                                    "-output"
-                                ]
-                            ]
-                        }
+                                    '-output',
+                                ],
+                            ],
+                        },
                     },
                 },
                 incomingEdges: ['stack/output-bucket/Policy/Resource'],
@@ -619,7 +625,7 @@ test.each([
             nestedStackResourceProps: {
                 Parameters: {
                     parentRef: { Ref: 'parent' },
-                }
+                },
             },
             nestedStackParameters: {
                 parentRef: {
@@ -628,22 +634,22 @@ test.each([
             },
             nestedResourceProps: {
                 BucketName: {
-                    "Fn::Join": [
-                        "",
+                    'Fn::Join': [
+                        '',
                         [
                             {
-                                "Ref": "parentRef"
+                                Ref: 'parentRef',
                             },
-                            "-nested"
-                        ]
-                    ]
-                }
+                            '-nested',
+                        ],
+                    ],
+                },
             },
         }),
         {
             stackInput: true,
             stackOutput: false,
-        }
+        },
     ],
     [
         'GetAtt stack output',
@@ -657,25 +663,22 @@ test.each([
             },
             outputResourceProps: {
                 BucketName: {
-                    "Fn::Join": [
-                        "",
+                    'Fn::Join': [
+                        '',
                         [
                             {
-                                "Fn::GetAtt": [
-                                    "nested.NestedStackResource",
-                                    "Outputs.nestedStackOutput"
-                                ]
+                                'Fn::GetAtt': ['nested.NestedStackResource', 'Outputs.nestedStackOutput'],
                             },
-                            "-output"
-                        ]
-                    ]
-                }
-            }
+                            '-output',
+                        ],
+                    ],
+                },
+            },
         }),
         {
             stackInput: false,
             stackOutput: true,
-        }
+        },
     ],
     [
         'Ref stack input and GetAtt stack output',
@@ -683,7 +686,7 @@ test.each([
             nestedStackResourceProps: {
                 Parameters: {
                     parentRef: { Ref: 'parent' },
-                }
+                },
             },
             nestedStackParameters: {
                 parentRef: {
@@ -692,16 +695,16 @@ test.each([
             },
             nestedResourceProps: {
                 BucketName: {
-                    "Fn::Join": [
-                        "",
+                    'Fn::Join': [
+                        '',
                         [
                             {
-                                "Ref": "parentRef"
+                                Ref: 'parentRef',
                             },
-                            "-nested"
-                        ]
-                    ]
-                }
+                            '-nested',
+                        ],
+                    ],
+                },
             },
             nestedStackOutputs: {
                 nestedStackOutput: {
@@ -712,25 +715,22 @@ test.each([
             },
             outputResourceProps: {
                 BucketName: {
-                    "Fn::Join": [
-                        "",
+                    'Fn::Join': [
+                        '',
                         [
                             {
-                                "Fn::GetAtt": [
-                                    "nested.NestedStackResource",
-                                    "Outputs.nestedStackOutput"
-                                ]
+                                'Fn::GetAtt': ['nested.NestedStackResource', 'Outputs.nestedStackOutput'],
                             },
-                            "-output"
-                        ]
-                    ]
-                }
-            }
+                            '-output',
+                        ],
+                    ],
+                },
+            },
         }),
         {
             stackInput: true,
             stackOutput: true,
-        }
+        },
     ],
     [
         'Sub-Ref stack input',
@@ -738,7 +738,7 @@ test.each([
             nestedStackResourceProps: {
                 Parameters: {
                     parentRef: { 'Fn::Sub': ['test.${Domain}', { Domain: { Ref: 'parent' } }] },
-                }
+                },
             },
             nestedStackParameters: {
                 parentRef: {
@@ -746,13 +746,13 @@ test.each([
                 },
             },
             nestedResourceProps: {
-                BucketName: { 'Fn::Sub': ['sub.${Domain}', { Domain: { Ref: 'parentRef' } }] }
+                BucketName: { 'Fn::Sub': ['sub.${Domain}', { Domain: { Ref: 'parentRef' } }] },
             },
         }),
         {
             stackInput: true,
             stackOutput: false,
-        }
+        },
     ],
     [
         'Sub-GetAtt stack output',
@@ -764,22 +764,22 @@ test.each([
             },
             outputResourceProps: {
                 BucketName: {
-                    'Fn::Sub': ['sub.${Domain}', {
-                        Domain: {
-                            "Fn::GetAtt": [
-                                "nested.NestedStackResource",
-                                "Outputs.nestedStackOutput"
-                            ]
-                        }
-                    }]
+                    'Fn::Sub': [
+                        'sub.${Domain}',
+                        {
+                            Domain: {
+                                'Fn::GetAtt': ['nested.NestedStackResource', 'Outputs.nestedStackOutput'],
+                            },
+                        },
+                    ],
                 },
-            }
+            },
         }),
         {
             stackInput: false,
             stackOutput: true,
-        }
-    ]
+        },
+    ],
 ])('nested stack adds edge for %s', (_name, stackManifest, expected) => {
     const graph = GraphBuilder.build(stackManifest).nodes;
     const childNode = graph.find((node) => node.construct.path === 'stack/nested/example-bucket/Resource');
@@ -793,27 +793,43 @@ test.each([
 
     if (expected.stackInput) {
         // The nested stack should depend on its inputs
-        expect(new Set(edgesToArray(parentNode!.incomingEdges))).toEqual(new Set(['stack/nested', 'stack/example-bucket/Policy/Resource']));
+        expect(new Set(edgesToArray(parentNode!.incomingEdges))).toEqual(
+            new Set(['stack/nested', 'stack/example-bucket/Policy/Resource']),
+        );
     } else {
-        expect(new Set(edgesToArray(parentNode!.incomingEdges))).toEqual(new Set(['stack/example-bucket/Policy/Resource']));
+        expect(new Set(edgesToArray(parentNode!.incomingEdges))).toEqual(
+            new Set(['stack/example-bucket/Policy/Resource']),
+        );
     }
 
     if (expected.stackOutput) {
         // the resource using the nested stack output should depend on the nested stack and the child resource
-        expect(new Set(edgesToArray(nestedStackNode!.incomingEdges))).toEqual(new Set(['stack/nested/example-bucket', 'stack/output-bucket/Resource']));
-        expect(new Set(edgesToArray(childNode!.incomingEdges))).toEqual(new Set(['stack/nested/example-bucket/Policy/Resource', 'stack/output-bucket/Resource']));
-        expect(new Set(edgesToArray(outputNode!.outgoingEdges))).toEqual(new Set(['stack/output-bucket', 'stack/nested', 'stack/nested/example-bucket/Resource']));
+        expect(new Set(edgesToArray(nestedStackNode!.incomingEdges))).toEqual(
+            new Set(['stack/nested/example-bucket', 'stack/output-bucket/Resource']),
+        );
+        expect(new Set(edgesToArray(childNode!.incomingEdges))).toEqual(
+            new Set(['stack/nested/example-bucket/Policy/Resource', 'stack/output-bucket/Resource']),
+        );
+        expect(new Set(edgesToArray(outputNode!.outgoingEdges))).toEqual(
+            new Set(['stack/output-bucket', 'stack/nested', 'stack/nested/example-bucket/Resource']),
+        );
     } else {
         expect(new Set(edgesToArray(nestedStackNode!.incomingEdges))).toEqual(new Set(['stack/nested/example-bucket']));
-        expect(new Set(edgesToArray(childNode!.incomingEdges))).toEqual(new Set(['stack/nested/example-bucket/Policy/Resource']));
+        expect(new Set(edgesToArray(childNode!.incomingEdges))).toEqual(
+            new Set(['stack/nested/example-bucket/Policy/Resource']),
+        );
         expect(new Set(edgesToArray(outputNode!.outgoingEdges))).toEqual(new Set(['stack/output-bucket']));
     }
 
     // Nested stack outgoing edges depend on inputs and outputs
     if (expected.stackInput && expected.stackOutput) {
-        expect(new Set(edgesToArray(nestedStackNode!.outgoingEdges))).toEqual(new Set(['stack', 'stack/example-bucket/Resource']));
+        expect(new Set(edgesToArray(nestedStackNode!.outgoingEdges))).toEqual(
+            new Set(['stack', 'stack/example-bucket/Resource']),
+        );
     } else if (expected.stackInput) {
-        expect(new Set(edgesToArray(nestedStackNode!.outgoingEdges))).toEqual(new Set(['stack', 'stack/example-bucket/Resource']));
+        expect(new Set(edgesToArray(nestedStackNode!.outgoingEdges))).toEqual(
+            new Set(['stack', 'stack/example-bucket/Resource']),
+        );
     } else if (expected.stackOutput) {
         expect(new Set(edgesToArray(nestedStackNode!.outgoingEdges))).toEqual(new Set(['stack']));
     }
@@ -1067,7 +1083,9 @@ test('parses custom resources', () => {
     const stackManifest = new StackManifest(props);
     const graph = GraphBuilder.build(stackManifest);
 
-    const deployWebsiteCR = graph.nodes.find((node) => node.resourceAddress?.id === 'DeployWebsiteCustomResourceD116527B');
+    const deployWebsiteCR = graph.nodes.find(
+        (node) => node.resourceAddress?.id === 'DeployWebsiteCustomResourceD116527B',
+    );
     expect(deployWebsiteCR).toBeDefined();
     expect(deployWebsiteCR?.construct.type).toEqual('aws-cdk-lib:CfnResource');
     expect(deployWebsiteCR?.resource).toBeDefined();
@@ -1108,15 +1126,17 @@ test('validates that all resources are mapped', () => {
             tree.children = Object.fromEntries(
                 Object.entries(tree.children)
                     .filter(([_, value]) => value.path !== path)
-                    .map(([key, value]) => [key, deleteResourceFromTree(value, path)])
+                    .map(([key, value]) => [key, deleteResourceFromTree(value, path)]),
             );
         }
         return tree;
-    }
+    };
     const constructTree = deleteResourceFromTree(props.tree, resourceToDelete);
     const stackManifest = new StackManifest({ ...props, tree: constructTree, metadata });
 
-    expect(() => GraphBuilder.build(stackManifest)).toThrow('1 out of 11 CDK resources failed to map to Pulumi resources.');
+    expect(() => GraphBuilder.build(stackManifest)).toThrow(
+        '1 out of 11 CDK resources failed to map to Pulumi resources.',
+    );
 });
 
 function edgesToArray(edges: Set<GraphNode>): string[] {

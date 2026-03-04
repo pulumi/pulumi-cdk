@@ -83,7 +83,7 @@ jobs:
       - name: Install packages
         run: yarn install --frozen-lockfile
       - name: Run build
-        run: yarn run set-version && yarn run build
+        run: yarn run set-version && yarn run build:ci
       - if: github.event_name == 'push'
         name: Publish Dev Package
         uses: JS-DevTools/npm-publish@v1

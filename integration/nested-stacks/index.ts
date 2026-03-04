@@ -1,7 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as pulumicdk from '@pulumi/cdk';
 import * as core from 'aws-cdk-lib/core';
-import { Construct } from "constructs";
+import { Construct } from 'constructs';
 
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -16,8 +16,8 @@ class Nesty extends core.NestedStack {
     public readonly bucket: s3.Bucket;
     constructor(scope: Construct, id: string, props: NestedStackProps) {
         super(scope, id, props);
-        this.bucket = new s3.Bucket(this, "bucket", {
-            bucketName: props.parentBucket.bucketName + "-nested",
+        this.bucket = new s3.Bucket(this, 'bucket', {
+            bucketName: props.parentBucket.bucketName + '-nested',
             websiteIndexDocument: 'index.html',
             publicReadAccess: true,
             blockPublicAccess: {
@@ -37,8 +37,8 @@ class RootStack extends pulumicdk.Stack {
     constructor(app: pulumicdk.App, id: string, options?: pulumicdk.StackOptions) {
         super(app, id, options);
 
-        const bucket = new s3.Bucket(this, "bucket", {});
-        const nesty = new Nesty(this, "nesty", {
+        const bucket = new s3.Bucket(this, 'bucket', {});
+        const nesty = new Nesty(this, 'nesty', {
             parentBucket: bucket,
         });
 
@@ -55,7 +55,6 @@ class RootStack extends pulumicdk.Stack {
 
 const accountId = pulumiaws.getCallerIdentityOutput().accountId;
 const region = pulumiaws.getRegionOutput().name;
-
 
 class MyApp extends pulumicdk.App {
     constructor() {
