@@ -1,5 +1,6 @@
 [env]
 _.vfox-pulumi = { module_path = "." } # Sets GO_VERSION_MISE and PULUMI_VERSION_MISE
+GH_AW_VERSION = "0.53.1"
 
 [tools]
 node = "24.12.0"
@@ -9,6 +10,7 @@ node = "24.12.0"
 go = "{{ get_env(name='GO_VERSION_MISE', default='latest') }}"
 pulumi = "3.213.0"
 gotestsum = "latest"
+"github:github/gh-aw" = { version = "{{ env.GH_AW_VERSION }}", bin = "gh-aw" }
 
 [settings]
 experimental = true # Required for Go binaries (e.g. pulumictl).
@@ -16,3 +18,15 @@ lockfile = false
 
 [plugins]
 vfox-pulumi = "https://github.com/pulumi/vfox-pulumi"
+
+[tasks.aw-version]
+description = "Show pinned gh-aw version"
+run = "gh-aw version"
+
+[tasks.aw-validate]
+description = "Validate agentic workflows without emitting lock files"
+run = "gh-aw validate"
+
+[tasks.aw-compile]
+description = "Compile all agentic workflows"
+run = "gh-aw compile"
