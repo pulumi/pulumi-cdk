@@ -66,11 +66,11 @@ jobs:
       - name: Unshallow clone for tags
         run: git fetch --prune --unshallow --tags
       - name: Setup mise
-        uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3
+        uses: jdx/mise-action@c1a019b8d2586943b4dbebc456323b516910e310
         env:
           MISE_FETCH_REMOTE_VERSIONS_TIMEOUT: 30s
         with:
-          version: 2025.12.12
+          version: 2026.2.15
           github_token: ${{ steps.app-auth.outputs.token }}
           # only saving the cache in the prerequisites job
           cache_save: false
