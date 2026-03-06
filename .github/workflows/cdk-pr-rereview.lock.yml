@@ -209,7 +209,7 @@ jobs:
           </system>
           GH_AW_PROMPT_EOF
           cat << 'GH_AW_PROMPT_EOF'
-          {{#runtime-import .github/aw/imports/pulumi-labs/gh-aw-internal/ae997a8103ec0b750d04141c3cdd4c31102b7f41/.github_snippets_code-review.md}}
+          {{#runtime-import .github/aw/imports/pulumi-labs/gh-aw-internal/99a309bf18258dbae98c8176ea10657e0b08deca/.github_snippets_code-review.md}}
           GH_AW_PROMPT_EOF
           cat << 'GH_AW_PROMPT_EOF'
           {{#runtime-import .github/workflows/cdk-pr-rereview.md}}

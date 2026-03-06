@@ -6,9 +6,8 @@ GH_AW_VERSION = "0.53.1"
 node = "24.12.0"
 "npm:yarn" = "1.22.22"
 "github:pulumi/pulumictl" = '0.0.50'
-# TODO: we may not need 'get_env' once https://github.com/jdx/mise/discussions/6339 is fixed
-go = "{{ get_env(name='GO_VERSION_MISE', default='latest') }}"
-pulumi = "3.213.0"
+go = "{{ env.GO_VERSION_MISE }}"
+"github:pulumi/pulumi" = "latest"
 gotestsum = "latest"
 
 [tools."github:github/gh-aw"]
