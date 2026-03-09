@@ -1,0 +1,34 @@
+name: cdk · validate agentic workflows
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@v2
+
+      - name: Show gh-aw version
+        run: gh-aw version
+
+      - name: Validate agentic workflows
+        run: gh-aw validate
+
+      - name: Compile agentic workflows
+        run: gh-aw compile
+
+      - name: Fail if compiled output differs
+        run: |
+          if ! git diff --exit-code; then
+            echo "::error::Compiled workflow output differs from committed files. Run 'gh-aw compile' locally and commit the result."
+            exit 1
+          fi
