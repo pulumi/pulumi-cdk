@@ -46,7 +46,7 @@ jobs:
           version: 2025.2.20
           github_token: ${{ steps.app-auth.outputs.token }}
           # only saving the cache in the prerequisites job
-          cache_save: true
+          cache_save: false
       - uses: pulumi/esc-action@6cf9520e68354d86f81c455e8d43eabd58f5c9f5 # v1
         with:
           environment: logins/pulumi-ci
