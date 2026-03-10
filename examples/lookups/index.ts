@@ -35,10 +35,12 @@ export class Ec2CdkStack extends pulumicdk.Stack {
             ],
         });
 
-        // use getAmiOutput to lookup the AMI instead of ec2.LookupMachineImage
-        const ami = aws.ec2.getAmiOutput({
+        // use getAmiIdsOutput to lookup the AMI instead of ec2.LookupMachineImage
+        // Using getAmiIds instead of getAmi because there are rare cases where two AMIs can be
+        // the most recent with the _exact_ same date. This causes non-deterministic behavior on update tests
+        const amis = aws.ec2.getAmiIdsOutput({
             owners: ['amazon'],
-            mostRecent: true,
+            sortAscending: true,
             filters: [
                 {
                     name: 'name',
@@ -46,10 +48,11 @@ export class Ec2CdkStack extends pulumicdk.Stack {
                 },
             ],
         });
+        const amiId = amis.ids.apply((ids) => ids.sort((a, b) => a.localeCompare(b))[0]);
 
         const region = aws.config.requireRegion();
         const machineImage = ec2.MachineImage.genericLinux({
-            [region]: pulumicdk.asString(ami.imageId),
+            [region]: pulumicdk.asString(amiId),
         });
 
         const instance = new ec2.Instance(this, 'Instance', {
