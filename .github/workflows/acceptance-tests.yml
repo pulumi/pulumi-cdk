@@ -43,10 +43,10 @@ jobs:
         env:
           MISE_FETCH_REMOTE_VERSIONS_TIMEOUT: 30s
         with:
-          version: 2025.12.12
+          version: 2025.2.20
           github_token: ${{ steps.app-auth.outputs.token }}
           # only saving the cache in the prerequisites job
-          cache_save: false
+          cache_save: true
       - uses: pulumi/esc-action@6cf9520e68354d86f81c455e8d43eabd58f5c9f5 # v1
         with:
           environment: logins/pulumi-ci
