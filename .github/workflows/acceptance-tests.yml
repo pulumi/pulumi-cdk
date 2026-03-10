@@ -43,7 +43,7 @@ jobs:
         env:
           MISE_FETCH_REMOTE_VERSIONS_TIMEOUT: 30s
         with:
-          version: 2025.2.20
+          version: 2026.3.6
           github_token: ${{ steps.app-auth.outputs.token }}
           # only saving the cache in the prerequisites job
           cache_save: false
