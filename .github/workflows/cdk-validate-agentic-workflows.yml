@@ -1,0 +1,39 @@
+name: Validate Agentic Workflows
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Validate Agentic Workflows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install mise tools
+        uses: jdx/mise-action@v2
+
+      - name: Show gh-aw version
+        run: gh-aw version
+
+      - name: Validate agentic workflows
+        run: gh-aw validate
+
+      - name: Compile agentic workflows
+        run: gh-aw compile
+
+      - name: Check for uncommitted changes
+        run: |
+          if ! git diff --quiet; then
+            echo "ERROR: Compiled workflow outputs are out of date. Run 'gh-aw compile' locally and commit the results."
+            git diff --stat
+            exit 1
+          fi
