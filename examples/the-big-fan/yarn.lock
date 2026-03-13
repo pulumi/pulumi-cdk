@@ -2258,18 +2258,18 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/aws@6.83.2":
-  version "6.83.2"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-6.83.2.tgz#04fefff290083e5e6b787954f63889658119558a"
-  integrity sha512-FggAx+LxANUwD9KPlKy4U8uvVjhR8B6vw+doDq7zP3bRWz7CCCd4sXZT2k/ou0erZN78MTzOXYa1nsN0TBEDJg==
+"@pulumi/aws@7.23.0":
+  version "7.23.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-7.23.0.tgz#4d6b072fd15deca25d24b2951d3b52c8ad1a62ed"
+  integrity sha512-tRyG4cwTQQ+88gb2TwejLWXW4TvuC72zlrNpCm2BBTnBp6YaZRT23xLFTYK8GN37fjzglmoVE9DF4yYMPvt17g==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
     mime "^2.0.0"
 
-"@pulumi/cdk@1.11.0":
-  version "1.11.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-1.11.0.tgz#ff7976a1038eae00679c75c3381a10deece520c6"
-  integrity sha512-/cF2lnj9MyDE1MM1JiuUvUq3Zdcn6Hvcru2tEMIXlllmbj2qol33kWpFl3RXfLchmpn5JspXjiR3R+rwU4sdoQ==
+"@pulumi/cdk@2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/cdk/-/cdk-2.0.0.tgz#647895dd52000105ce87f73335d053f58763bce4"
+  integrity sha512-SaupEhECQAWwBNfcWDG9Rko3G75qL7T88XK2tiPLcfYckfXTDHUFKB4sPVAb4DzhXxtVWwOalxs8guxc9Nj5pA==
   dependencies:
     "@aws-cdk/cdk-assets-lib" "^1.1.0"
     "@aws-cdk/cli-plugin-contract" "^2.182.0"
