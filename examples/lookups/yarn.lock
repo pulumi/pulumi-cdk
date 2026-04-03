@@ -2122,17 +2122,17 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
-"@pulumi/aws-native@1.50.0":
-  version "1.50.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.50.0.tgz#d176fdb7f942277207e464443b19c1462beb8fcf"
-  integrity sha512-q3bucl4XJOKy61ee1hNwuh1miRLloJyDYMfVVo4+/AQVkl5MMhimzB2lRkFlPYYqTDHMlTLeDy2ChdXhJxFkcQ==
+"@pulumi/aws-native@1.59.0":
+  version "1.59.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws-native/-/aws-native-1.59.0.tgz#bfb6fe1206a9da63f459e432b75c7a7099033a75"
+  integrity sha512-GTXk2fDWUcRO6jWDd5+FTyanOcIiH4zeFPTZ+M0zH9kNN0rwaNH1VLw0YVAeg9S2FjKB03qm3lVPDCBJXVaP+g==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/aws@7.16.0":
-  version "7.16.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-7.16.0.tgz#06a9c71a94684a4f265ea6a30dcab2805c73d7ba"
-  integrity sha512-taLHQH83bsZ37sifIc0xUA7SgX6xjsuJgkLGQ+Y7NMriNMCnk+9v801bs4r+YDy480zFF/yi195RuX77ZDXHPg==
+"@pulumi/aws@7.24.0":
+  version "7.24.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/aws/-/aws-7.24.0.tgz#68b02455ede48b88f8d3a2de38397f3c555c1c9f"
+  integrity sha512-Y+zV+uU3Mr+5kUaqsFbF0/lf9yc8TU1Kx1cgcqMbyUQTRBRyfpXb6lR3sBwC88z1DX/WFMrBCD+1bbwnS2fBbw==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
     mime "^2.0.0"
