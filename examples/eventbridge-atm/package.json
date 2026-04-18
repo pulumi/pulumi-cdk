@@ -9,7 +9,7 @@
         "@pulumi/cdk": "1.11.0",
         "@pulumi/pulumi": "3.217.1",
         "@types/aws-lambda": "^8.10.145",
-        "aws-cdk-lib": "2.197.0",
+        "aws-cdk-lib": "2.250.0",
         "constructs": "10.3.0",
         "esbuild": "^0.25.0"
     }
