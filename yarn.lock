@@ -2683,13 +2683,13 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumi/docker@4.11.0":
-  version "4.11.0"
-  resolved "https://registry.yarnpkg.com/@pulumi/docker/-/docker-4.11.0.tgz#78d063d02fcb0aa10383c8c3b2d604a86c51216f"
-  integrity sha512-NUXMCWL3VBtlclC4u7G9LcToCQGiR/wOuRdKHzAqbn0nzaVuPV3NlDZIz7CpcHL/mGGIQ00/HnLGCA8lC1kSFA==
+"@pulumi/docker@5.1.0":
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/@pulumi/docker/-/docker-5.1.0.tgz#1b01c7d5402668aa054990303f0ef595e4f3f714"
+  integrity sha512-ooaxCDZxsu2ApVIQK/RO9Zx56DRK1JWCqwZrQwfMSz5WO37uKxgMefHDNdHezyPPCw9NOs9aihiZEKoywjLQFw==
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
-    semver "^5.4.0"
+    semver "^7.0.0"
 
 "@pulumi/pulumi@3.217.1", "@pulumi/pulumi@^3.142.0":
   version "3.217.1"
@@ -6785,20 +6785,15 @@ safe-buffer@~5.2.0:
   resolved "https://registry.yarnpkg.com/safer-buffer/-/safer-buffer-2.1.2.tgz#44fa161b0187b9549dd84bb91802f9bd8385cd6a"
   integrity sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==
 
-semver@^5.4.0:
-  version "5.7.2"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-5.7.2.tgz#48d55db737c3287cd4835e17fa13feace1c41ef8"
-  integrity sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g==
-
 semver@^6.3.0, semver@^6.3.1:
   version "6.3.1"
   resolved "https://registry.yarnpkg.com/semver/-/semver-6.3.1.tgz#556d2ef8689146e46dcea4bfdd095f3434dffcb4"
   integrity sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==
 
-semver@^7.1.1, semver@^7.3.5, semver@^7.3.7, semver@^7.5.2, semver@^7.5.3, semver@^7.5.4, semver@^7.6.0, semver@^7.6.3, semver@^7.7.2, semver@^7.7.3:
-  version "7.7.3"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.7.3.tgz#4b5f4143d007633a8dc671cd0a6ef9147b8bb946"
-  integrity sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==
+semver@^7.0.0, semver@^7.1.1, semver@^7.3.5, semver@^7.3.7, semver@^7.5.2, semver@^7.5.3, semver@^7.5.4, semver@^7.6.0, semver@^7.6.3, semver@^7.7.2, semver@^7.7.3:
+  version "7.8.5"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.8.5.tgz#39b646037dd50c14fb451e7e4cac58ed8b863f69"
+  integrity sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==
 
 shebang-command@^2.0.0:
   version "2.0.0"

@@ -47,7 +47,7 @@ jobs:
           github_token: ${{ steps.app-auth.outputs.token }}
           # only saving the cache in the prerequisites job
           cache_save: false
-      - uses: pulumi/esc-action@6cf9520e68354d86f81c455e8d43eabd58f5c9f5 # v1
+      - uses: pulumi/esc-action@3af4859af8a73a362fb599b944124097d4bb80c5 # v3
         with:
           environment: logins/pulumi-ci
       - name: Install packages
