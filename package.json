@@ -29,7 +29,7 @@
     "@aws-cdk/aws-apprunner-alpha": "2.20.0-alpha.0",
     "@pulumi/aws": "7.16.0",
     "@pulumi/aws-native": "1.50.0",
-    "@pulumi/docker": "4.11.0",
+    "@pulumi/docker": "5.1.0",
     "@pulumi/docker-build": "0.0.15",
     "@pulumi/pulumi": "3.217.1",
     "@types/archiver": "^6.0.2",
