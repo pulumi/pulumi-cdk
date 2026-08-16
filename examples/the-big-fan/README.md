@@ -18,7 +18,7 @@ SNS Topic, this Topic then has two subscribers which are SQS Queues. The
 difference between the two subscribers is that one looks for a property of
 "status":"created" in the json and the other subscriber looks for any message
 that doesn't have that property. Each queue has a lambda that subscribes to it
-and prints whatever message it recieves to cloudwatch.
+and prints whatever message it receives to cloudwatch.
 
 ### JSON Payload Format
 
