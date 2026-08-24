@@ -19,7 +19,7 @@ import { PulumiProvider } from './types';
 
 /**
  * normalize will take the resource properties for a specific CloudFormation resource and
- * will covert those properties to be compatible with Pulumi properties.
+ * will convert those properties to be compatible with Pulumi properties.
  *
  * @param value - The resource properties to be normalized
  * @param cfnType The CloudFormation resource type being normalized (e.g. AWS::S3::Bucket). If no value

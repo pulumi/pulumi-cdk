@@ -8,7 +8,7 @@ import { CdkConstruct } from './internal/interop';
  */
 export interface AppOptions {
     /**
-     * Specify the CDK Stack properties to asociate with the stack.
+     * Specify the CDK Stack properties to associate with the stack.
      */
     props?: AppProps;
 

@@ -68,7 +68,7 @@ Use this type if a single CFN resource maps to multiple AWS resources
 > **normalize**(`value`, `cfnType`?, `pulumiProvider`?): `any`
 
 normalize will take the resource properties for a specific CloudFormation resource and
-will covert those properties to be compatible with Pulumi properties.
+will convert those properties to be compatible with Pulumi properties.
 
 #### Parameters
 
