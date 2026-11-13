@@ -6,7 +6,7 @@
     "dependencies": {
         "@aws-cdk/aws-s3objectlambda-alpha": "^2.171.0-alpha.0",
         "@pulumi/aws-native": "1.50.0",
-        "@pulumi/cdk": "1.11.0",
+        "@pulumi/cdk": "2.0.0",
         "@pulumi/pulumi": "3.217.1",
         "aws-cdk-lib": "2.197.0",
         "constructs": "10.3.0"
