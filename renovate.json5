@@ -39,5 +39,16 @@
       dependencyDashboardApproval: false,
       rangeStrategy: "pin",
     },
+    {
+      // Keep the Node.js base images used by example Dockerfiles current so they don't silently
+      // drift (e.g. `node:lts` moving to a release without yarn). Both stages are bumped together.
+      matchManagers: ["dockerfile"],
+      matchFileNames: ["examples/**"],
+      matchPackageNames: ["node"],
+      groupName: "example Dockerfile Node.js images",
+      groupSlug: "example-node-images",
+      // automatically open PRs, don't require manual trigger
+      dependencyDashboardApproval: false,
+    },
   ]
 }
