@@ -43,6 +43,11 @@ func TestAppSvc(t *testing.T) {
 }
 
 func TestAppRunner(t *testing.T) {
+	// AWS App Runner no longer accepts new customers, so the CI account cannot create App Runner services
+	// ("Account ... can't create new App Runner services"). Skip until we have an account that can, or
+	// replace this example with another service.
+	t.Skip("AWS App Runner is closed to new customers; the CI account cannot create services")
+
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
 			Dir: filepath.Join(getCwd(t), "apprunner"),
