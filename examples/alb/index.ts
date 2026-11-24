@@ -17,7 +17,7 @@ class AlbStack extends pulumicdk.Stack {
         const asg = new autoscaling.AutoScalingGroup(this, 'ASG', {
             vpc,
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
-            machineImage: new ec2.AmazonLinuxImage(),
+            machineImage: ec2.MachineImage.latestAmazonLinux2023(),
         });
 
         const lb = new elbv2.ApplicationLoadBalancer(this, 'LB', {
