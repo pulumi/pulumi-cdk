@@ -35,7 +35,7 @@ runs:
       shell: bash
       run: yarn run build:ci
     - name: Check worktree clean
-      uses: pulumi/git-status-check-action@v1
+      uses: pulumi/git-status-check-action@0d90c81496aa8d6a31d9c6a0d6297feea2f54057 # v2
     - name: Run unit tests
       shell: bash
       run: yarn run test
